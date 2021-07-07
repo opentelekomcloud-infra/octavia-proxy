@@ -42,9 +42,6 @@ class PaginationHelper(object):
         :param sort_dir: default direction to sort (asc, desc)
         """
         self.marker = params.get('marker')
-        # self.sort_dir = self._validate_sort_dir(sort_dir)
-        # self.limit = self._parse_limit(params)
-        # self.sort_keys = self._parse_sort_keys(params)
         self.params = params
         self.filters = None
         self.page_reverse = params.get('page_reverse', 'False')

@@ -4,7 +4,7 @@
     description: |
       Execute tests with latest dependencies
     required-projects:
-      - opentelekomcloud/python-otcextensions:
+      - name: opentelekomcloud/python-otcextensions
         override-checkout: elb
 
 - project:
