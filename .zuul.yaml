@@ -1,0 +1,16 @@
+- job:
+    name: otc-tox-py39-tips
+    parent: otc-tox-py39
+    description: |
+      Execute tests with latest dependencies
+    required-projects:
+      - opentelekomcloud/python-otcextensions:
+        override-checkout: elb
+
+- project:
+    merge-mode: squash-merge
+    default-branch: main
+    check:
+      jobs:
+        - otc-tox-pep8
+        - otc-tox-py39-tips
