@@ -1,5 +1,4 @@
 #    Copyright 2018 Rackspace, US Inc.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -12,15 +11,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from octavia_proxy import opts
-import octavia_proxy.tests.unit.base as base
+from oslo_policy import policy
+
+from octavia_proxy.common import constants
+
+rules = [
+    policy.DocumentedRuleDefault(
+        '{rbac_obj}{action}'.format(rbac_obj=constants.RBAC_PROVIDER,
+                                    action=constants.RBAC_GET_ALL),
+        constants.RULE_API_READ,
+        "List enabled providers",
+        [{'method': 'GET', 'path': '/v2/lbaas/providers'}]
+    ),
+]
 
 
-class TestOpts(base.TestCase):
-
-    def setUp(self):
-        super().setUp()
-
-    def test_list_opts(self):
-        opts_list = opts.list_opts()[0]
-        self.assertIn('DEFAULT', opts_list)
+def list_rules():
+    return rules

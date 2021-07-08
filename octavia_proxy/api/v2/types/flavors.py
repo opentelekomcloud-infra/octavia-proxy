@@ -14,7 +14,7 @@
 
 from wsme import types as wtypes
 
-from octavia.api.common import types
+from octavia_proxy.api.common import types
 
 
 class BaseFlavorType(types.BaseType):

@@ -14,10 +14,10 @@
 
 from wsme import types as wtypes
 
-from octavia.api.common import types
-from octavia.api.v2.types import l7rule
-from octavia.api.v2.types import pool
-from octavia.common import constants
+from octavia_proxy.api.common import types
+from octavia_proxy.api.v2.types import l7rule
+from octavia_proxy.api.v2.types import pool
+from octavia_proxy.common import constants
 
 
 class BaseL7PolicyType(types.BaseType):

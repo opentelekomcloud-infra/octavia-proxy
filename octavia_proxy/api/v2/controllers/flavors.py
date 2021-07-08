@@ -19,10 +19,10 @@ from pecan import abort as pecan_abort
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
-from octavia.api.v2.types import flavors as flavor_types
-from octavia.common import constants
-
 from octavia_proxy.api.v2.controllers import base
+from octavia_proxy.api.v2.types import flavors as flavor_types
+from octavia_proxy.common import constants
+
 
 LOG = logging.getLogger(__name__)
 

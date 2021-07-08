@@ -13,7 +13,7 @@
 #    under the License.
 from oslo_log import log as logging
 
-from octavia.common import constants
+from octavia_proxy.common import constants
 
 from octavia_proxy.common.config import cfg
 

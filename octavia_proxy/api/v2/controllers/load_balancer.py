@@ -23,19 +23,14 @@ from pecan import abort as pecan_abort
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
-from octavia.common import constants
-from octavia.common import exceptions
-from octavia.i18n import _
+from octavia_proxy.common import constants
+from octavia_proxy.common import exceptions
 
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
 
 from octavia_proxy.api.v2.types import load_balancer as lb_types
 from octavia_proxy.api.v2.controllers import base
-
-# import octavia_proxy.common.validate as validate
-# from octavia_proxy.api.v2.controllers import listener
-# from octavia_proxy.api.v2.controllers import pool
 
 
 CONF = cfg.CONF
@@ -113,7 +108,7 @@ class LoadBalancersController(base.BaseController):
                     session, load_balancer.flavor_id)
             except Exception as e:
                 raise exceptions.ValidationException(
-                    detail=_("Invalid flavor_id.")) from e
+                    detail=("Invalid flavor_id.")) from e
 
         # No provider specified and no flavor specified, use conf default
         if (isinstance(load_balancer.provider, wtypes.UnsetType) and
@@ -144,7 +139,7 @@ class LoadBalancersController(base.BaseController):
             load_balancer.project_id = context.project_id
 
         if not load_balancer.project_id:
-            raise exceptions.ValidationException(detail=_(
+            raise exceptions.ValidationException(detail=(
                 "Missing project ID in request where one is required. "
                 "An administrator should check the keystone settings "
                 "in the Octavia configuration."))

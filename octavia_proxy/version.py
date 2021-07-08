@@ -1,7 +1,7 @@
 import pbr.version
 
 OCTAVIA_VENDOR = "Open Telekom Cloud"
-OCTAVIA_PRODUCT = "OpenStack Octavia-Proxy"
+OCTAVIA_PRODUCT = "Octavia-Proxy"
 
 version_info = pbr.version.VersionInfo('octavia-proxy')
 
