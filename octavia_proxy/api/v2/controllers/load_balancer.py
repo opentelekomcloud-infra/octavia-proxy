@@ -137,6 +137,7 @@ class LoadBalancersController(base.BaseController):
     def post(self, load_balancer):
         """Creates a load balancer."""
         load_balancer = load_balancer.loadbalancer
+        print(load_balancer.to_dict())
         context = pecan_request.context.get('octavia_context')
 
         if not load_balancer.project_id and context.project_id:
@@ -160,12 +161,8 @@ class LoadBalancersController(base.BaseController):
 
         lb_dict = load_balancer.to_dict(render_unsets=False)
         lb_dict['id'] = None
-        vip = lb_dict['vip']
-        # Prepare the data for the driver data model
         driver_lb_dict = driver_utils.lb_dict_to_provider_dict(
             lb_dict, None, None, None)
-        driver_lb_dict.update(
-            driver_utils.vip_dict_to_provider_dict(vip))
 
         # Dispatch to the driver
         result = driver_utils.call_provider(

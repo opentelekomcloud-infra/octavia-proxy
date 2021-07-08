@@ -11,4 +11,10 @@ keystonemiddleware>=4.17.0 # Apache-2.0
 oslo.config>=5.2.0 # Apache-2.0
 oslo.log>=4.3.0 # Apache-2.0
 
-octavia
+# Octavia brings too many unnecessary dependencies, perhaps it 
+# makes sense to get only required pieces of code instead
+octavia==8.0.0 # Apache-2.0
+# OTC dependencies
+
+otcextensions # Apache-2.0
+validatetoken # Apache-2.0

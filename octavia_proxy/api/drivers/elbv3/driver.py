@@ -13,6 +13,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def __init__(self):
         super().__init__()
 
+    # API functions
     def get_supported_flavor_metadata(self):
         LOG.debug('Provider %s elbv3, get_supported_flavor_metadata',
                   self.__class__.__name__)
@@ -51,7 +52,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         result = []
 
-        for lb in session.list_elbv3_load_balancers(**query_filter):
+        for lb in session.vlb.load_balancers(**query_filter):
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                 self._normalize_lb(lb))
             lb_data.provider = 'elbv3'
@@ -62,13 +63,27 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def loadbalancer_get(self, session, project_id, lb_id):
         LOG.debug('Searching loadbalancer')
 
-        lb = session.find_elbv2_load_balancer(
+        lb = session.vlb.find_load_balancer(
             name_or_id=lb_id, ignore_missing=True)
         if lb:
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                 self._normalize_lb(lb))
-            lb_data.provider = 'elbv2'
+            lb_data.provider = 'elbv3'
             return lb_data
+
+    def loadbalancer_create(self, session, loadbalancer):
+        LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
+
+        lb_attrs = loadbalancer.to_dict()
+        lb_attrs.pop('loadbalancer_id')
+
+        lb = session.vlb.create_load_balancer(**lb_attrs)
+
+        lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+            lb)
+        lb_data.provider = 'elbv3'
+        LOG.debug('Created LB according to API is %s' % lb_data)
+        return lb_data
 
     def listeners(self, session, project_id, query_filter=None):
         LOG.debug('Fetching listeners')

@@ -26,7 +26,10 @@ class Context(common_context.RequestContext):
         self.is_admin = False
 
     def set_token_info(self, token_info):
-        """Set token into to be able to recreate session"""
+        """Set token into to be able to recreate session
+
+        :param dict token_info: Token structure
+        """
         self.token_info = token_info
 
         self.token_auth = token.Token(auth_url=CONF.validatetoken.auth_url)
@@ -39,7 +42,10 @@ class Context(common_context.RequestContext):
     def session(self):
         # Establish real session only when required
         if self._session is None:
+            # Initiate KS session from the existing token
             sess = session.Session(auth=self.token_auth)
+            # Initiate SDK connection from the session loading the hook to
+            # enable OTCE
             sdk = openstack.connection.Connection(
                 session=sess,
                 vendor_hook='otcextensions.sdk:load')

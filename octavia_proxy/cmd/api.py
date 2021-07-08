@@ -5,7 +5,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_reports import guru_meditation_report as gmr
 
-from octavia.common import constants
+from octavia_proxy.common import constants
 
 from octavia_proxy.api import app as api_app
 from octavia_proxy import version
@@ -23,7 +23,8 @@ def main():
     port = cfg.CONF.api_settings.bind_port
     LOG.info("Starting API server on %(host)s:%(port)s",
              {"host": host, "port": port})
-    if cfg.CONF.api_settings.auth_strategy != constants.KEYSTONE:
+    if (cfg.CONF.api_settings.auth_strategy not in [
+            constants.KEYSTONE, constants.KEYSTONE_EXT]):
         LOG.warning('Octavia configuration [api_settings] auth_strategy is '
                     'not set to "keystone". This is not a normal '
                     'configuration and you may get "Missing project ID" '

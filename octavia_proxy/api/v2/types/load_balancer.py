@@ -25,20 +25,22 @@ LOG = logging.getLogger(__name__)
 
 
 class BaseLoadBalancerType(types.BaseType):
-    _type_to_model_map = {'vip_address': 'vip.ip_address',
-                          'vip_subnet_id': 'vip.subnet_id',
-                          'vip_port_id': 'vip.port_id',
-                          'vip_network_id': 'vip.network_id',
-                          'vip_qos_policy_id': 'vip.qos_policy_id',
-                          'admin_state_up': 'enabled'}
-    _child_map = {'vip': {
-        'ip_address': 'vip_address',
-        'subnet_id': 'vip_subnet_id',
-        'port_id': 'vip_port_id',
-        'network_id': 'vip_network_id',
-        'qos_policy_id': 'vip_qos_policy_id',
-        },
-        'listeners': 'listeners'}
+    _type_to_model_map = {
+        # 'vip_address': 'vip.ip_address',
+        # 'vip_subnet_id': 'vip.subnet_id',
+        # 'vip_port_id': 'vip.port_id',
+        # 'vip_network_id': 'vip.network_id',
+        # 'vip_qos_policy_id': 'vip.qos_policy_id',
+        'admin_state_up': 'enabled'
+    }
+#    _child_map = {'vip': {
+#        'ip_address': 'vip_address',
+#        'subnet_id': 'vip_subnet_id',
+#        'port_id': 'vip_port_id',
+#        'network_id': 'vip_network_id',
+#        'qos_policy_id': 'vip_qos_policy_id',
+#        },
+#        'listeners': 'listeners'}
 
 
 class LoadBalancerResponse(BaseLoadBalancerType):
