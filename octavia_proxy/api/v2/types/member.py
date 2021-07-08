@@ -14,8 +14,8 @@
 
 from wsme import types as wtypes
 
-from octavia.api.common import types
-from octavia.common import constants
+from octavia_proxy.api.common import types
+from octavia_proxy.common import constants
 
 
 class BaseMemberType(types.BaseType):

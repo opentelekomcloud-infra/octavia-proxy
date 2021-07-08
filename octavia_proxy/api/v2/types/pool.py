@@ -15,10 +15,10 @@
 from octavia_lib.common import constants as lib_constants
 from wsme import types as wtypes
 
-from octavia.api.common import types
-from octavia.api.v2.types import health_monitor
-from octavia.api.v2.types import member
-from octavia.common import constants
+from octavia_proxy.api.common import types
+from octavia_proxy.api.v2.types import health_monitor
+from octavia_proxy.api.v2.types import member
+from octavia_proxy.common import constants
 
 
 class SessionPersistenceResponse(types.BaseType):

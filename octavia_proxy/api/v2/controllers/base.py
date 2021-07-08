@@ -3,9 +3,8 @@ from oslo_log import log as logging
 from pecan import rest as pecan_rest
 from wsme import types as wtypes
 
-from octavia.common import constants
-from octavia.common import data_models
-from octavia.common import exceptions
+from octavia_proxy.common import constants
+from octavia_proxy.common import exceptions
 
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
@@ -59,7 +58,7 @@ class BaseController(pecan_rest.RestController):
 
         if not load_balancer:
             raise exceptions.NotFound(
-                resource=data_models.LoadBalancer._name(),
+                resource='LoadBalancer',
                 id=id)
 
         return load_balancer
@@ -84,7 +83,7 @@ class BaseController(pecan_rest.RestController):
 
         if not listener:
             raise exceptions.NotFound(
-                resource=data_models.Listener._name(),
+                resource='Listener',
                 id=id)
 
         return listener

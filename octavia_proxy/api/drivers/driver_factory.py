@@ -2,7 +2,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from stevedore import driver as stevedore_driver
 
-from octavia.common import exceptions
+from octavia_proxy.common import exceptions
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)

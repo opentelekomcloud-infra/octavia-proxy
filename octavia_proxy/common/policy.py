@@ -16,8 +16,8 @@ from oslo_log import log as logging
 from oslo_policy import policy as oslo_policy
 from oslo_utils import excutils
 
-from octavia.common import exceptions
-from octavia import policies
+from octavia_proxy.common import exceptions
+from octavia_proxy import policies
 
 
 LOG = logging.getLogger(__name__)

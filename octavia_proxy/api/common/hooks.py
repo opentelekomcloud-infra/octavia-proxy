@@ -3,7 +3,7 @@ from pecan import hooks
 from oslo_log import log as logging
 from oslo_config import cfg
 
-from octavia.common import constants
+from octavia_proxy.common import constants
 
 from octavia_proxy.api.common import pagination
 from octavia_proxy.common import context

@@ -14,8 +14,8 @@
 
 from wsme import types as wtypes
 
-from octavia.api.common import types as base
-from octavia.common import constants as consts
+from octavia_proxy.api.common import types as base
+from octavia_proxy.common import constants as consts
 
 
 class QuotaBase(base.BaseType):

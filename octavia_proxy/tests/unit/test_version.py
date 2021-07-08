@@ -14,8 +14,8 @@
 
 from unittest import mock
 
-import octavia.tests.unit.base as base
-from octavia import version
+import octavia_proxy.tests.unit.base as base
+from octavia_proxy import version
 
 
 class TestVersion(base.TestCase):
@@ -24,10 +24,10 @@ class TestVersion(base.TestCase):
         super().setUp()
 
     def test_vendor_str(self):
-        self.assertEqual("OpenStack Foundation", version.vendor_string())
+        self.assertEqual("Open Telekom Cloud", version.vendor_string())
 
     def test_product_string(self):
-        self.assertEqual("OpenStack Octavia", version.product_string())
+        self.assertEqual("Octavia-Proxy", version.product_string())
 
     @mock.patch('pbr.version.VersionInfo.version_string', return_value='0.0.0')
     def test_version_str(self, mock_pbr):

@@ -19,8 +19,8 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
-from octavia.common import constants
-from octavia.common import exceptions
+from octavia_proxy.common import constants
+from octavia_proxy.common import exceptions
 
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory

@@ -7,9 +7,10 @@ from wsmeext import pecan as wsme_pecan
 from oslo_log import log as logging
 
 from octavia_lib.api.drivers import exceptions as lib_exceptions
-from octavia.api.v2.types import provider as provider_types
-from octavia.common import constants
-from octavia.common import exceptions
+
+from octavia_proxy.api.v2.types import provider as provider_types
+from octavia_proxy.common import constants
+from octavia_proxy.common import exceptions
 
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.v2.controllers import base

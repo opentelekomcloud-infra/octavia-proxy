@@ -16,7 +16,7 @@ from wsme import types as wtypes
 
 from oslo_log import log as logging
 
-from octavia.api.common import types
+from octavia_proxy.api.common import types
 from octavia_proxy.api.v2.types import listener
 from octavia_proxy.api.v2.types import pool
 

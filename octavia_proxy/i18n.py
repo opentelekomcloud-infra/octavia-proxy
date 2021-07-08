@@ -1,4 +1,4 @@
-#    Copyright 2018 Rackspace, US Inc.
+# All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -12,15 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from octavia_proxy import opts
-import octavia_proxy.tests.unit.base as base
+import oslo_i18n as i18n
 
+_translators = i18n.TranslatorFactory(domain='octavia_proxy')
 
-class TestOpts(base.TestCase):
-
-    def setUp(self):
-        super().setUp()
-
-    def test_list_opts(self):
-        opts_list = opts.list_opts()[0]
-        self.assertIn('DEFAULT', opts_list)
+# The primary translation function using the well-known name "_"
+_ = _translators.primary

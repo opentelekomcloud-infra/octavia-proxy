@@ -8,8 +8,8 @@ from oslo_log import log as logging
 import openstack
 
 from octavia_proxy.common import constants
-from octavia.common import utils
-from octavia.i18n import _
+from octavia_proxy.common import utils
+from octavia_proxy.i18n import _
 
 from octavia_proxy import version
 
