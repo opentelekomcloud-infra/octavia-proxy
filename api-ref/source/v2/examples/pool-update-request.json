@@ -1,0 +1,18 @@
+{
+    "pool": {
+        "lb_algorithm": "LEAST_CONNECTIONS",
+        "session_persistence": {
+            "type": "SOURCE_IP"
+        },
+        "description": "Super Least Connections Pool",
+        "name": "super-least-conn-pool",
+        "tags": ["updated_tag"],
+        "tls_container_ref": "http://198.51.100.10:9311/v1/containers/c1cd501d-3cf9-4873-a11b-a74bebcde929",
+        "ca_tls_container_ref": null,
+        "crl_container_ref": null,
+        "tls_enabled": false,
+        "tls_ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
+        "tls_versions": ["TLSv1.2", "TLSv1.3"],
+        "alpn_protocols": ["http/1.1", "http/1.0"]
+    }
+}

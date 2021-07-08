@@ -1,0 +1,19 @@
+{
+  "versions": [{
+    "status": "SUPPORTED",
+    "updated": "2016-12-11T00:00:00Z",
+    "id": "v2.0",
+    "links": [{
+      "href": "http://10.21.21.53/load-balancer/v2",
+      "rel": "self"
+    }]
+  }, {
+    "status": "CURRENT",
+    "updated": "2018-04-20T00:00:00Z",
+    "id": "v2.1",
+    "links": [{
+      "href": "http://10.21.21.53/load-balancer/v2",
+      "rel": "self"
+    }]
+  }]
+}

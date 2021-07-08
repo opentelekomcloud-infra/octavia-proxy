@@ -17,6 +17,7 @@ ChangeLog
 dist
 # Doc related
 doc/build
+api-ref/build
 # Development environment files
 .project
 .pydevproject

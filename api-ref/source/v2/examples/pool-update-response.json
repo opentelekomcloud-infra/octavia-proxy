@@ -1,0 +1,39 @@
+{
+    "pool": {
+        "lb_algorithm": "LEAST_CONNECTIONS",
+        "protocol": "HTTP",
+        "description": "Super Least Connections Pool",
+        "admin_state_up": true,
+        "loadbalancers": [
+            {
+                "id": "607226db-27ef-4d41-ae89-f2a800e9c2db"
+            }
+        ],
+        "created_at": "2017-05-10T18:14:44",
+        "provisioning_status": "PENDING_UPDATE",
+        "updated_at": "2017-05-10T23:08:12",
+        "session_persistence": {
+            "cookie_name": null,
+            "type": "SOURCE_IP"
+        },
+        "listeners": [
+            {
+                "id": "023f2e34-7806-443b-bfae-16c324569a3d"
+            }
+        ],
+        "members": [],
+        "healthmonitor_id": null,
+        "project_id": "e3cd678b11784734bc366148aa37580e",
+        "id": "4029d267-3983-4224-a3d0-afb3fe16a2cd",
+        "operating_status": "ONLINE",
+        "name": "super-least-conn-pool",
+        "tags": ["updated_tag"],
+        "tls_container_ref": "http://198.51.100.10:9311/v1/containers/c1cd501d-3cf9-4873-a11b-a74bebcde929",
+        "ca_tls_container_ref": null,
+        "crl_container_ref": null,
+        "tls_enabled": false,
+        "tls_ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
+        "tls_versions": ["TLSv1.2", "TLSv1.3"],
+        "alpn_protocols": ["http/1.1", "http/1.0"]
+    }
+}
