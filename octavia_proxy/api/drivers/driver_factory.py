@@ -1,7 +1,6 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 from stevedore import driver as stevedore_driver
-from wsme import types as wtypes
 
 from octavia.common import exceptions
 
@@ -10,14 +9,6 @@ LOG = logging.getLogger(__name__)
 
 
 def get_driver(provider):
-    # If this came in None it must be a load balancer that existed before
-    # provider support was added. These must be of type 'amphora' and not
-    # whatever the current "default" is set to.
-    if isinstance(provider, wtypes.UnsetType):
-        provider = CONF.api_settings.default_provider_driver
-    elif not provider:
-        provider = 'amphora'
-
     if provider not in CONF.api_settings.enabled_provider_drivers:
         LOG.warning("Requested provider driver '%s' was not enabled in the "
                     "configuration file.", provider)

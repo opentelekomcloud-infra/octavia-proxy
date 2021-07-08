@@ -15,6 +15,7 @@ import validatetoken.middleware.validatetoken as validatetoken_middleware
 from octavia_proxy.api import config as app_config
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.common import service as octavia_service
+from octavia_proxy.common import constants
 
 
 LOG = logging.getLogger(__name__)
@@ -59,7 +60,9 @@ def _wrap_app(app):
     """Wraps wsgi app with additional middlewares."""
     app = request_id.RequestId(app)
 
-    app = validatetoken_middleware.ValidateToken(app, cfg.CONF.validatetoken)
+    if cfg.CONF.api_settings.auth_strategy == constants.KEYSTONE_EXT:
+        app = validatetoken_middleware.ValidateToken(
+            app, cfg.CONF.validatetoken)
 
     app = http_proxy_to_wsgi.HTTPProxyToWSGI(app)
 

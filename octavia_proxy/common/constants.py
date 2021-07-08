@@ -700,24 +700,11 @@ UPSTART_DIR = '/etc/init'
 
 INIT_PROC_COMM_PATH = '/proc/1/comm'
 
-KEEPALIVED_SYSTEMD = 'octavia-keepalived.service'
-KEEPALIVED_SYSVINIT = 'octavia-keepalived'
-KEEPALIVED_UPSTART = 'octavia-keepalived.conf'
-
-KEEPALIVED_SYSTEMD_PREFIX = 'octavia-keepalivedlvs-%s.service'
-KEEPALIVED_SYSVINIT_PREFIX = 'octavia-keepalivedlvs-%s'
-KEEPALIVED_UPSTART_PREFIX = 'octavia-keepalivedlvs-%s.conf'
-
 # Authentication
 KEYSTONE = 'keystone'
+KEYSTONE_EXT = 'validatetoken'
 NOAUTH = 'noauth'
 TESTING = 'testing'
-
-# Amphora distro-specific data
-UBUNTU_AMP_NET_DIR_TEMPLATE = '/etc/netns/{netns}/network/interfaces.d/'
-RH_AMP_NET_DIR_TEMPLATE = '/etc/netns/{netns}/sysconfig/network-scripts/'
-UBUNTU = 'ubuntu'
-CENTOS = 'centos'
 
 # Pagination, sorting, filtering values
 APPLICATION_JSON = 'application/json'
@@ -834,11 +821,6 @@ VOLUME_NOOP_DRIVER = 'volume_noop_driver'
 SUPPORTED_VOLUME_DRIVERS = [VOLUME_NOOP_DRIVER,
                             'volume_cinder_driver']
 
-# Cinder volume driver constants
-CINDER_STATUS_AVAILABLE = 'available'
-CINDER_STATUS_ERROR = 'error'
-CINDER_ACTION_CREATE_VOLUME = 'create volume'
-
 # The nil UUID (used in octavia for deleted references) - RFC 4122
 NIL_UUID = '00000000-0000-0000-0000-000000000000'
 
@@ -876,7 +858,3 @@ LISTENER_PROTOCOLS_SUPPORTING_HEADER_INSERTION = [PROTOCOL_HTTP,
 SUPPORTED_ALPN_PROTOCOLS = [lib_consts.ALPN_PROTOCOL_HTTP_2,
                             lib_consts.ALPN_PROTOCOL_HTTP_1_1,
                             lib_consts.ALPN_PROTOCOL_HTTP_1_0]
-
-AMPHORA_SUPPORTED_ALPN_PROTOCOLS = [lib_consts.ALPN_PROTOCOL_HTTP_2,
-                                    lib_consts.ALPN_PROTOCOL_HTTP_1_1,
-                                    lib_consts.ALPN_PROTOCOL_HTTP_1_0]

@@ -43,6 +43,7 @@ api_opts = [
     cfg.StrOpt('auth_strategy', default=constants.NOAUTH,
                choices=[constants.NOAUTH,
                         constants.KEYSTONE,
+                        constants.KEYSTONE_EXT,
                         constants.TESTING],
                help=_("The auth strategy for API requests.")),
     cfg.BoolOpt('allow_pagination', default=True,
@@ -97,7 +98,7 @@ def register_cli_opts():
 
 def init(args, **kwargs):
     register_cli_opts()
-    cfg.CONF(args=args, project='octavia-proxy',
+    cfg.CONF(args=args, project='octavia_proxy',
              version='%%prog %s' % version.version_info.release_string(),
              **kwargs)
     setup_remote_debugger()
@@ -109,7 +110,7 @@ def setup_logging(conf):
     """
     logging.set_defaults(default_log_levels=logging.get_default_log_levels() +
                          EXTRA_LOG_LEVEL_DEFAULTS)
-    product_name = "octavia-proxy"
+    product_name = "octavia_proxy"
     logging.setup(conf, product_name)
     LOG.info("Logging enabled!")
     LOG.info("%(prog)s version %(version)s",

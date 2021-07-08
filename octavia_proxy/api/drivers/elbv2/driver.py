@@ -1,8 +1,6 @@
 # from dateutil import parser
 from oslo_log import log as logging
 
-# from otcextensions import sdk as otce
-
 # from octavia_lib.api.drivers import data_models
 from octavia_lib.api.drivers import provider_base as driver_base
 
@@ -41,7 +39,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         results = []
-        for lb in session.list_elbv2_load_balancers(**query_filter):
+        for lb in session.elb.load_balancers(**query_filter):
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                 lb)
             lb_data.provider = 'elbv2'
@@ -51,7 +49,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def loadbalancer_get(self, session, project_id, lb_id):
         LOG.debug('Searching loadbalancer')
 
-        lb = session.find_elbv2_load_balancer(
+        lb = session.elb.find_load_balancer(
             name_or_id=lb_id, ignore_missing=True)
         LOG.debug('lb is %s' % lb)
 
@@ -66,7 +64,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         lb_attrs = loadbalancer.to_dict()
         lb_attrs.pop('loadbalancer_id')
 
-        lb = session.create_elbv2_load_balancer(**lb_attrs)
+        lb = session.elb.create_load_balancer(**lb_attrs)
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
@@ -78,7 +76,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
                             new_attrs):
         LOG.debug('Updating loadbalancer')
 
-        lb = session.update_elbv2_load_balancer(
+        lb = session.elb.update_load_balancer(
             original_load_balancer.id,
             **new_attrs)
 
@@ -90,7 +88,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
 
-        session.delete_elbv2_load_balancer(loadbalancer.id, cascade=cascade)
+        session.elb.delete_load_balancer(loadbalancer.id, cascade=cascade)
 
     def listeners(self, session, project_id, query_filter=None):
         LOG.debug('Fetching listeners')
@@ -99,14 +97,14 @@ class ELBv2Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         results = []
-        for lsnr in session.list_elbv2_listeners(**query_filter):
+        for lsnr in session.elb.listeners(**query_filter):
             results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
         return results
 
     def listener_get(self, session, project_id, listener_id):
         LOG.debug('Searching loadbalancer')
 
-        lsnr = session.find_elbv2_listener(
+        lsnr = session.elb.find_listener(
             name_or_id=listener_id, ignore_missing=True)
 
         if lsnr:
@@ -119,7 +117,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         # TODO: do this differently
         attrs.pop('l7policies')
 
-        res = session.create_elbv2_listener(**attrs)
+        res = session.elb.create_listener(**attrs)
 
         result_data = _listener.ListenerResponse.from_sdk_object(
             res)
@@ -129,7 +127,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def listener_update(self, session, original, new_attrs):
         LOG.debug('Updating listener')
 
-        res = session.update_elbv2_listener(
+        res = session.elb.update_listener(
             original.id,
             **new_attrs)
 
@@ -141,4 +139,4 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def listener_delete(self, session, listener):
         LOG.debug('Deleting listener %s' % listener.to_dict())
 
-        session.delete_elbv2_listener(listener.id)
+        session.elb.delete_listener(listener.id)
