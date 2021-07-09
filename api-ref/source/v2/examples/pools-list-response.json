@@ -1,0 +1,46 @@
+{
+    "pools": [
+        {
+            "lb_algorithm": "ROUND_ROBIN",
+            "protocol": "HTTP",
+            "description": "My round robin pool",
+            "admin_state_up": true,
+            "loadbalancers": [
+                {
+                    "id": "607226db-27ef-4d41-ae89-f2a800e9c2db"
+                }
+            ],
+            "created_at": "2017-04-13T18:14:44",
+            "provisioning_status": "ACTIVE",
+            "updated_at": "2017-04-13T23:08:12",
+            "session_persistence": {
+                "cookie_name": null,
+                "type": "SOURCE_IP"
+            },
+            "listeners": [
+                {
+                    "id": "023f2e34-7806-443b-bfae-16c324569a3d"
+                }
+            ],
+            "members": [
+                {
+                    "id": "5bc73753-348f-4b5a-8f9c-10bd7b30dc35",
+                    "id": "692e8358-f8fd-4b92-bbca-6e4b97c75571"
+                }
+            ],
+            "healthmonitor_id": null,
+            "project_id": "e3cd678b11784734bc366148aa37580e",
+            "id": "ddb2b28f-89e9-45d3-a329-a359c3e39e4a",
+            "operating_status": "ONLINE",
+            "name": "round_robin_pool",
+            "tags": ["test_tag"],
+            "tls_container_ref": "http://198.51.100.10:9311/v1/containers/4073846f-1d5e-42e1-a4cf-a7046419d0e6",
+            "ca_tls_container_ref": "http://198.51.100.10:9311/v1/containers/5f0d5540-fae6-4646-85d6-8a84883807fb",
+            "crl_container_ref": "http://198.51.100.10:9311/v1/containers/6faf0a01-6892-454c-aaac-650282820c0b",
+            "tls_enabled": true,
+            "tls_ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256",
+            "tls_versions": ["TLSv1.2", "TLSv1.3"],
+            "alpn_protocols": ["http/1.1", "http/1.0"]
+        }
+    ]
+}

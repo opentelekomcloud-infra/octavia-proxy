@@ -10,6 +10,9 @@
 - project:
     merge-mode: squash-merge
     default-branch: main
+    templates:
+      - publish-otc-docs-pti
+      - release-notes-jobs
     check:
       jobs:
         - otc-tox-pep8

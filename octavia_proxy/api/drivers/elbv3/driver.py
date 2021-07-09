@@ -48,7 +48,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
-        query_filter.pop('project_id')
+        query_filter.pop('project_id', None)
 
         result = []
 
