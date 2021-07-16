@@ -1,4 +1,4 @@
-# Copyright 2014 Rackspace
+#    Copyright 2014 Rackspace
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -11,22 +11,16 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from pathlib import Path
 
-from oslo_config import cfg
-
-from octavia_proxy.common import config
+from octavia_proxy.tests.functional.api.v2 import base
 
 
-def prepare_service(argv=None):
-    """Sets global config from config file and sets up logging."""
-    argv = argv or []
-    config_file = '/etc/octavia_proxy/octavia_proxy.conf'
-    kwargs = dict()
-    if Path(config_file).is_file():
-        kwargs['default_config_files'] = [config_file]
-    config.init(
-        argv[1:],
-        **kwargs
-    )
-    config.setup_logging(cfg.CONF)
+class TestLoadBalancer(base.BaseAPITest):
+    root_tag = 'loadbalancer'
+    root_tag_list = 'loadbalancers'
+    root_tag_links = 'loadbalancers_links'
+
+    def test_empty_list(self):
+        response = self.get(self.LBS_PATH)
+        api_list = response.json.get(self.root_tag_list)
+        self.assertEqual([], api_list)
