@@ -17,7 +17,15 @@
       jobs:
         - otc-tox-pep8
         - otc-tox-py39-tips
+        - tox-functional:
+            required-projects:
+              - name: opentelekomcloud/python-otcextensions
+                override-checkout: elb
     gate:
       jobs:
         - otc-tox-pep8
         - otc-tox-py39-tips
+        - tox-functional:
+            required-projects:
+              - name: opentelekomcloud/python-otcextensions
+                override-checkout: elb
