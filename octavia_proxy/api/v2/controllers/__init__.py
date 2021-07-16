@@ -5,6 +5,7 @@ from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.controllers import flavors
 from octavia_proxy.api.v2.controllers import load_balancer
 from octavia_proxy.api.v2.controllers import listener
+from octavia_proxy.api.v2.controllers import pool
 from octavia_proxy.api.v2.controllers import provider
 
 
@@ -20,7 +21,7 @@ class BaseV2Controller(base.BaseController):
         super().__init__()
         self.loadbalancers = load_balancer.LoadBalancersController()
         self.listeners = listener.ListenersController()
-#        self.pools = pool.PoolsController()
+        self.pools = pool.PoolsController()
 #        self.l7policies = l7policy.L7PolicyController()
 #        self.healthmonitors = health_monitor.HealthMonitorController()
 #        self.quotas = quotas.QuotasController()

@@ -41,8 +41,16 @@
         - otc-tox-pep8
         - otc-tox-py39-tips
         - octavia-proxy-build-image
+        - tox-functional:
+            required-projects:
+              - name: opentelekomcloud/python-otcextensions
+                override-checkout: elb
     gate:
       jobs:
         - otc-tox-pep8
         - otc-tox-py39-tips
         - octavia-proxy-upload-image
+        - tox-functional:
+            required-projects:
+              - name: opentelekomcloud/python-otcextensions
+                override-checkout: elb

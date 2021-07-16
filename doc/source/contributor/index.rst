@@ -15,8 +15,9 @@ Contributor Guidelines
 Developer Setup
 ---------------
 
-- tox create venv for octavia-proxy
+- tox `tox -e py39 --notest`
 - source into it
+- `rm -rf .tox/py39/lib/python3.9/site-packages/otcextensions*`
 - with the venv python go to otcextensions elb branch and do
   `python setup.py develop`
 - add into the clouds.yaml

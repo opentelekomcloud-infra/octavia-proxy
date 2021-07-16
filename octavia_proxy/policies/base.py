@@ -30,18 +30,10 @@ rules = [
     # role:admin
     #     User is admin to all APIs
 
-    policy.RuleDefault('context_is_admin',
-                       'role:admin or role:load-balancer_admin'),
-
-    # Note: 'is_admin:True' is a policy rule that takes into account the
-    # auth_strategy == noauth configuration setting.
-    # It is equivalent to 'rule:context_is_admin or {auth_strategy == noauth}'
-
     policy.RuleDefault('load-balancer:owner', 'project_id:%(project_id)s'),
 
     # API access roles
-    policy.RuleDefault('load-balancer:admin', 'is_admin:True or '
-                                              'role:admin or '
+    policy.RuleDefault('load-balancer:admin', 'role:te_admin or '
                                               'role:load-balancer_admin'),
 
     policy.RuleDefault('load-balancer:observer_and_owner',

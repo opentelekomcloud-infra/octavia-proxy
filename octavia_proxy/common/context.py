@@ -18,12 +18,7 @@ class Context(common_context.RequestContext):
     _session = None
 
     def __init__(self, user_id=None, project_id=None, **kwargs):
-        if project_id:
-            kwargs['tenant'] = project_id
-
         super().__init__(**kwargs)
-
-        self.is_admin = False
 
     def set_token_info(self, token_info):
         """Set token into to be able to recreate session
@@ -51,7 +46,3 @@ class Context(common_context.RequestContext):
                 vendor_hook='otcextensions.sdk:load')
             self._session = sdk
         return self._session
-
-    @property
-    def project_id(self):
-        return self.tenant

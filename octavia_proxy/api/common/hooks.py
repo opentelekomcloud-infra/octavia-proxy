@@ -18,8 +18,9 @@ class ContextHook(hooks.PecanHook):
 
     def on_route(self, state):
         context_obj = context.Context.from_environ(state.request.environ)
-        token_info = state.request.environ['keystone.token_info']
-        context_obj.set_token_info(token_info)
+        token_info = state.request.environ.get('keystone.token_info')
+        if token_info:
+            context_obj.set_token_info(token_info)
         state.request.context['octavia_context'] = context_obj
 
 
