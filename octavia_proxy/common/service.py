@@ -20,5 +20,8 @@ from octavia_proxy.common import config
 def prepare_service(argv=None):
     """Sets global config from config file and sets up logging."""
     argv = argv or []
-    config.init(argv[1:])
+    config.init(
+        argv[1:],
+        default_config_files=['/etc/octavia_proxy/octavia_proxy.conf']
+    )
     config.setup_logging(cfg.CONF)
