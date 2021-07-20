@@ -98,10 +98,6 @@ class Policy(oslo_policy.Enforcer):
                do_raise is False.
         """
         credentials = context.to_policy_values()
-        # Inject is_admin into the credentials to allow override via
-        # config auth_strategy = constants.NOAUTH
-        credentials['is_admin'] = (
-            credentials.get('is_admin') or context.is_admin)
 
         if not exc:
             exc = exceptions.PolicyForbidden
@@ -120,32 +116,8 @@ class Policy(oslo_policy.Enforcer):
                           {'action': action, 'credentials': credentials})
         return None
 
-    def check_is_admin(self, context):
-        """Does roles contains 'admin' role according to policy setting.
-
-        """
-        credentials = context.to_dict()
-        return self.enforce('context_is_admin', credentials, credentials)
-
     def get_rules(self):
         return self.rules
-
-
-@oslo_policy.register('is_admin')
-class IsAdminCheck(oslo_policy.Check):
-    """An explicit check for is_admin."""
-
-    def __init__(self, kind, match):
-        """Initialize the check."""
-
-        self.expected = match.lower() == 'true'
-
-        super().__init__(kind, str(self.expected))
-
-    def __call__(self, target, creds, enforcer):
-        """Determine whether is_admin matches the requested value."""
-
-        return creds['is_admin'] == self.expected
 
 
 # This is used for the oslopolicy-policy-generator tool

@@ -127,3 +127,9 @@ class BaseController(pecan_rest.RestController):
                     if member not in fields:
                         setattr(obj, member, wtypes.Unset)
         return object_list
+
+    @staticmethod
+    def _get_attrs(obj):
+        attrs = [attr for attr in dir(obj) if not callable(
+            getattr(obj, attr)) and not attr.startswith("_")]
+        return attrs
