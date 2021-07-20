@@ -2,3 +2,7 @@
 .stestr
 octavia_proxy.egg-info
 .eggs
+.zuul.yaml
+doc
+build
+releasenotes
