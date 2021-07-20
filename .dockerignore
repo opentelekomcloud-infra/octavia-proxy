@@ -1,0 +1,4 @@
+.tox
+.stestr
+octavia_proxy.egg-info
+.eggs

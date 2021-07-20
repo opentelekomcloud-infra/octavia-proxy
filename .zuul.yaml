@@ -7,6 +7,29 @@
       - name: opentelekomcloud/python-otcextensions
         override-checkout: elb
 
+- job:
+    name: octavia-proxy-build-image
+    parent: build-docker-image
+    description: Build octavia-proxy container image
+    timeout: 2700 # 45 minutes
+    provides: octavia-proxy-container-image
+    vars: &octavia-proxy_image_vars
+      docker_images:
+        - context: .
+          repository: opentelekomcloud/octavia-proxy
+          tags:
+            # If zuul.tag is defined: [ '3', '3.19', '3.19.0' ].  Only works for 3-component tags.
+            # Otherwise: ['latest']
+            &imagetag "{{ zuul.tag is defined | ternary([zuul.get('tag', '').split('.')[0], '.'.join(zuul.get('tag', '').split('.')[:2]), zuul.get('tag', '')], ['latest']) }}"
+      siblings:
+        - opentelekomcloud/python-otcextensions
+
+- job:
+    name: octavia-proxy-upload-image
+    parent: otcinfra-upload-image-quay
+    provides: octavia-proxy-container-image
+    vars: *octavia-proxy_image_vars
+
 - project:
     merge-mode: squash-merge
     default-branch: main
@@ -17,7 +40,9 @@
       jobs:
         - otc-tox-pep8
         - otc-tox-py39-tips
+        - octavia-proxy-build-image
     gate:
       jobs:
         - otc-tox-pep8
         - otc-tox-py39-tips
+        - octavia-proxy-upload-image
