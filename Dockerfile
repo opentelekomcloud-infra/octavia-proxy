@@ -14,6 +14,7 @@
 FROM docker.io/opendevorg/python-builder:3.9 as builder
 ENV DEBIAN_FRONTEND=noninteractive
 
+ARG ZUUL_SIBLINGS=""
 COPY . /tmp/src
 RUN echo "gunicorn" >> /tmp/src/requirements.txt
 RUN assemble
@@ -33,6 +34,6 @@ RUN /output/install-from-bindep \
 VOLUME /var/lib/octavia_proxy
 
 USER 10001
-EXPOSE 9876
 CMD ["gunicorn", "-b 0.0.0.0:9876", \
+     "--access-logfile", "-", \
      "octavia_proxy.api.app:setup_app(argv=[])"]
