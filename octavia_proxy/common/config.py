@@ -80,6 +80,8 @@ api_opts = [
                          }),
     cfg.StrOpt('default_provider_driver', default='elbv2',
                help=_('Default provider driver.')),
+    cfg.StrOpt('region', default='eu-de',
+               help=_('Service region (used to select driver endpoint).')),
 ]
 
 

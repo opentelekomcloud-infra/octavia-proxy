@@ -108,9 +108,10 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             'vip_port_id', 'vip_qos_policy_id', 'vip_subnet_id'
         ]:
 
-            v = getattr(sdk_entity, key)
-            if v:
-                setattr(load_balancer, key, v)
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(load_balancer, key, v)
 
         load_balancer.admin_state_up = sdk_entity.is_admin_state_up
         for attr in ['created_at', 'updated_at']:

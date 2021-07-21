@@ -43,6 +43,7 @@ class Context(common_context.RequestContext):
             # enable OTCE
             sdk = openstack.connection.Connection(
                 session=sess,
-                vendor_hook='otcextensions.sdk:load')
+                vendor_hook='otcextensions.sdk:load',
+                region_name=CONF.api_settings.region)
             self._session = sdk
         return self._session
