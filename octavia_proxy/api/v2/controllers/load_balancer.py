@@ -216,7 +216,6 @@ class LoadBalancersController(base.BaseController):
     def post(self, load_balancer):
         """Creates a load balancer."""
         load_balancer = load_balancer.loadbalancer
-        print(load_balancer.to_dict())
         context = pecan_request.context.get('octavia_context')
 
         if not load_balancer.project_id and context.project_id:
