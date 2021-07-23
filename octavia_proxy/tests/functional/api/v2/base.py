@@ -10,7 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import openstack
+import openstack 
+
+from oslo_utils import uuidutils
 
 from octavia_proxy.common import constants
 from octavia_proxy.tests.functional import base
@@ -18,6 +20,8 @@ import pecan.testing
 
 from octavia_proxy.api import config as pconfig
 
+_network = None 
+_sdk = None
 
 class BaseAPITest(base.TestCase):
 
@@ -82,12 +86,14 @@ class BaseAPITest(base.TestCase):
     NOT_AUTHORIZED_BODY = {
         'debuginfo': None, 'faultcode': 'Client',
         'faultstring': 'Policy does not allow this request to be performed.'}
-
+    
     def setUp(self):
         super().setUp()
         self._token = None
-        self._sdk_connection = None
-        self.project_id = None
+        self._sdk_connection = self._get_sdk_connection()
+        self._network = self._create_network()
+        self.project_id =  None
+        self.vip_subnet_id = None
         self.conf.config(
             group='api_settings',
             auth_strategy=constants.KEYSTONE_EXT)
@@ -102,6 +108,89 @@ class BaseAPITest(base.TestCase):
         if self._sdk_connection:
             self._sdk_connection.close()
         super().tearDown()
+    
+    def _get_sdk_connection(self):
+        global _sdk
+        if not _sdk:
+            _sdk = openstack.connect()
+        return _sdk
+
+    def _create_network(self):
+        global _network
+        cidr = '192.168.0.0/16'
+        ipv4 = 4
+        uuid_v4 = uuidutils.generate_uuid()
+        router_name = 'octavia-proxy-test-router-' + uuid_v4
+        net_name = 'octavia-proxy-test-net-' + uuid_v4
+        subnet_name = 'octavia-proxy-test-subnet-' + uuid_v4
+        
+        if not _network:
+            if not self._sdk_connection:
+                self._sdk_connection = self._get_sdk_connection()
+            network = self._sdk_connection.network.create_network(name=net_name)
+            net_id = network.id
+            subnet = self._sdk_connection.network.create_subnet(
+                name=subnet_name,
+                ip_version=ipv4,
+                network_id=net_id,
+                cidr=cidr
+            )
+            subnet_id = subnet.id
+
+            router = self._sdk_connection.network.create_router(name=router_name)
+            router_id = router.id
+            interface = router.add_interface(
+                self._sdk_connection.network,
+                subnet_id=subnet_id
+            )
+            _network = {
+                'router_id': router_id,
+                'subnet_id': subnet_id,
+                'network_id': net_id
+            }
+        return _network
+
+    def _destroy_network(self, params: dict):
+        router_id = params.get('router_id')
+        subnet_id = params.get('subnet_id')
+        network_id = params.get('network_id')
+        router = self._sdk_connection.network.get_router(router_id)
+
+        interface = router.remove_interface(
+            self._sdk_connection.network,
+            subnet_id=subnet_id
+        )
+        sot = self._sdk_connection.network.delete_router(
+            router_id,
+            ignore_missing=False
+        )
+        sot = self._sdk_connection.network.delete_subnet(
+            subnet_id,
+            ignore_missing=False
+        )
+        sot = self._sdk_connection.network.delete_network(
+            network_id,
+            ignore_missing=False
+        )
+        
+    def _cleanup_lb(self):
+        try:
+            self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
+        except Exception:
+            pass
+    
+    def _cleanup_network(self):
+        try:
+            self._destroy_network(self._network)
+        except Exception:
+            pass
+
+    def _cleanup(self):
+        try:
+            self._cleanup_lb()
+            self._cleanup_network()
+        except Exception:
+            pass
 
     def _make_app(self):
         # Note: we need to set argv=() to stop the wsgi setup_app from
@@ -124,7 +213,7 @@ class BaseAPITest(base.TestCase):
 
     def _get_token(self):
         if not self._sdk_connection:
-            self._sdk_connection = openstack.connect()
+            self._sdk_connection = self._get_sdk_connection()
         if not self._token:
             self._token = self._sdk_connection.auth_token
         self.project_id = self._sdk_connection.current_project_id
@@ -144,4 +233,44 @@ class BaseAPITest(base.TestCase):
             status=status,
             expect_errors=expect_errors
         )
+        return response
+
+    def post(self, path, body, headers=None, status=201, expect_errors=False,
+            use_v2_0=False, authorized=True):
+        headers = headers or {}
+        if use_v2_0:
+            full_path = self._get_full_path_v2_0(path)
+        else:
+            full_path = self._get_full_path(path)
+        if authorized:
+            if not headers:
+                headers = dict()
+            headers['X-Auth-Token'] = self._get_token()
+            body['loadbalancer']['project_id'] = self.project_id
+        response = self.app.post_json(full_path,
+                                    params=body,
+                                    headers=headers,
+                                    status=status,
+                                    expect_errors=expect_errors)
+        return response
+
+    def delete(self, path, headers=None, params=None, status=204,
+               expect_errors=False, authorized=True):
+        headers = headers or {}
+        params = params or {}
+        full_path = self._get_full_path(path)
+        param_string = ""
+        for k, v in params.items():
+            param_string += "{key}={value}&".format(key=k, value=v)
+        if param_string:
+            full_path = "{path}?{params}".format(
+                path=full_path, params=param_string.rstrip("&"))
+        if authorized:
+            if not headers:
+                headers = dict()
+            headers['X-Auth-Token'] = self._get_token()
+        response = self.app.delete(full_path,
+                                   headers=headers,
+                                     status=status,
+                                   expect_errors=expect_errors)
         return response

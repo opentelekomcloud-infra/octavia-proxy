@@ -132,11 +132,11 @@ class LoadBalancersController(base.BaseController):
     def post(self, load_balancer):
         """Creates a load balancer."""
         load_balancer = load_balancer.loadbalancer
-        print(load_balancer.to_dict())
         context = pecan_request.context.get('octavia_context')
 
         if not load_balancer.project_id and context.project_id:
             load_balancer.project_id = context.project_id
+
 
         if not load_balancer.project_id:
             raise exceptions.ValidationException(detail=(
@@ -153,7 +153,7 @@ class LoadBalancersController(base.BaseController):
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(provider)
-
+        
         lb_dict = load_balancer.to_dict(render_unsets=False)
         lb_dict['id'] = None
         driver_lb_dict = driver_utils.lb_dict_to_provider_dict(

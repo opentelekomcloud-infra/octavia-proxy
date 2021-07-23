@@ -11,7 +11,6 @@
 #    under the License.
 
 import keyring
-from keyrings.alt import file
 
 from oslotest import base
 
@@ -28,6 +27,4 @@ class TestCase(base.BaseTestCase):
         # debug can be enabled as:
         # cfg.debug = True
         self.conf = self.useFixture(oslo_fixture.Config(cfg))
-        keyring.set_keyring(
-            file.PlaintextKeyring()
-        )
+        
