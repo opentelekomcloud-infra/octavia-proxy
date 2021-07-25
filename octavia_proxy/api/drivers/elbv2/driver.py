@@ -9,6 +9,7 @@ from octavia_lib.api.drivers import provider_base as driver_base
 
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import listener as _listener
+from octavia_proxy.api.v2.types import pool as _pool
 
 LOG = logging.getLogger(__name__)
 
@@ -140,3 +141,53 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting listener %s' % listener.to_dict())
 
         session.elb.delete_listener(listener.id)
+
+    def pools(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching pools')
+
+        if not query_filter:
+            query_filter = {}
+
+        results = []
+        for pl in session.elb.pools(**query_filter):
+            results.append(_pool.PoolResponse.from_sdk_object(pl))
+        return results
+
+    def pool_get(self, session, project_id, pool_id):
+        LOG.debug('Searching pool')
+
+        pl = session.elb.find_listener(
+            name_or_id=pool_id, ignore_missing=True)
+
+        if pl:
+            return _pool.PoolResponse.from_sdk_object(pl)
+
+    def pool_create(self, session, pool):
+        LOG.debug('Creating pool %s' % pool.to_dict())
+
+        attrs = pool.to_dict()
+        # TODO: do this differently
+
+        res = session.elb.create_pool(**attrs)
+
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        result_data.provider = 'elbv2'
+        return result_data
+
+    def pool_update(self, session, original, new_attrs):
+        LOG.debug('Updating pool')
+
+        res = session.elb.update_pool(
+            original.id,
+            **new_attrs)
+
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        result_data.provider = 'elbv2'
+        return result_data
+
+    def pool_delete(self, session, pool):
+        LOG.debug('Deleting pool %s' % pool.to_dict())
+
+        session.elb.delete_pool(pool.id)
