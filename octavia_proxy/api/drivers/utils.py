@@ -69,6 +69,7 @@ def call_provider(provider, driver_method, *args, **kwargs):
                       provider, str(e))
         raise exceptions.ProviderDriverError(prov=provider, user_msg=e)
 
+
 def _base_to_provider_dict(current_dict, include_project_id=False):
     new_dict = copy.deepcopy(current_dict)
     if 'provisioning_status' in new_dict:
@@ -110,8 +111,7 @@ def _base_to_provider_dict(current_dict, include_project_id=False):
 
 # Note: The provider dict returned from this method will have provider
 #       data model objects in it.
-def lb_dict_to_provider_dict(lb_dict, vip=None, db_pools=None,
-                             db_listeners=None, for_delete=False):
+def lb_dict_to_provider_dict(lb_dict, vip=None):
     new_lb_dict = _base_to_provider_dict(lb_dict, include_project_id=True)
     new_lb_dict['loadbalancer_id'] = new_lb_dict.pop('id')
     if vip:
@@ -120,14 +120,4 @@ def lb_dict_to_provider_dict(lb_dict, vip=None, db_pools=None,
         new_lb_dict['vip_port_id'] = vip.port_id
         new_lb_dict['vip_subnet_id'] = vip.subnet_id
         new_lb_dict['vip_qos_policy_id'] = vip.qos_policy_id
-    if 'flavor_id' in lb_dict and lb_dict['flavor_id']:
-        flavor_repo = repositories.FlavorRepository()
-        new_lb_dict['flavor'] = flavor_repo.get_flavor_metadata_dict(
-            db_api.get_session(), lb_dict['flavor_id'])
-    if db_pools:
-        new_lb_dict['pools'] = db_pools_to_provider_pools(
-            db_pools, for_delete=for_delete)
-    if db_listeners:
-        new_lb_dict['listeners'] = db_listeners_to_provider_listeners(
-            db_listeners, for_delete=for_delete)
     return new_lb_dict
