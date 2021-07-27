@@ -104,6 +104,7 @@ class PoolsController(base.BaseController):
         the pool creation will fail if the listener specified already has
         a default_pool.
         """
+        listener = None
         pool = pool_.pool
         context = pecan_request.context.get('octavia_context')
 
@@ -126,31 +127,27 @@ class PoolsController(base.BaseController):
                     "loadbalancer_id, listener_id")
             raise exceptions.ValidationException(detail=msg)
 
+        if pool.listener_id and listener:
+            self._validate_protocol(listener.protocol, pool.protocol)
 
         # check quota
 
-
         driver = driver_factory.get_driver(pool.provider)
 
-        obj_dict = pool.to_dict(render_unsets=False)
-        obj_dict['id'] = None
+        pool_dict = pool.to_dict(render_unsets=False)
+        pool_dict['id'] = None
+
+        listener_id = pool_dict.pop('listener_id', None)
+        if listener_id:
+            if self.has_default_pool(listener_id):
+                raise exceptions.DuplicatePoolEntry()
 
         result = driver_utils.call_provider(
             driver.name, driver.pool_create,
             context.session,
             pool)
 
-        orig_listener = self.find_listener(context, result.listeners[0]['id'])
-        self._auth_validate_action(
-            context, orig_listener.project_id,
-            constants.RBAC_PUT)
-        lsnr_dict = orig_listener.to_dict(render_unsets=False)
-        lsnr_dict['default_pool_id'] = result.id
-        listener = driver_utils.call_provider(
-            driver.name, driver.listener_update, context.session,
-            orig_listener, lsnr_dict)
-        # For some API requests the listener_id will be passed in the
-        # pool_dict:
+        return pool_types.PoolRootResponse(pool=result)
 
     @wsme_pecan.wsexpose(pool_types.PoolRootResponse, wtypes.text,
                          body=pool_types.PoolRootPut, status_code=200)
