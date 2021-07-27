@@ -88,6 +88,31 @@ class BaseController(pecan_rest.RestController):
 
         return listener
 
+    def find_pool(self, context, id):
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        # TODO: perhaps memcached
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                pool = driver_utils.call_provider(
+                    driver.name, driver.pool_get,
+                    context.session,
+                    context.project_id,
+                    id)
+                if pool:
+                    setattr(pool, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if not pool:
+            raise exceptions.NotFound(
+                resource='Pool',
+                id=id)
+
+        return pool
+
     def _auth_get_all(self, context, project_id):
         # Check authorization to list objects under all projects
         action = '{rbac_obj}{action}'.format(
