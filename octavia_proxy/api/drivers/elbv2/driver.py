@@ -156,7 +156,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def pool_get(self, session, project_id, pool_id):
         LOG.debug('Searching pool')
 
-        pl = session.elb.find_listener(
+        pl = session.elb.find_pool(
             name_or_id=pool_id, ignore_missing=True)
 
         if pl:

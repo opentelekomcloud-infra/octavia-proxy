@@ -27,6 +27,7 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.v2.types import pool as pool_types
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
+from octavia_proxy.common import validate
 
 
 CONF = cfg.CONF
@@ -120,27 +121,32 @@ class PoolsController(base.BaseController):
         if pool.loadbalancer_id:
             loadbalancer = self.find_load_balancer(
                 context, pool.loadbalancer_id)
+            pool.loadbalancer_id = loadbalancer.id
         elif pool.listener_id:
             listener = self.find_listener(context, pool.listener_id)
             pool.loadbalancer_id = listener.loadbalancer_id
         else:
             msg = ("Must provide at least one of: "
-                    "loadbalancer_id, listener_id")
+                   "loadbalancer_id, listener_id")
             raise exceptions.ValidationException(detail=msg)
 
         if pool.listener_id and listener:
             self._validate_protocol(listener.protocol, pool.protocol)
 
         if pool.protocol in (constants.PROTOCOL_UDP,
-                             lib_consts.PROTOCOL_SCTP):
+                             constants.PROTOCOL_SCTP):
             self._validate_pool_request_for_udp_sctp(pool)
         else:
             if (pool.session_persistence and (
                     pool.session_persistence.persistence_timeout or
                     pool.session_persistence.persistence_granularity)):
-                raise exceptions.ValidationException(detail=_(
+                raise exceptions.ValidationException(detail=(
                     "persistence_timeout and persistence_granularity "
                     "is only for UDP and SCTP protocol pools."))
+
+        if pool.session_persistence:
+            sp_dict = pool.session_persistence.to_dict(render_unsets=False)
+            validate._check_session_persistence(sp_dict)
 
         # check quota
 
@@ -150,7 +156,7 @@ class PoolsController(base.BaseController):
         pool_dict['id'] = None
 
         if listener.default_pool_id:
-            raise exceprions.DuplicatePoolEntry()
+            raise exceptions.DuplicatePoolEntry()
 
         result = driver_utils.call_provider(
             driver.name, driver.pool_create,
