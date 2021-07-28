@@ -104,9 +104,10 @@ class PoolsController(base.BaseController):
         the pool creation will fail if the listener specified already has
         a default_pool.
         """
-        listener = None
+
         pool = pool_.pool
         context = pecan_request.context.get('octavia_context')
+        listener = None
 
         if not pool.project_id and context.project_id:
             pool.project_id = context.project_id
@@ -123,12 +124,23 @@ class PoolsController(base.BaseController):
             listener = self.find_listener(context, pool.listener_id)
             pool.loadbalancer_id = listener.loadbalancer_id
         else:
-            msg = _("Must provide at least one of: "
+            msg = ("Must provide at least one of: "
                     "loadbalancer_id, listener_id")
             raise exceptions.ValidationException(detail=msg)
 
         if pool.listener_id and listener:
             self._validate_protocol(listener.protocol, pool.protocol)
+
+        if pool.protocol in (constants.PROTOCOL_UDP,
+                             lib_consts.PROTOCOL_SCTP):
+            self._validate_pool_request_for_udp_sctp(pool)
+        else:
+            if (pool.session_persistence and (
+                    pool.session_persistence.persistence_timeout or
+                    pool.session_persistence.persistence_granularity)):
+                raise exceptions.ValidationException(detail=_(
+                    "persistence_timeout and persistence_granularity "
+                    "is only for UDP and SCTP protocol pools."))
 
         # check quota
 
@@ -137,10 +149,8 @@ class PoolsController(base.BaseController):
         pool_dict = pool.to_dict(render_unsets=False)
         pool_dict['id'] = None
 
-        listener_id = pool_dict.pop('listener_id', None)
-        if listener_id:
-            if self.has_default_pool(listener_id):
-                raise exceptions.DuplicatePoolEntry()
+        if listener.default_pool_id:
+            raise exceprions.DuplicatePoolEntry()
 
         result = driver_utils.call_provider(
             driver.name, driver.pool_create,

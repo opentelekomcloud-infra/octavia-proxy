@@ -170,3 +170,47 @@ class BaseController(pecan_rest.RestController):
                        "pool_protocol": pool_protocol,
                        "listener_protocol": listener_protocol}
         raise exceptions.ValidationException(detail=detail)
+
+    def _is_only_specified_in_request(self, request, **kwargs):
+        request_attrs = []
+        check_attrs = kwargs['check_exist_attrs']
+        escaped_attrs = ['from_data_model', 'translate_key_to_data_model',
+                         'translate_dict_keys_to_data_model', 'to_dict']
+
+        for attr in dir(request):
+            if attr.startswith('_') or attr in escaped_attrs:
+                continue
+            request_attrs.append(attr)
+
+        for req_attr in request_attrs:
+            if (getattr(request, req_attr) and req_attr not in check_attrs):
+                return False
+        return True
+
+    def _validate_pool_request_for_udp_sctp(self, request):
+        if request.session_persistence:
+            if (request.session_persistence.type ==
+                    constants.SESSION_PERSISTENCE_SOURCE_IP and
+                    not self._is_only_specified_in_request(
+                        request.session_persistence,
+                        check_exist_attrs=['type', 'persistence_timeout',
+                                           'persistence_granularity'])):
+                raise exceptions.ValidationException(detail=_(
+                    "session_persistence %s type for UDP and SCTP protocols "
+                    "only accepts: type, persistence_timeout, "
+                    "persistence_granularity.") % (
+                        constants.SESSION_PERSISTENCE_SOURCE_IP))
+            if request.session_persistence.cookie_name:
+                raise exceptions.ValidationException(detail=_(
+                    "Cookie names are not supported for %s pools.") %
+                    "/".join((constants.PROTOCOL_UDP,
+                              constants.PROTOCOL_SCTP)))
+            if request.session_persistence.type in [
+                constants.SESSION_PERSISTENCE_HTTP_COOKIE,
+                    constants.SESSION_PERSISTENCE_APP_COOKIE]:
+                raise exceptions.ValidationException(detail=_(
+                    "Session persistence of type %(type)s is not supported "
+                    "for %(protocol)s protocol pools.") % {
+                    'type': request.session_persistence.type,
+                    'protocol': "/".join((constants.PROTOCOL_UDP,
+                                          constants.PROTOCOL_SCTP))})
