@@ -8,6 +8,7 @@ from octavia_proxy.common import exceptions
 
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
+from octavia_proxy.i18n import _
 
 from octavia_proxy.common import policy
 

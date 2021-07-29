@@ -28,7 +28,7 @@ from octavia_proxy.api.v2.types import pool as pool_types
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 from octavia_proxy.common import validate
-
+from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -126,8 +126,8 @@ class PoolsController(base.BaseController):
             listener = self.find_listener(context, pool.listener_id)
             pool.loadbalancer_id = listener.loadbalancer_id
         else:
-            msg = ("Must provide at least one of: "
-                   "loadbalancer_id, listener_id")
+            msg = _("Must provide at least one of: "
+                    "loadbalancer_id, listener_id")
             raise exceptions.ValidationException(detail=msg)
 
         if pool.listener_id and listener:
@@ -140,7 +140,7 @@ class PoolsController(base.BaseController):
             if (pool.session_persistence and (
                     pool.session_persistence.persistence_timeout or
                     pool.session_persistence.persistence_granularity)):
-                raise exceptions.ValidationException(detail=(
+                raise exceptions.ValidationException(detail=_(
                     "persistence_timeout and persistence_granularity "
                     "is only for UDP and SCTP protocol pools."))
 

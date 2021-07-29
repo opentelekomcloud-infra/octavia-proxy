@@ -12,6 +12,7 @@
 
 from oslo_policy import policy
 
+
 rules = [
     # The default is to not allow access unless the auth_strategy is 'noauth'.
     # Users must be a member of one of the following roles to have access to

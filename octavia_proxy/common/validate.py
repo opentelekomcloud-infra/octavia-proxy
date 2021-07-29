@@ -23,6 +23,7 @@ import re
 from oslo_config import cfg
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
+from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
 
