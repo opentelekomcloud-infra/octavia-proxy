@@ -1,10 +1,8 @@
+from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 
-from octavia_lib.api.drivers import provider_base as driver_base
-
-from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import listener as _listener
-
+from octavia_proxy.api.v2.types import load_balancer
 
 LOG = logging.getLogger(__name__)
 
@@ -27,7 +25,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             self.__class__.__name__)
 
         return {"eu-nl-01": "The compute availability zone to use for "
-                "this loadbalancer."}
+                            "this loadbalancer."}
 
     def _normalize_lb(self, lb):
         return self._normalize_tags(lb)
@@ -84,6 +82,24 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data.provider = 'elbv3'
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
+
+    def loadbalancer_update(self, session, original_load_balancer,
+                            new_attrs):
+        LOG.debug('Updating loadbalancer')
+
+        lb = session.vlb.update_load_balancer(
+            original_load_balancer.id,
+            **new_attrs)
+
+        lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+            lb)
+        lb_data.provider = 'elbv3'
+        return lb_data
+
+    def loadbalancer_delete(self, session, loadbalancer):
+        LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
+
+        session.vlb.delete_load_balancer(loadbalancer.id)
 
     def listeners(self, session, project_id, query_filter=None):
         LOG.debug('Fetching listeners')
