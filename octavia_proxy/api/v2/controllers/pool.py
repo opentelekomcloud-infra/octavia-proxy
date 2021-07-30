@@ -116,8 +116,6 @@ class PoolsController(base.BaseController):
         self._auth_validate_action(
             context, pool.project_id, constants.RBAC_POST)
 
-        driver = driver_factory.get_driver(pool.provider)
-
         if pool.loadbalancer_id:
             loadbalancer = self.find_load_balancer(
                 context, pool.loadbalancer_id)
@@ -147,8 +145,6 @@ class PoolsController(base.BaseController):
         if pool.session_persistence:
             sp_dict = pool.session_persistence.to_dict(render_unsets=False)
             validate._check_session_persistence(sp_dict)
-
-        # check quota
 
         driver = driver_factory.get_driver(pool.provider)
 
