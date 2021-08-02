@@ -154,6 +154,7 @@ LISTENER_SUPPORTED_PROTOCOLS = lib_consts.LISTENER_SUPPORTED_PROTOCOLS
 
 # 'provisioning_status'
 PROVISIONING_STATUS = lib_consts.PROVISIONING_STATUS
+
 # Amphora has been allocated to a load balancer 'ALLOCATED'
 AMPHORA_ALLOCATED = lib_consts.AMPHORA_ALLOCATED
 # Amphora is being built 'BOOTING'
