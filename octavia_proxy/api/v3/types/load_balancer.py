@@ -12,11 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 from dateutil import parser
+from oslo_log import log as logging
 from wsme import types as wtypes
 
-from oslo_log import log as logging
-
 from octavia_proxy.api.common import types
+from octavia_proxy.api.v3.types import listener
+from octavia_proxy.api.v3.types import pool
 
 LOG = logging.getLogger(__name__)
 
@@ -193,7 +194,6 @@ class LoadBalancerPOST(BaseLoadBalancerType):
 
     listeners = wtypes.wsattr([listener.ListenerSingleCreate], default=[])
     pools = wtypes.wsattr([pool.PoolSingleCreate], default=[])
-
 
 
 class LoadBalancerRootPOST(types.BaseType):
