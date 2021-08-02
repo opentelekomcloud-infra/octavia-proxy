@@ -9,6 +9,7 @@ from octavia_lib.api.drivers import provider_base as driver_base
 
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import listener as _listener
+from octavia_proxy.api.v2.types import member as _member
 
 LOG = logging.getLogger(__name__)
 
@@ -140,3 +141,54 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting listener %s' % listener.to_dict())
 
         session.elb.delete_listener(listener.id)
+
+    def members(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching members')
+
+        if not query_filter:
+            query_filter = {}
+
+        results = []
+        for member in session.elb.members(**query_filter):
+            results.append(_member.MemberResponse.from_sdk_object(member))
+        return results
+
+    def member_get(self, session, project_id, member_id):
+        LOG.debug('Searching member')
+
+        member = session.elb.find_member(
+            name_or_id=member_id, ignore_missing=True)
+
+        if member:
+            return _member.MemberResponse.from_sdk_object(member)
+
+    def member_create(self, session, member):
+        LOG.debug('Creating member %s' % member.to_dict())
+
+        attrs = member.to_dict()
+        # TODO: do this differently
+        attrs.pop('l7policies')
+
+        res = session.elb.create_member(**attrs)
+
+        result_data = _member.MemberResponse.from_sdk_object(
+            res)
+        result_data.provider = 'elbv2'
+        return result_data
+
+    def member_update(self, session, original, new_attrs):
+        LOG.debug('Updating member')
+
+        res = session.elb.update_member(
+            original.id,
+            **new_attrs)
+
+        result_data = _member.MemberResponse.from_sdk_object(
+            res)
+        result_data.provider = 'elbv2'
+        return result_data
+
+    def member_delete(self, session, member):
+        LOG.debug('Deleting member %s' % member.to_dict())
+
+        session.elb.delete_member(member.id)
