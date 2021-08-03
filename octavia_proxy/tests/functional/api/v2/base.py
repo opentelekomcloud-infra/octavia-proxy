@@ -23,6 +23,7 @@ from octavia_proxy.api import config as pconfig
 _network = None
 _sdk = None
 
+
 class BaseAPITest(base.TestCase):
 
     BASE_PATH = '/v2'
@@ -92,7 +93,7 @@ class BaseAPITest(base.TestCase):
         self._token = None
         self._sdk_connection = self._get_sdk_connection()
         self._network = self._create_network()
-        self.project_id =  None
+        self.project_id = None
         self.vip_subnet_id = None
         self.conf.config(
             group='api_settings',
@@ -127,7 +128,8 @@ class BaseAPITest(base.TestCase):
         if not _network:
             if not self._sdk_connection:
                 self._sdk_connection = self._get_sdk_connection()
-            network = self._sdk_connection.network.create_network(name=net_name)
+            network = self._sdk_connection.network.create_network(
+                name=net_name)
             net_id = network.id
             subnet = self._sdk_connection.network.create_subnet(
                 name=subnet_name,
@@ -137,9 +139,10 @@ class BaseAPITest(base.TestCase):
             )
             subnet_id = subnet.id
 
-            router = self._sdk_connection.network.create_router(name=router_name)
+            router = self._sdk_connection.network.create_router(
+                name=router_name)
             router_id = router.id
-            interface = router.add_interface(
+            router.add_interface(
                 self._sdk_connection.network,
                 subnet_id=subnet_id
             )
@@ -156,19 +159,19 @@ class BaseAPITest(base.TestCase):
         network_id = params.get('network_id')
         router = self._sdk_connection.network.get_router(router_id)
 
-        interface = router.remove_interface(
+        router.remove_interface(
             self._sdk_connection.network,
             subnet_id=subnet_id
         )
-        sot = self._sdk_connection.network.delete_router(
+        self._sdk_connection.network.delete_router(
             router_id,
             ignore_missing=False
         )
-        sot = self._sdk_connection.network.delete_subnet(
+        self._sdk_connection.network.delete_subnet(
             subnet_id,
             ignore_missing=False
         )
-        sot = self._sdk_connection.network.delete_network(
+        self._sdk_connection.network.delete_network(
             network_id,
             ignore_missing=False
         )
@@ -236,7 +239,7 @@ class BaseAPITest(base.TestCase):
         return response
 
     def post(self, path, body, headers=None, status=201, expect_errors=False,
-            use_v2_0=False, authorized=True):
+             use_v2_0=False, authorized=True):
         headers = headers or {}
         if use_v2_0:
             full_path = self._get_full_path_v2_0(path)
@@ -248,10 +251,10 @@ class BaseAPITest(base.TestCase):
             headers['X-Auth-Token'] = self._get_token()
             body['loadbalancer']['project_id'] = self.project_id
         response = self.app.post_json(full_path,
-                                    params=body,
-                                    headers=headers,
-                                    status=status,
-                                    expect_errors=expect_errors)
+                                      params=body,
+                                      headers=headers,
+                                      status=status,
+                                      expect_errors=expect_errors)
         return response
 
     def delete(self, path, headers=None, params=None, status=204,
@@ -271,6 +274,6 @@ class BaseAPITest(base.TestCase):
             headers['X-Auth-Token'] = self._get_token()
         response = self.app.delete(full_path,
                                    headers=headers,
-                                     status=status,
+                                   status=status,
                                    expect_errors=expect_errors)
         return response

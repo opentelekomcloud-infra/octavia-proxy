@@ -17,6 +17,7 @@ from oslo_utils import uuidutils
 from octavia_proxy.common import constants
 from octavia_proxy.tests.functional.api.v2 import base
 
+
 class TestLoadBalancer(base.BaseAPITest):
     root_tag = 'loadbalancer'
     root_tag_list = 'loadbalancers'
@@ -65,9 +66,9 @@ class TestLoadBalancer(base.BaseAPITest):
 
     def test_create_v2_0(self, **optionals):
         lb_json = {'name': 'test2',
-                    'vip_subnet_id': self._network['subnet_id'],
-                    'project_id': self.project_id
-                    }
+                   'vip_subnet_id': self._network['subnet_id'],
+                   'project_id': self.project_id
+                   }
         lb_json.update(optionals)
         body = self._build_body(lb_json)
         response = self.post(self.LBS_PATH, body, use_v2_0=True)
