@@ -253,23 +253,3 @@ class NameOnlyType(BaseType):
 class PageType(BaseType):
     href = wtypes.StringType()
     rel = wtypes.StringType()
-
-
-class BandWidthType(BaseType):
-    id = wtypes.wsattr(wtypes.UuidType())
-    name = wtypes.wsattr(wtypes.StringType(max_length=64))
-    size = wtypes.wsattr(wtypes.IntegerType())
-    charge_mode = wtypes.wsattr(wtypes.StringType())
-    share_type = wtypes.wsattr(wtypes.StringType())
-    billing_info = wtypes.wsattr(wtypes.StringType())
-
-
-class PublicIpType(BaseType):
-    id = wtypes.wsattr(wtypes.UuidType(), mandatory=True)
-    ip_version = wtypes.wsattr(wtypes.IntegerType(), default=4)
-    network_type = wtypes.wsattr(
-        wtypes.StringType(max_length=36), mandatory=True
-    )
-    billing_info = wtypes.wsattr(wtypes.StringType(max_length=1024))
-    description = wtypes.wsattr(wtypes.StringType(max_length=255))
-    bandwidth = wtypes.wsattr(BandWidthType())

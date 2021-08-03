@@ -24,25 +24,35 @@ from octavia_proxy.api.v3.types import pool
 LOG = logging.getLogger(__name__)
 
 
+class BandWidthPOST(types.BaseType):
+    id = wtypes.wsattr(wtypes.UuidType())
+    name = wtypes.wsattr(wtypes.StringType(max_length=64))
+    size = wtypes.wsattr(wtypes.IntegerType(minimum=0, maximum=99999))
+    charge_mode = wtypes.wsattr(wtypes.StringType())
+    share_type = wtypes.wsattr(wtypes.StringType())
+    billing_info = wtypes.wsattr(wtypes.StringType(max_length=1024))
+
+
+class PublicIpPOST(types.BaseType):
+    ip_version = wtypes.wsattr(wtypes.IntegerType(), default=4)
+    network_type = wtypes.wsattr(
+        wtypes.StringType(max_length=36), mandatory=True
+    )
+    billing_info = wtypes.wsattr(wtypes.StringType(max_length=1024))
+    description = wtypes.wsattr(wtypes.StringType(max_length=255))
+    bandwidth = wtypes.wsattr(BandWidthPOST(), mandatory=True)
+
+
+class PublicIpResponse(types.BaseType):
+    publicip_id = wtypes.wsattr(wtypes.UuidType())
+    publicip_address = wtypes.wsattr(wtypes.StringType())
+    ip_version = wtypes.wsattr(wtypes.IntegerType())
+
+
 class BaseLoadBalancerType(types.BaseType):
     _type_to_model_map = {
-        # 'vip_address': 'vip.ip_address',
-        # 'vip_subnet_id': 'vip.subnet_id',
-        # 'vip_port_id': 'vip.port_id',
-        # 'vip_network_id': 'vip.network_id',
-        # 'vip_qos_policy_id': 'vip.qos_policy_id',
         'admin_state_up': 'enabled'
     }
-
-
-#    _child_map = {'vip': {
-#        'ip_address': 'vip_address',
-#        'subnet_id': 'vip_subnet_id',
-#        'port_id': 'vip_port_id',
-#        'network_id': 'vip_network_id',
-#        'qos_policy_id': 'vip_qos_policy_id',
-#        },
-#        'listeners': 'listeners'}
 
 
 class LoadBalancerResponse(BaseLoadBalancerType):
@@ -67,6 +77,7 @@ class LoadBalancerResponse(BaseLoadBalancerType):
     provisioning_status = wtypes.wsattr(wtypes.StringType())
     project_id = wtypes.wsattr(wtypes.StringType())
     provider = wtypes.wsattr(wtypes.StringType())
+    publicips = wtypes.wsattr(wtypes.ArrayType(PublicIpResponse))
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType()))
     updated_at = wtypes.wsattr(wtypes.datetime.datetime)
     vip_address = wtypes.wsattr(types.IPAddressType())
@@ -92,12 +103,6 @@ class LoadBalancerResponse(BaseLoadBalancerType):
         data_model.pools = None
         result = super(LoadBalancerResponse, cls).from_data_model(
             data_model, children=children)
-        #        if data_model.vip:
-        #            result.vip_subnet_id = data_model.vip.subnet_id
-        #            result.vip_port_id = data_model.vip.port_id
-        #            result.vip_address = data_model.vip.ip_address
-        #            result.vip_network_id = data_model.vip.network_id
-        #            result.vip_qos_policy_id = data_model.vip.qos_policy_id
         if cls._full_response():
             listener_model = listener.ListenerFullResponse
             pool_model = pool.PoolFullResponse
@@ -190,7 +195,7 @@ class LoadBalancerPOST(BaseLoadBalancerType):
     enterprise_project_id = wtypes.wsattr(wtypes.UuidType())
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
     publicip_ids = wtypes.wsattr(wtypes.ArrayType(wtypes.UuidType()))
-    publicip = wtypes.wsattr(types.PublicIpType)
+    publicip = wtypes.wsattr(PublicIpPOST)
     elb_virsubnet_ids = wtypes.wsattr(wtypes.ArrayType(wtypes.UuidType()))
     ip_target_enable = wtypes.wsattr(bool, default=True)
 
