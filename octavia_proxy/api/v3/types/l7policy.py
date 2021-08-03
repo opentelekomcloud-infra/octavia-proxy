@@ -16,8 +16,8 @@ from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
 from octavia_proxy.api.v3.types import l7rule
-from octavia_proxy.api.v3.types import pool
 from octavia_proxy.api.v3.types import listener
+from octavia_proxy.api.v3.types import pool
 from octavia_proxy.common import constants
 
 
