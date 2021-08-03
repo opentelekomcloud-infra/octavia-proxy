@@ -120,10 +120,10 @@ class L7RuleRootPUT(types.BaseType):
 class L7RuleSingleCreate(BaseL7Type):
     """Defines mandatory and optional attributes of a POST request."""
     type = wtypes.wsattr(
-        wtypes.Enum(str, *constants.SUPPORTED_L7RULE_TYPES),
+        wtypes.Enum(str, *constants.SUPPORTED_L7RULE_TYPES_V3),
         mandatory=True)
     compare_type = wtypes.wsattr(
-        wtypes.Enum(str, *constants.SUPPORTED_L7RULE_COMPARE_TYPES),
+        wtypes.Enum(str, *constants.SUPPORTED_L7RULE_COMPARE_TYPES_V3),
         mandatory=True)
     key = wtypes.wsattr(wtypes.StringType(max_length=255))
     value = wtypes.wsattr(wtypes.StringType(max_length=255), mandatory=True)
