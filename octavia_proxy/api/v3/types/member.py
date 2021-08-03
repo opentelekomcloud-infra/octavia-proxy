@@ -100,7 +100,6 @@ class MemberSingleCreate(BaseMemberType):
     address = wtypes.wsattr(types.IPAddressType(), mandatory=True)
     admin_state_up = wtypes.wsattr(bool, default=True)
     name = wtypes.wsattr(wtypes.StringType(max_length=255))
-    project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
     protocol_port = wtypes.wsattr(wtypes.IntegerType(
         minimum=constants.MIN_PORT_NUMBER, maximum=constants.MAX_PORT_NUMBER),
         mandatory=True)

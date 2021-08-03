@@ -17,6 +17,8 @@ from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
 from octavia_proxy.api.v3.types import health_monitor
+from octavia_proxy.api.v3.types import listener
+from octavia_proxy.api.v3.types import load_balancer
 from octavia_proxy.api.v3.types import member
 from octavia_proxy.common import constants
 
@@ -199,9 +201,6 @@ class PoolSingleCreate(BasePoolType):
     lb_algorithm = wtypes.wsattr(
         wtypes.Enum(str, *constants.SUPPORTED_LB_ALGORITHMS),
         mandatory=True)
-    listener_id = wtypes.wsattr(wtypes.UuidType())
-    loadbalancer_id = wtypes.wsattr(wtypes.UuidType())
-    project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
     protocol = wtypes.wsattr(
         wtypes.Enum(str, *lib_constants.POOL_SUPPORTED_PROTOCOLS),
         mandatory=True)

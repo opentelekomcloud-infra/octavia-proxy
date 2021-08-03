@@ -235,8 +235,6 @@ class ListenerSingleCreate(BaseListenerType):
     http2_enable = wtypes.wsattr(bool)
     insert_headers = wtypes.wsattr(
         wtypes.DictType(str, wtypes.StringType(max_length=255)))
-    loadbalancer_id = wtypes.wsattr(wtypes.UuidType(), mandatory=True)
-    project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
     protocol = wtypes.wsattr(
         wtypes.Enum(str, *constants.LISTENER_SUPPORTED_PROTOCOLS),
         mandatory=True)
