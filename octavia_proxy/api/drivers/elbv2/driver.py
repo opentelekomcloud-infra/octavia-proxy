@@ -169,7 +169,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         # TODO: do this differently
 
         res = session.elb.create_pool(**attrs)
-
+        a=5
         result_data = _pool.PoolResponse.from_sdk_object(
             res)
         result_data.provider = 'elbv2'
@@ -181,7 +181,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
         res = session.elb.update_pool(
             original.id,
             **new_attrs)
-
         result_data = _pool.PoolResponse.from_sdk_object(
             res)
         result_data.provider = 'elbv2'
@@ -189,5 +188,4 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def pool_delete(self, session, pool):
         LOG.debug('Deleting pool %s' % pool.to_dict())
-
         session.elb.delete_pool(pool.id)

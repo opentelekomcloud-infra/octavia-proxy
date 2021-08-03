@@ -172,6 +172,7 @@ class BaseController(pecan_rest.RestController):
                        "listener_protocol": listener_protocol}
         raise exceptions.ValidationException(detail=detail)
 
+    @staticmethod
     def _is_only_specified_in_request(self, request, **kwargs):
         request_attrs = []
         check_attrs = kwargs['check_exist_attrs']

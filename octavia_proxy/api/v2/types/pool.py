@@ -123,6 +123,46 @@ class PoolResponse(BasePoolType):
 
         return pool
 
+    @classmethod
+    def from_sdk_object(cls, sdk_entity, children=False):
+        pool = cls()
+        for key in [
+            'id', 'name',
+            'client_authentication', 'client_ca_tls_container_ref',
+            'client_crl_container_ref', 'connection_limit', 'default_pool_id',
+            'default_tls_container_ref', 'description', 'operation_status',
+            'project_id', 'protocol', 'protocol_port', 'provisioning_status',
+            'sni_container_refs',
+            'tags',
+            'timeout_client_data', 'timeout_memeber_connect',
+            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+        ]:
+            v = sdk_entity.get(key)
+            if v:
+                setattr(listener, key, v)
+
+        listener.admin_state_up = sdk_entity.is_admin_state_up
+        for attr in ['created_at', 'updated_at']:
+            setattr(listener, attr, parser.parse(sdk_entity[attr]))
+
+        listener.allowed_cidrs = []
+        listener.alpn_protocols = []
+        try:
+            headers = dict()
+            for k, v in sdk_entity.insert_headers.items():
+                headers[k] = str(v)
+            listener.insert_headers = headers
+        except (AttributeError):
+            pass
+        if sdk_entity.l7_policies:
+            listener.l7policies = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.l7_policies
+            ]
+        listener.loadbalancers = [
+            types.IdOnlyType(id=i['id']) for i in sdk_entity.load_balancers
+        ]
+        listener.tls_versions = []
+        return listener
 
 class PoolFullResponse(PoolResponse):
     @classmethod
