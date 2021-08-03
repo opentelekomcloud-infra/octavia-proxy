@@ -115,8 +115,8 @@ class PoolResponse(BasePoolType):
             member_model = member.MemberFullResponse
             if pool.healthmonitor:
                 pool.healthmonitor = (
-                    health_monitor.HealthMonitorFullResponse
-                        .from_data_model(data_model.health_monitor))
+                    health_monitor.HealthMonitorFullResponse.from_data_model(
+                        data_model.health_monitor))
         else:
             if data_model.load_balancer:
                 pool.loadbalancers = [
@@ -185,7 +185,6 @@ class PoolPUT(BasePoolType):
         wtypes.Enum(str, *constants.SUPPORTED_LB_ALGORITHMS))
     session_persistence = wtypes.wsattr(SessionPersistencePUT)
     slow_start = wtypes.wsattr(SlowStartPUT)
-
 
 
 class PoolRootPut(types.BaseType):

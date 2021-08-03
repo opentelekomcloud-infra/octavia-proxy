@@ -17,7 +17,9 @@ from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
 from octavia_proxy.api.v3.types import listener
+from octavia_proxy.api.v3.types import member
 from octavia_proxy.api.v3.types import pool
+from octavia_proxy.api.v3.types import health_monitor
 
 LOG = logging.getLogger(__name__)
 
@@ -229,7 +231,7 @@ class LoadBalancerStatusResponse(BaseLoadBalancerType):
     l7policies = wtypes.wsattr([l7policy.L7PolicyStatusResponse])
     l7rules = wtypes.wsattr([l7rule.L7RuleStatusResponse])
     health_monitors = wtypes.wsattr(
-        [health_monitor.HealthMonitorsStatusResponse]
+        [health_monitor.HealthMonitorStatusResponse]
     )
 
     @classmethod
