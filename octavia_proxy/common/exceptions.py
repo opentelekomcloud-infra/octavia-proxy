@@ -74,6 +74,11 @@ class NotFound(APIException):
     code = 404
 
 
+class ResourceNotFound(APIException):
+    msg = _('ResourceNotFound - %(detail)s')
+    code = 404
+
+
 class PolicyForbidden(APIException):
     msg = _("Policy does not allow this request to be performed.")
     code = 403

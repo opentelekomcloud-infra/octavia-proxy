@@ -76,14 +76,13 @@ class TestLoadBalancer(base.BaseAPITest):
         self._assert_request_matches_response(lb_json, self.api_lb)
         self._cleanup()
 
-    # def test_create_without_vip(self):
-    #     lb_json = {'name': 'test1',
-    #                'project_id': self.project_id}
-    #     body = self._build_body(lb_json)
-    #     response = self.post(self.LBS_PATH, body, status=400)
-    #     err_msg = ('Validation failure: VIP must contain one of: '
-    #                'vip_port_id, vip_network_id, vip_subnet_id.')
-    #     self.assertEqual(err_msg, response.json.get('faultstring'))
+    def test_create_without_vip(self):
+        lb_json = {'name': 'test1',
+                   'project_id': self.project_id}
+        body = self._build_body(lb_json)
+        response = self.post(self.LBS_PATH, body, status=400)
+        err_msg = ('Failed to parse request')
+        self.assertIn(err_msg, response.json.get('faultstring'))
 
     def test_create_with_empty_vip(self):
         lb_json = {'vip_subnet_id': '',
@@ -93,3 +92,46 @@ class TestLoadBalancer(base.BaseAPITest):
         err_msg = ("Invalid input for field/attribute vip_subnet_id. "
                    "Value: ''. Value should be UUID format")
         self.assertEqual(err_msg, response.json.get('faultstring'))
+
+    def test_create_with_invalid_vip_subnet(self):
+        subnet_id = uuidutils.generate_uuid()
+        lb_json = {'vip_subnet_id': subnet_id,
+                   'project_id': self.project_id}
+        body = self._build_body(lb_json)
+        response = self.post(self.LBS_PATH, body, status=404)
+        err_msg = 'Subnet {} could not be found.'.format(subnet_id)
+        self.assertIn(err_msg, response.json.get('faultstring'))
+
+    def test_create_with_long_name(self):
+        lb_json = {'name': 'n' * 256,
+                   'vip_subnet_id': self._network['subnet_id'],
+                   'project_id': self.project_id}
+        response = self.post(self.LBS_PATH, self._build_body(lb_json),
+                             status=400)
+        self.assertIn('Invalid input for field/attribute name',
+                      response.json.get('faultstring'))
+
+    def test_create_with_long_description(self):
+        lb_json = {'description': 'n' * 256,
+                   'vip_subnet_id': self._network['subnet_id'],
+                   'project_id': self.project_id}
+        response = self.post(self.LBS_PATH, self._build_body(lb_json),
+                             status=400)
+        self.assertIn('Invalid input for field/attribute description',
+                      response.json.get('faultstring'))
+
+    def test_create_with_nonuuid_vip_attributes(self):
+        lb_json = {'vip_subnet_id': 'HI',
+                   'project_id': self.project_id}
+        response = self.post(self.LBS_PATH, self._build_body(lb_json),
+                             status=400)
+        self.assertIn('Invalid input for field/attribute vip_subnet_id',
+                      response.json.get('faultstring'))
+
+    def test_create_no_project_id(self, **optionals):
+        lb_json = {'name': 'test1',
+                   'vip_subnet_id': self._network['subnet_id']
+                   }
+        lb_json.update(optionals)
+        body = self._build_body(lb_json)
+        self.post(self.LBS_PATH, body, status=400)

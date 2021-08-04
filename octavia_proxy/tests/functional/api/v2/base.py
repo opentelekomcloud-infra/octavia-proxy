@@ -90,10 +90,10 @@ class BaseAPITest(base.TestCase):
 
     def setUp(self):
         super().setUp()
-        self._token = None
         self._sdk_connection = self._get_sdk_connection()
+        self._token = self._get_token()
         self._network = self._create_network()
-        self.project_id = None
+        self.project_id = self._get_project_id()
         self.vip_subnet_id = None
         self.conf.config(
             group='api_settings',
@@ -217,10 +217,14 @@ class BaseAPITest(base.TestCase):
     def _get_token(self):
         if not self._sdk_connection:
             self._sdk_connection = self._get_sdk_connection()
-        if not self._token:
-            self._token = self._sdk_connection.auth_token
-        self.project_id = self._sdk_connection.current_project_id
+        self._token = self._sdk_connection.auth_token
         return self._token
+
+    def _get_project_id(self):
+        if not self._sdk_connection:
+            self._sdk_connection = self._get_sdk_connection()
+        self.project_id = self._sdk_connection.current_project_id
+        return self.project_id
 
     def get(self, path, params=None, headers=None, status=200,
             expect_errors=False, authorized=True):
@@ -249,7 +253,6 @@ class BaseAPITest(base.TestCase):
             if not headers:
                 headers = dict()
             headers['X-Auth-Token'] = self._get_token()
-            body['loadbalancer']['project_id'] = self.project_id
         response = self.app.post_json(full_path,
                                       params=body,
                                       headers=headers,
