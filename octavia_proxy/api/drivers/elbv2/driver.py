@@ -169,10 +169,9 @@ class ELBv2Driver(driver_base.ProviderDriver):
         # TODO: do this differently
 
         res = session.elb.create_pool(**attrs)
-        a=5
         result_data = _pool.PoolResponse.from_sdk_object(
             res)
-        result_data.provider = 'elbv2'
+        setattr(result_data, 'provider', 'elbv2')
         return result_data
 
     def pool_update(self, session, original, new_attrs):

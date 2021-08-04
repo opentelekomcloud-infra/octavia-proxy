@@ -109,6 +109,7 @@ class PoolsController(base.BaseController):
         pool = pool_.pool
         context = pecan_request.context.get('octavia_context')
         listener = None
+        loadbalancer = None
 
         if not pool.project_id and context.project_id:
             pool.project_id = context.project_id
@@ -122,7 +123,9 @@ class PoolsController(base.BaseController):
             pool.loadbalancer_id = loadbalancer.id
         elif pool.listener_id:
             listener = self.find_listener(context, pool.listener_id)
-            pool.loadbalancer_id = listener.loadbalancer_id
+            loadbalancer = self.find_load_balancer(
+                context, listener.loadbalancers[0]['id'])
+            pool.loadbalancer_id = listener.loadbalancers[0]['id']
         else:
             msg = _("Must provide at least one of: "
                     "loadbalancer_id, listener_id")
@@ -146,7 +149,7 @@ class PoolsController(base.BaseController):
             sp_dict = pool.session_persistence.to_dict(render_unsets=False)
             validate._check_session_persistence(sp_dict)
 
-        driver = driver_factory.get_driver(pool.provider)
+        driver = driver_factory.get_driver(loadbalancer.provider)
 
         pool_dict = pool.to_dict(render_unsets=False)
         pool_dict['id'] = None

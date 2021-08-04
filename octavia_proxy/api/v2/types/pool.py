@@ -128,41 +128,32 @@ class PoolResponse(BasePoolType):
         pool = cls()
         for key in [
             'id', 'name',
-            'client_authentication', 'client_ca_tls_container_ref',
-            'client_crl_container_ref', 'connection_limit', 'default_pool_id',
-            'default_tls_container_ref', 'description', 'operation_status',
-            'project_id', 'protocol', 'protocol_port', 'provisioning_status',
-            'sni_container_refs',
-            'tags',
-            'timeout_client_data', 'timeout_memeber_connect',
-            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+            'availability_zone', 'description',
+            'protocol', 'lb_algorithm',
+            'session_persistence', 'project_id', 'provider',
+            'healthmonitor_id'
         ]:
-            v = sdk_entity.get(key)
-            if v:
-                setattr(listener, key, v)
 
-        listener.admin_state_up = sdk_entity.is_admin_state_up
-        for attr in ['created_at', 'updated_at']:
-            setattr(listener, attr, parser.parse(sdk_entity[attr]))
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(pool, key, v)
 
-        listener.allowed_cidrs = []
-        listener.alpn_protocols = []
-        try:
-            headers = dict()
-            for k, v in sdk_entity.insert_headers.items():
-                headers[k] = str(v)
-            listener.insert_headers = headers
-        except (AttributeError):
-            pass
-        if sdk_entity.l7_policies:
-            listener.l7policies = [
-                types.IdOnlyType(id=i['id']) for i in sdk_entity.l7_policies
+        pool.admin_state_up = sdk_entity.is_admin_state_up
+
+        if sdk_entity.loadbalancers:
+            pool.loadbalancers = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.loadbalancers
             ]
-        listener.loadbalancers = [
-            types.IdOnlyType(id=i['id']) for i in sdk_entity.load_balancers
-        ]
-        listener.tls_versions = []
-        return listener
+        if sdk_entity.listeners:
+            pool.listeners = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.listeners
+            ]
+        if sdk_entity.members:
+            pool.members = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.members
+            ]
+        return pool
 
 class PoolFullResponse(PoolResponse):
     @classmethod
@@ -198,6 +189,7 @@ class PoolPOST(BasePoolType):
     session_persistence = wtypes.wsattr(SessionPersistencePOST)
     # TODO(johnsom) Remove after deprecation (R series)
     project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
+    provider = wtypes.wsattr(wtypes.StringType())
     healthmonitor = wtypes.wsattr(health_monitor.HealthMonitorSingleCreate)
     members = wtypes.wsattr([member.MemberSingleCreate])
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
@@ -205,7 +197,7 @@ class PoolPOST(BasePoolType):
         wtypes.StringType(max_length=255))
     ca_tls_container_ref = wtypes.wsattr(wtypes.StringType(max_length=255))
     crl_container_ref = wtypes.wsattr(wtypes.StringType(max_length=255))
-    tls_enabled = wtypes.wsattr(bool, default=False)
+    tls_enabled = wtypes.wsattr(bool)
     tls_ciphers = wtypes.wsattr(wtypes.StringType(max_length=2048))
     tls_versions = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(
         max_length=32)))
