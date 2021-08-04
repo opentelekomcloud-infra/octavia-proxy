@@ -1,8 +1,8 @@
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 
-from octavia_proxy.api.v2.types import listener as _listener
-from octavia_proxy.api.v2.types import load_balancer
+from octavia_proxy.api.v3.types import listener as _listener
+from octavia_proxy.api.v3.types import load_balancer
 
 LOG = logging.getLogger(__name__)
 
