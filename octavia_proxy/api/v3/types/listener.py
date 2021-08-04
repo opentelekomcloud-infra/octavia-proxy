@@ -16,8 +16,7 @@ from oslo_config import cfg
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
-from octavia_proxy.api.v3.types import l7policy
-from octavia_proxy.api.v3.types import pool
+from octavia_proxy.api.v3.types import l7policy, pool
 from octavia_proxy.common import constants
 
 CONF = cfg.CONF

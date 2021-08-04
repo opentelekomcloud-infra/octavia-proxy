@@ -16,8 +16,7 @@ from octavia_lib.common import constants as lib_constants
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
-from octavia_proxy.api.v3.types import health_monitor
-from octavia_proxy.api.v3.types import member
+from octavia_proxy.api.v3.types import health_monitor, member
 from octavia_proxy.common import constants
 
 

@@ -16,10 +16,7 @@ from oslo_log import log as logging
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
-from octavia_proxy.api.v3.types import health_monitor
-from octavia_proxy.api.v3.types import listener
-from octavia_proxy.api.v3.types import member
-from octavia_proxy.api.v3.types import pool
+from octavia_proxy.api.v3.types import health_monitor, listener, member, pool
 
 LOG = logging.getLogger(__name__)
 
