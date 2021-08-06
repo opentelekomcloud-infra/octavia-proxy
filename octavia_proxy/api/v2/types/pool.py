@@ -197,7 +197,7 @@ class PoolPOST(BasePoolType):
         wtypes.StringType(max_length=255))
     ca_tls_container_ref = wtypes.wsattr(wtypes.StringType(max_length=255))
     crl_container_ref = wtypes.wsattr(wtypes.StringType(max_length=255))
-    tls_enabled = wtypes.wsattr(bool)
+    tls_enabled = wtypes.wsattr(bool, default=False)
     tls_ciphers = wtypes.wsattr(wtypes.StringType(max_length=2048))
     tls_versions = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(
         max_length=32)))
