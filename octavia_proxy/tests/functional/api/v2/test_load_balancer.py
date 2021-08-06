@@ -24,6 +24,10 @@ class TestLoadBalancer(base.BaseAPITest):
     root_tag_links = 'loadbalancers_links'
     api_lb = None
 
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
     def _assert_request_matches_response(self, req, resp, **optionals):
         self.assertTrue(uuidutils.is_uuid_like(resp.get('id')))
         req_name = req.get('name')
@@ -74,7 +78,7 @@ class TestLoadBalancer(base.BaseAPITest):
         response = self.post(self.LBS_PATH, body, use_v2_0=True)
         self.api_lb = response.json.get(self.root_tag)
         self._assert_request_matches_response(lb_json, self.api_lb)
-        self._cleanup()
+        self._cleanup_lb()
 
     def test_create_without_vip(self):
         lb_json = {'name': 'test1',

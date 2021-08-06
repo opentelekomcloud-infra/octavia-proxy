@@ -22,9 +22,44 @@ from octavia_proxy.api import config as pconfig
 
 _network = None
 _sdk = None
+_lb = None
+
+
+def _destroy_network(_network: dict):
+    router_id = _network.get('router_id')
+    subnet_id = _network.get('subnet_id')
+    network_id = _network.get('network_id')
+    router = _sdk.network.get_router(router_id)
+
+    router.remove_interface(
+        _sdk.network,
+        subnet_id=subnet_id
+    )
+    _sdk.network.delete_router(
+        router_id,
+        ignore_missing=False
+    )
+    _sdk.network.delete_subnet(
+        subnet_id,
+        ignore_missing=False
+    )
+    _sdk.network.delete_network(
+        network_id,
+        ignore_missing=False
+    )
+
+
+def _destroy_lb(_lb: dict):
+    if _lb.get('provider') == 'elbv2':
+        _sdk.elb.delete_load_balancer(_lb.get('id'))
+    else:
+        _sdk.vlb.delete_load_balancer(_lb.get('id'))
 
 
 class BaseAPITest(base.TestCase):
+
+    def runTest():
+        pass
 
     BASE_PATH = '/v2'
     BASE_PATH_v2_0 = '/v2.0'
@@ -99,6 +134,7 @@ class BaseAPITest(base.TestCase):
             group='api_settings',
             auth_strategy=constants.KEYSTONE_EXT)
         self.app = self._make_app()
+        self._lb = self._create_lb()
 
         def reset_pecan():
             pecan.set_config({}, overwrite=True)
@@ -109,6 +145,14 @@ class BaseAPITest(base.TestCase):
         if self._sdk_connection:
             self._sdk_connection.close()
         super().tearDown()
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            _destroy_lb(_lb)
+            _destroy_network(_network)
+        except:
+            pass
 
     def _get_sdk_connection(self):
         global _sdk
@@ -153,7 +197,7 @@ class BaseAPITest(base.TestCase):
             }
         return _network
 
-    def _destroy_network(self, params: dict):
+    def _remove_network(self, params: dict):
         router_id = params.get('router_id')
         subnet_id = params.get('subnet_id')
         network_id = params.get('network_id')
@@ -176,6 +220,18 @@ class BaseAPITest(base.TestCase):
             ignore_missing=False
         )
 
+    def _create_lb(self):
+        global _lb
+        if not _lb:
+            body = {'loadbalancer': {
+                    'name': 'lb-common',
+                    'vip_subnet_id': self._network['subnet_id'],
+                    'project_id': self.project_id}
+                    }
+            response = self.post(self.LBS_PATH, body)
+            _lb = response.json.get('loadbalancer')
+        return _lb
+
     def _cleanup_lb(self):
         try:
             self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
@@ -184,7 +240,7 @@ class BaseAPITest(base.TestCase):
 
     def _cleanup_network(self):
         try:
-            self._destroy_network(self._network)
+            self._remove_network(self._network)
         except Exception:
             pass
 
@@ -242,6 +298,9 @@ class BaseAPITest(base.TestCase):
         )
         return response
 
+    def get_lb_id(self):
+        return _lb.get('id')
+
     def post(self, path, body, headers=None, status=201, expect_errors=False,
              use_v2_0=False, authorized=True):
         headers = headers or {}
@@ -280,3 +339,25 @@ class BaseAPITest(base.TestCase):
                                    status=status,
                                    expect_errors=expect_errors)
         return response
+
+    def create_listener(self, protocol, protocol_port, lb_id,
+                        status=None, **optionals):
+        req_dict = {'protocol': protocol, 'protocol_port': protocol_port,
+                    'loadbalancer_id': lb_id}
+        req_dict.update(optionals)
+        path = self.LISTENERS_PATH
+        body = {'listener': req_dict}
+        status = {'status': status} if status else {}
+        response = self.post(path, body, **status)
+        return response.json
+
+    def create_pool(self, lb_id, protocol, lb_algorithm,
+                    status=None, **optionals):
+        req_dict = {'loadbalancer_id': lb_id, 'protocol': protocol,
+                    'lb_algorithm': lb_algorithm}
+        req_dict.update(optionals)
+        body = {'pool': req_dict}
+        path = self.POOLS_PATH
+        status = {'status': status} if status else {}
+        response = self.post(path, body, **status)
+        return response.json
