@@ -20,6 +20,8 @@ class TestProvider(base.BaseAPITest):
     def setUp(self):
         super().setUp()
 
+    # this fails due to config.py change of enabled_provider_drivers
+    # listener get fails with both elbv2 and elbv3 in eu-de
     def test_get_all_providers(self):
         elbv2_dict = {u'description': u'The ELBv2 driver.',
                       u'name': u'elbv2'}
@@ -30,6 +32,8 @@ class TestProvider(base.BaseAPITest):
         self.assertIn(elbv2_dict, providers)
         self.assertIn(elbv3_dict, providers)
 
+    # this fails due to config.py change of enabled_provider_drivers
+    # listener get fails with both elbv2 and elbv3 in eu-de
     def test_get_all_providers_fields(self):
         elbv2_dict = {u'name': u'elbv2'}
         elbv3_dict = {u'name': u'elbv3'}
