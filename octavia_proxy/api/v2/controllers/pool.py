@@ -42,7 +42,7 @@ class PoolsController(base.BaseController):
 
     @wsme_pecan.wsexpose(pool_types.PoolRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
-    def get(self, id, fields=None):
+    def get_one(self, id, fields=None):
         """Gets a pool's details."""
         context = pecan_request.context.get('octavia_context')
 
@@ -53,8 +53,7 @@ class PoolsController(base.BaseController):
 
         if fields is not None:
             result = self._filter_fields([result], fields)[0]
-        return pool_types.PoolRootResponse(
-            listener=result)
+        return pool_types.PoolRootResponse(listener=result)
 
     @wsme_pecan.wsexpose(pool_types.PoolsRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
@@ -194,13 +193,15 @@ class PoolsController(base.BaseController):
     def delete(self, id):
         """Deletes a pool from a load balancer."""
         context = pecan_request.context.get('octavia_context')
-
         pool = self.find_pool(context, id)
 
         self._auth_validate_action(
             context, pool.project_id,
             constants.RBAC_DELETE)
 
+        if pool.l7policies:
+            raise exceptions.PoolInUseByL7Policy(
+                id=pool.id, l7policy_id=pool.l7policies[0].id)
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(pool.provider)
 
@@ -208,12 +209,3 @@ class PoolsController(base.BaseController):
             driver.name, driver.pool_delete,
             context.session,
             pool)
-
-    @pecan_expose()
-    def _lookup(self, pool_id, *remainder):
-        """Overridden pecan _lookup method for custom routing.
-
-        Verifies that the pool passed in the url exists, and if so decides
-        which controller, if any, should control be passed.
-        """
-        pecan_abort(501)
