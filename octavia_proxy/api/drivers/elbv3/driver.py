@@ -3,6 +3,7 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
+from octavia_proxy.api.v2.types import flavors as _flavors
 
 LOG = logging.getLogger(__name__)
 
@@ -73,7 +74,21 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
+        LOG.debug(f'Attrs: {lb_attrs.pop("vip_network_id")}')
+
         lb_attrs.pop('loadbalancer_id')
+        if 'vip_subnet_id' in lb_attrs:
+            lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
+        if 'vip_network_id' in lb_attrs:
+            lb_attrs['elb_virsubnet_ids'] = [lb_attrs.pop('vip_network_id')]
+        lb_attrs['availability_zone_list'] = [
+            lb_attrs.pop('availability_zone', 'eu-nl-01')
+        ]
+        # lb_attrs['publicip'] = [lb_attrs.pop('availability_zone', None)]
+        #     vip_port_id = wtypes.wsattr(wtypes.UuidType())
+        #     vip_qos_policy_id = wtypes.wsattr(wtypes.UuidType())
+        #     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
+        #     flavor_id = wtypes.wsattr(wtypes.UuidType())
 
         lb = session.vlb.create_load_balancer(**lb_attrs)
 
@@ -96,7 +111,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data.provider = 'elbv3'
         return lb_data
 
-    def loadbalancer_delete(self, session, loadbalancer):
+    def loadbalancer_delete(self, session, loadbalancer, cascade=False):
+        """Delete a load balancer
+
+        :param cascade: here for backward compatibility,
+               not used in elbv3
+
+        :returns: ``None``
+        """
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
 
         session.vlb.delete_load_balancer(loadbalancer.id)
@@ -113,3 +135,19 @@ class ELBv3Driver(driver_base.ProviderDriver):
         for lsnr in session.list_elbv3_listeners(**query_filter):
             results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
         return results
+
+    def flavors(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching flavors')
+        if not query_filter:
+            query_filter = {}
+
+        query_filter.pop('project_id', None)
+
+        result = []
+
+        for fl in session.vlb.flavors(**query_filter):
+            fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
+            fl_data.provider = 'elbv3'
+            result.append(fl_data)
+
+        return result

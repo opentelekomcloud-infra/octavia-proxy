@@ -9,6 +9,7 @@ from octavia_lib.api.drivers import provider_base as driver_base
 
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import listener as _listener
+from octavia_proxy.api.v2.types import flavors
 
 LOG = logging.getLogger(__name__)
 
