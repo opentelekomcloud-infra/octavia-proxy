@@ -44,7 +44,7 @@ class FlavorsController(base.BaseController):
         """Gets a flavor's detail."""
         pecan_abort(501)
 
-    @wsme_pecan.wsexpose(flavor_types.FlavorRootResponse, wtypes.text,
+    @wsme_pecan.wsexpose(flavor_types.FlavorsRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_all(self, project_id=None, fields=None):
         """Lists all flavors."""

@@ -15,8 +15,7 @@
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
-from oslo_log import log as logging
-LOG = logging.getLogger(__name__)
+
 
 class BaseFlavorType(types.BaseType):
     _type_to_model_map = {}
@@ -44,9 +43,10 @@ class FlavorResponse(BaseFlavorType):
             'id', 'name', 'description', 'enabled',
             'flavor_profile_id'
         ]:
-            v = sdk_entity.get(key)
-            if v:
-                setattr(flavor, key, v)
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(flavor, key, v)
         return flavor
 
 
@@ -57,6 +57,7 @@ class FlavorRootResponse(types.BaseType):
 class FlavorsRootResponse(types.BaseType):
     flavors = wtypes.wsattr([FlavorResponse])
     flavors_links = wtypes.wsattr([types.PageType])
+
 
 class FlavorPOST(BaseFlavorType):
     """Defines mandatory and optional attributes of a POST request."""
