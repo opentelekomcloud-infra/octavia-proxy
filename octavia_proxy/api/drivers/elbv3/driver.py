@@ -74,9 +74,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
-        LOG.debug(f'Attrs: {lb_attrs.pop("vip_network_id")}')
 
-        lb_attrs.pop('loadbalancer_id')
+        lb_attrs.pop('loadbalancer_id', None)
         if 'vip_subnet_id' in lb_attrs:
             lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
         if 'vip_network_id' in lb_attrs:
@@ -84,16 +83,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_attrs['availability_zone_list'] = [
             lb_attrs.pop('availability_zone', 'eu-nl-01')
         ]
-        # lb_attrs['publicip'] = [lb_attrs.pop('availability_zone', None)]
-        #     vip_port_id = wtypes.wsattr(wtypes.UuidType())
-        #     vip_qos_policy_id = wtypes.wsattr(wtypes.UuidType())
-        #     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
-        #     flavor_id = wtypes.wsattr(wtypes.UuidType())
 
         lb = session.vlb.create_load_balancer(**lb_attrs)
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
+
         lb_data.provider = 'elbv3'
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
@@ -151,3 +146,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
             result.append(fl_data)
 
         return result
+
+    def flavor_get(self, session, fl_id):
+        LOG.debug('Searching flavor')
+
+        fl = session.vlb.find_flavor(
+            name_or_id=fl_id, ignore_missing=True)
+        if fl:
+            fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
+            fl_data.provider = 'elbv3'
+            return fl_data

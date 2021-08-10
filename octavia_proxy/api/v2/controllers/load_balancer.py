@@ -157,7 +157,7 @@ class LoadBalancersController(base.BaseController):
         lb_dict = load_balancer.to_dict(render_unsets=False)
         lb_dict['id'] = None
         driver_lb_dict = driver_utils.lb_dict_to_provider_dict(
-            lb_dict, None, None, None)
+            lb_dict, None)
 
         # Dispatch to the driver
         result = driver_utils.call_provider(

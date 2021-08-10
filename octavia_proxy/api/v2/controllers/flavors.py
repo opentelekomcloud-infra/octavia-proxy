@@ -41,8 +41,32 @@ class FlavorsController(base.BaseController):
     @wsme_pecan.wsexpose(flavor_types.FlavorRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
-        """Gets a flavor's detail."""
-        pecan_abort(501)
+        """Gets a single flavor's details."""
+        context = pecan_request.context.get('octavia_context')
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        flavor = None
+
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                flavor = driver_utils.call_provider(
+                    driver.name, driver.flavor_get,
+                    context.session,
+                    id)
+                if flavor:
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if not flavor:
+            raise exceptions.NotFound(
+                resource='Flavor',
+                id=id)
+
+        if fields is not None:
+            result = self._filter_fields([flavor], fields)[0]
+        return flavor_types.FlavorRootResponse(flavor=flavor)
 
     @wsme_pecan.wsexpose(flavor_types.FlavorsRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
