@@ -65,7 +65,7 @@ class FlavorsController(base.BaseController):
                 id=id)
 
         if fields is not None:
-            result = self._filter_fields([flavor], fields)[0]
+            flavor = self._filter_fields([flavor], fields)[0]
         return flavor_types.FlavorRootResponse(flavor=flavor)
 
     @wsme_pecan.wsexpose(flavor_types.FlavorsRootResponse, wtypes.text,

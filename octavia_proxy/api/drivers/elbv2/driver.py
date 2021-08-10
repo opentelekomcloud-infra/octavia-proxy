@@ -1,15 +1,13 @@
 # from dateutil import parser
-from oslo_log import log as logging
-
 # from octavia_lib.api.drivers import data_models
 from octavia_lib.api.drivers import provider_base as driver_base
+from oslo_log import log as logging
+
+from octavia_proxy.api.v2.types import listener as _listener
+from octavia_proxy.api.v2.types import load_balancer
 
 # from octavia.api.common import types
 # from wsme import types as wtypes
-
-from octavia_proxy.api.v2.types import load_balancer
-from octavia_proxy.api.v2.types import listener as _listener
-from octavia_proxy.api.v2.types import flavors
 
 LOG = logging.getLogger(__name__)
 
@@ -31,7 +29,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             self.__class__.__name__)
 
         return {"compute_zone": "The compute availability zone to use for "
-                "this loadbalancer."}
+                                "this loadbalancer."}
 
     def loadbalancers(self, session, project_id, query_filter=None):
         LOG.debug('Fetching loadbalancers')
