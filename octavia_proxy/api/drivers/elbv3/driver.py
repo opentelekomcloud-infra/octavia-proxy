@@ -148,9 +148,18 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def listener_create(self, session, listener):
         LOG.debug('Creating listener %s' % listener.to_dict())
 
-        lsnr_attrs = listener.to_dict()
+        lattrs = listener.to_dict()
+        lattrs.pop('connection_limit')
+        lattrs.pop('l7policies', None)
 
-        lsnr = session.vlb.create_load_balancer(**lsnr_attrs)
+        if 'timeout_client_data' in lattrs:
+            lattrs['client_timeout'] = lattrs.pop('timeout_client_data')
+        if 'timeout_member_data' in lattrs:
+            lattrs['member_timeout'] = lattrs.pop('timeout_member_data')
+        if 'timeout_member_connect' in lattrs:
+            lattrs['keepalive_timeout'] = lattrs.pop('timeout_member_connect')
+
+        lsnr = session.vlb.create_listener(**lattrs)
 
         lsnr_data = _listener.ListenerResponse.from_sdk_object(
             lsnr)
@@ -162,6 +171,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def listener_update(self, session, original_listener,
                             new_attrs):
         LOG.debug('Updating listener')
+
+        if 'timeout_client_data' in new_attrs:
+            new_attrs['client_timeout'] = new_attrs.pop('timeout_client_data')
+        if 'timeout_member_data' in new_attrs:
+            new_attrs['member_timeout'] = new_attrs.pop('timeout_member_data')
+        if 'timeout_member_connect' in new_attrs:
+            new_attrs['keepalive_timeout'] = new_attrs.pop('timeout_member_connect')
 
         lsnr = session.vlb.update_listener(
             original_listener.id,
