@@ -36,6 +36,19 @@ class FlavorResponse(BaseFlavorType):
             data_model, children=children)
         return flavor
 
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        flavor = cls()
+        for key in [
+            'id', 'name', 'description', 'enabled',
+            'flavor_profile_id'
+        ]:
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(flavor, key, v)
+        return flavor
+
 
 class FlavorRootResponse(types.BaseType):
     flavor = wtypes.wsattr(FlavorResponse)
