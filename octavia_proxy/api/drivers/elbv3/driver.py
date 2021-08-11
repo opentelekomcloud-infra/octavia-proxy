@@ -124,12 +124,57 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
-        query_filter.pop('project_id')
+        query_filter.pop('project_id', None)
 
-        results = []
-        for lsnr in session.list_elbv3_listeners(**query_filter):
-            results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
-        return results
+        result = []
+
+        for lsnr in session.vlb.listeners(**query_filter):
+            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+            lsnr_data.provider = 'elbv3'
+            result.append(lsnr_data)
+
+        return result
+
+    def listener_get(self, session, project_id, lsnr_id):
+        LOG.debug('Searching listener')
+
+        lsnr = session.vlb.find_listener(
+            name_or_id=lsnr_id, ignore_missing=True)
+        if lsnr:
+            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+            lsnr_data.provider = 'elbv3'
+            return lsnr_data
+
+    def listener_create(self, session, listener):
+        LOG.debug('Creating listener %s' % listener.to_dict())
+
+        lsnr_attrs = listener.to_dict()
+
+        lsnr = session.vlb.create_load_balancer(**lsnr_attrs)
+
+        lsnr_data = _listener.ListenerResponse.from_sdk_object(
+            lsnr)
+
+        lsnr_data.provider = 'elbv3'
+        LOG.debug('Created LB according to API is %s' % lsnr_data)
+        return lsnr_data
+
+    def listener_update(self, session, original_listener,
+                            new_attrs):
+        LOG.debug('Updating listener')
+
+        lsnr = session.vlb.update_listener(
+            original_listener.id,
+            **new_attrs)
+
+        lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+        lsnr_data.provider = 'elbv3'
+        return lsnr_data
+
+    def listener_delete(self, session, listener):
+        LOG.debug('Deleting listener %s' % listener.to_dict())
+
+        session.vlb.delete_listener(listener.id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
