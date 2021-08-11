@@ -15,7 +15,7 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from otcextensions.sdk.vlb.v3 import load_balancer
+from otcextensions.sdk.vlb.v3 import load_balancer, listener
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.tests.unit import base
@@ -78,6 +78,23 @@ class TestElbv3Driver(base.TestCase):
         self.sess.vlb.load_balancers.assert_called_with(
             a='b'
         )
+
+    def test_listeners_no_qp(self):
+        self.driver.listeners(self.sess, 'l1')
+        self.sess.vlb.listeners.assert_called_with()
+
+    def test_listeners_qp(self):
+        self.driver.listeners(
+            self.sess, 'l1',
+            query_filter={'a': 'b'})
+        self.sess.vlb.listeners.assert_called_with(
+            a='b'
+        )
+
+    def test_listener_delete(self):
+        lsnr = listener.Listener(**EXAMPLE_LB)
+        self.driver.listener_delete(self.sess, lsnr)
+        self.sess.vlb.delete_listener.assert_called_with(None)
 
     def test_flavors_qp(self):
         self.driver.flavors(
