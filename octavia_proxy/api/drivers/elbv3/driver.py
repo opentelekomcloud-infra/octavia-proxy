@@ -1,9 +1,9 @@
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 
+from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
-from octavia_proxy.api.v2.types import flavors as _flavors
 
 LOG = logging.getLogger(__name__)
 
@@ -124,12 +124,75 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
-        query_filter.pop('project_id')
+        query_filter.pop('project_id', None)
 
-        results = []
-        for lsnr in session.list_elbv3_listeners(**query_filter):
-            results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
-        return results
+        result = []
+
+        for lsnr in session.vlb.listeners(**query_filter):
+            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+            lsnr_data.provider = 'elbv3'
+            result.append(lsnr_data)
+
+        return result
+
+    def listener_get(self, session, project_id, lsnr_id):
+        LOG.debug('Searching listener')
+
+        lsnr = session.vlb.find_listener(
+            name_or_id=lsnr_id, ignore_missing=True)
+        if lsnr:
+            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+            lsnr_data.provider = 'elbv3'
+            return lsnr_data
+
+    def listener_create(self, session, listener):
+        LOG.debug('Creating listener %s' % listener.to_dict())
+
+        lattrs = listener.to_dict()
+        lattrs.pop('connection_limit')
+        lattrs.pop('l7policies', None)
+
+        if 'timeout_client_data' in lattrs:
+            lattrs['client_timeout'] = lattrs.pop('timeout_client_data')
+        if 'timeout_member_data' in lattrs:
+            lattrs['member_timeout'] = lattrs.pop('timeout_member_data')
+        if 'timeout_member_connect' in lattrs:
+            lattrs['keepalive_timeout'] = \
+                lattrs.pop('timeout_member_connect')
+
+        lsnr = session.vlb.create_listener(**lattrs)
+
+        lsnr_data = _listener.ListenerResponse.from_sdk_object(
+            lsnr)
+
+        lsnr_data.provider = 'elbv3'
+        LOG.debug('Created LB according to API is %s' % lsnr_data)
+        return lsnr_data
+
+    def listener_update(self, session, original_listener,
+                        new_attrs):
+        LOG.debug('Updating listener')
+
+        if 'timeout_client_data' in new_attrs:
+            new_attrs['client_timeout'] = new_attrs.pop('timeout_client_data')
+        if 'timeout_member_data' in new_attrs:
+            new_attrs['member_timeout'] = new_attrs.pop('timeout_member_data')
+        if 'timeout_member_connect' in new_attrs:
+            new_attrs['keepalive_timeout'] = \
+                new_attrs.pop('timeout_member_connect')
+
+        lsnr = session.vlb.update_listener(
+            original_listener.id,
+            **new_attrs)
+
+        lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+        lsnr_data.provider = 'elbv3'
+        return lsnr_data
+
+    def listener_delete(self, session, listener):
+        LOG.debug('Deleting listener %s' % listener.to_dict())
+
+        session.vlb.delete_listener(listener.id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
