@@ -79,6 +79,83 @@ class TestElbv3Driver(base.TestCase):
             a='b'
         )
 
+    def test_flavors_qp(self):
+        self.driver.flavors(
+            self.sess, 'p1',
+            query_filter={'a': 'b'})
+        self.sess.vlb.flavors.assert_called_with(
+            a='b'
+        )
+
+    def test_flavors_no_qp(self):
+        self.driver.flavors(self.sess, 'p1')
+        self.sess.vlb.flavors.assert_called_with()
+
+
+class TestElbv3ListenerDriver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'protocol_port': 80,
+        'protocol': "TCP",
+        'insert_headers': {'X-Forwarded-ELB-IP': True},
+        'name': 'test',
+        'admin_state_up': True,
+        'tags': [],
+        'timeout_client_data': 10,
+        'timeout_member_data': 10,
+        'timeout_member_connect': 10,
+        'timeout_tcp_inspect': 10,
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}]
+    }
+    fakeCallCreate = {
+        'allowed_cidrs': None,
+        'client_ca_tls_container_ref': None,
+        'client_timeout': 10,
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'description': None,
+        'default_pool_id': None,
+        'default_tls_container_ref': None,
+        'enable_member_retry': None,
+        'enhance_l7policy': None,
+        'http2_enable': None,
+        'insert_headers': {'X-Forwarded-ELB-IP': True},
+        'ipgroup': None,
+        'is_admin_state_up': True,
+        'keepalive_timeout': 10,
+        'l7_policies': None,
+        'load_balancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'member_timeout': 10,
+        'operating_status': None,
+        'project_id': None,
+        'protocol': 'TCP',
+        'protocol_port': 80,
+        'provisioning_status': None,
+        'sni_container_refs': None,
+        'tags': [],
+        'timeout_tcp_inspect': 10,
+        'tls_ciphers': None,
+        'tls_ciphers_policy': None,
+        'tls_versions': None,
+        'transparent_ip': None,
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'name': 'test',
+        'location': None
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.lsnr = listener.Listener(**self.attrs)
+        self.sess.vlb.create_listener = mock.MagicMock(return_value=self.lsnr)
+        self.sess.vlb.find_listener = mock.MagicMock(return_value=self.lsnr)
+        self.sess.vlb.update_listener = mock.MagicMock(return_value=self.lsnr)
+
     def test_listeners_no_qp(self):
         self.driver.listeners(self.sess, 'l1')
         self.sess.vlb.listeners.assert_called_with()
@@ -91,22 +168,27 @@ class TestElbv3Driver(base.TestCase):
             a='b'
         )
 
+    def test_listener_get(self):
+        self.driver.listener_get(self.sess, 'test', self.lsnr)
+        self.sess.vlb.find_listener.assert_called_with(
+            name_or_id=self.lsnr, ignore_missing=True)
+
+    def test_listener_create(self):
+        self.driver.listener_create(self.sess, self.lsnr)
+        self.sess.vlb.create_listener.assert_called_with(**self.fakeCallCreate)
+
+    def test_listener_update(self):
+        attrs = {
+            'description': 'New Description',
+            'operating_status': 'ACTIVE',
+        }
+        self.driver.listener_update(self.sess, self.lsnr, attrs)
+        self.sess.vlb.update_listener.assert_called_with(self.lsnr.id, **attrs)
+
     def test_listener_delete(self):
         lsnr = listener.Listener(**EXAMPLE_LB)
         self.driver.listener_delete(self.sess, lsnr)
         self.sess.vlb.delete_listener.assert_called_with(None)
-
-    def test_flavors_qp(self):
-        self.driver.flavors(
-            self.sess, 'p1',
-            query_filter={'a': 'b'})
-        self.sess.vlb.flavors.assert_called_with(
-            a='b'
-        )
-
-    def test_flavors_no_qp(self):
-        self.driver.flavors(self.sess, 'p1')
-        self.sess.vlb.flavors.assert_called_with()
 
 
 class TestElbv3DriverRequests(base.TestCase):
