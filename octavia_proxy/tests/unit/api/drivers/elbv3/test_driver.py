@@ -186,9 +186,8 @@ class TestElbv3ListenerDriver(base.TestCase):
         self.sess.vlb.update_listener.assert_called_with(self.lsnr.id, **attrs)
 
     def test_listener_delete(self):
-        lsnr = listener.Listener(**EXAMPLE_LB)
-        self.driver.listener_delete(self.sess, lsnr)
-        self.sess.vlb.delete_listener.assert_called_with(None)
+        self.driver.listener_delete(self.sess, self.lsnr)
+        self.sess.vlb.delete_listener.assert_called_with(self.lsnr.id)
 
 
 class TestElbv3DriverRequests(base.TestCase):
