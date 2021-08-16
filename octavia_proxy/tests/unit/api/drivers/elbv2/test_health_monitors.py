@@ -161,3 +161,24 @@ class TestElbv2HealthMonitors(base.TestCase):
             headers={},
             microversion=None,
         )
+
+    @property
+    def invalid_opts(self):
+        return {
+            'delay': 5,
+            'max_retries': 3,
+            'http_method': 'GET',
+            'timeout': 10,
+            'url_path': '/',
+            'type': 'INVALID_TYPE',
+        }
+
+    def test_create_validate(self):
+        self.assertRaises(ValueError,
+                          self.driver.health_monitor_create,
+                          self.sess, self.invalid_opts)
+
+    def test_update_validate(self):
+        self.assertRaises(ValueError,
+                          self.driver.health_monitor_update,
+                          self.sess, self.example_monitor, self.invalid_opts)

@@ -2,13 +2,11 @@
 # from octavia_lib.api.drivers import data_models
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
+from wsme import types as wtypes
 
 from octavia_proxy.api.v2.types import (
     health_monitor as _monitor, listener as _listener, load_balancer
 )
-
-# from octavia.api.common import types
-# from wsme import types as wtypes
 
 LOG = logging.getLogger(__name__)
 
@@ -156,11 +154,18 @@ class ELBv2Driver(driver_base.ProviderDriver):
             results.append(result_data)
         return results
 
+    _hm_type = wtypes.Enum(str, 'TCP', 'UDP_CONNECT', 'HTTP')
+
     def health_monitor_create(self, session, healthmonitor):
+        # validate values for ELBv2
+        wtypes.validate_value(self._hm_type, healthmonitor['type'])
         return session.elb.create_health_monitor(**healthmonitor)
 
     def health_monitor_update(self, session, old_healthmonitor,
                               new_healthmonitor):
+        # validate values for ELBv2
+        # type is optional in the update
+        wtypes.validate_value(self._hm_type, new_healthmonitor.pop('type', None))
         LOG.debug('Updating  monitor')
 
         res = session.elb.update_health_monitor(
