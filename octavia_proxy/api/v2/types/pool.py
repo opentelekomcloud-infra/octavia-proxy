@@ -123,6 +123,38 @@ class PoolResponse(BasePoolType):
 
         return pool
 
+    @classmethod
+    def from_sdk_object(cls, sdk_entity, children=False):
+        pool = cls()
+        for key in [
+            'id', 'name',
+            'availability_zone', 'description',
+            'protocol', 'lb_algorithm',
+            'session_persistence', 'project_id', 'provider',
+            'healthmonitor_id'
+        ]:
+
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(pool, key, v)
+
+        pool.admin_state_up = sdk_entity.is_admin_state_up
+
+        if sdk_entity.loadbalancers:
+            pool.loadbalancers = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.loadbalancers
+            ]
+        if sdk_entity.listeners:
+            pool.listeners = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.listeners
+            ]
+        if sdk_entity.members:
+            pool.members = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.members
+            ]
+        return pool
+
 
 class PoolFullResponse(PoolResponse):
     @classmethod
