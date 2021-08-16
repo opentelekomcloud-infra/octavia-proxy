@@ -15,8 +15,6 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from pecan import abort as pecan_abort
-from pecan import expose as pecan_expose
 from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
@@ -53,7 +51,7 @@ class PoolsController(base.BaseController):
 
         if fields is not None:
             result = self._filter_fields([result], fields)[0]
-        return pool_types.PoolRootResponse(listener=result)
+        return pool_types.PoolRootResponse(pool=result)
 
     @wsme_pecan.wsexpose(pool_types.PoolsRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
@@ -69,7 +67,6 @@ class PoolsController(base.BaseController):
         # TODO: if provider is present in query => ...
         # TODO: parallelize drivers querying
         query_filter.update(query_params)
-
         enabled_providers = CONF.api_settings.enabled_provider_drivers
         result = []
         links = []
