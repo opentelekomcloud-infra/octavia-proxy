@@ -165,7 +165,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
                               new_healthmonitor):
         # validate values for ELBv2
         # type is optional in the update
-        wtypes.validate_value(self._hm_type, new_healthmonitor.pop('type', None))
+        wtypes.validate_value(self._hm_type,
+                              new_healthmonitor.pop('type', None))
         LOG.debug('Updating  monitor')
 
         res = session.elb.update_health_monitor(
@@ -178,7 +179,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
         return session.elb.delete_health_monitor(healthmonitor)
 
     def health_monitor_get(self, session, name_or_id):
-        hm = session.elb.find_health_monitor(name_or_id=name_or_id, ignore_missing=True)
+        hm = session.elb.find_health_monitor(name_or_id=name_or_id,
+                                             ignore_missing=True)
         if hm:
             hm_data = _monitor.HealthMonitorResponse.from_sdk_object(hm)
             hm_data.provider = ELBv2

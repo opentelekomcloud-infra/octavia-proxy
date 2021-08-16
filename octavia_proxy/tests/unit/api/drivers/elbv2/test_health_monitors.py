@@ -87,7 +87,8 @@ class TestElbv2HealthMonitors(base.TestCase):
             'healthmonitor': self.example_monitor
         }
 
-        monitor = self.driver.health_monitor_get(self.sess, expected_monitor['id'])
+        monitor = self.driver.health_monitor_get(self.sess,
+                                                 expected_monitor['id'])
         self.sess.elb.get.assert_called_once()
         self.sess.elb.get.assert_called_with(
             f'lbaas/healthmonitors/{expected_monitor["id"]}',
@@ -95,7 +96,8 @@ class TestElbv2HealthMonitors(base.TestCase):
             params={},
         )
         self.assertEqual(expected_monitor['id'], monitor.id)
-        self.assertEqual(expected_monitor['admin_state_up'], monitor.admin_state_up)
+        self.assertEqual(expected_monitor['admin_state_up'],
+                         monitor.admin_state_up)
 
     def test_create(self):
         self.resp.body = {
