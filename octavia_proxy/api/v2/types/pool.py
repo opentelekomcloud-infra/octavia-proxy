@@ -155,6 +155,7 @@ class PoolResponse(BasePoolType):
             ]
         return pool
 
+
 class PoolFullResponse(PoolResponse):
     @classmethod
     def _full_response(cls):

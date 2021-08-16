@@ -3,6 +3,7 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import listener as _listener
+from octavia_proxy.api.v2.types import pool as _pool
 from octavia_proxy.api.v2.types import load_balancer
 
 LOG = logging.getLogger(__name__)
@@ -193,6 +194,33 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting listener %s' % listener.to_dict())
 
         session.vlb.delete_listener(listener.id)
+
+    def pools(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching pools')
+
+        if not query_filter:
+            query_filter = {}
+
+        query_filter.pop('project_id', None)
+
+        result = []
+
+        for pool in session.vlb.pools(**query_filter):
+            pool_data = _pool.PoolResponse.from_sdk_object(pool)
+            pool_data.provider = 'elbv3'
+            result.append(pool_data)
+
+        return result
+
+    def pool_get(self, session, project_id, pool_id):
+        LOG.debug('Searching pool')
+
+        pool = session.vlb.find_pool(
+            name_or_id=pool_id, ignore_missing=True)
+        if pool:
+            pool_data = _pool.PoolResponse.from_sdk_object(pool)
+            pool_data.provider = 'elbv3'
+            return pool_data
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
