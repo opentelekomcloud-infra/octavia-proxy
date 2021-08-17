@@ -177,6 +177,9 @@ class PoolInUseByL7Policy(APIException):
     msg = _("Pool %(id)s is in use by L7 policy %(l7policy_id)s")
     code = 409
 
+class PoolInUseByHealthCheck(APIException):
+    msg = _("Pool %(id)s is in use by HealthCheck %(healthmonitor_id)s")
+    code = 409
 
 class ImmutableObject(APIException):
     msg = _("%(resource)s %(id)s is immutable and cannot be updated.")
