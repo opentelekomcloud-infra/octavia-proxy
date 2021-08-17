@@ -26,6 +26,7 @@ from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import pool as pool_types
 from octavia_proxy.common import constants, validate
 from octavia_proxy.common import exceptions
+from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -42,27 +43,7 @@ class PoolsController(base.BaseController):
     def get_one(self, id, fields=None):
         """Gets a pool's details."""
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        pool = None
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pool = driver_utils.call_provider(
-                    driver.name, driver.pool_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if pool:
-                    setattr(pool, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-
-        if not pool:
-            raise exceptions.NotFound(
-                resource='Pool',
-                id=id)
+        pool = self.find_pool(context, id)
 
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_GET_ONE)
@@ -146,20 +127,12 @@ class PoolsController(base.BaseController):
         if pool.listener_id and listener:
             self._validate_protocol(listener.protocol, pool.protocol)
 
-        if pool.protocol in (constants.PROTOCOL_UDP,
-                             constants.PROTOCOL_SCTP):
-            self._validate_pool_request_for_udp_sctp(pool)
-        else:
-            if (pool.session_persistence and (
-                    pool.session_persistence.persistence_timeout or
-                    pool.session_persistence.persistence_granularity)):
-                raise exceptions.ValidationException(detail=_(
-                    "persistence_timeout and persistence_granularity "
-                    "is only for UDP and SCTP protocol pools."))
+        if pool.protocol in constants.PROTOCOL_UDP:
+            self._validate_pool_request_for_tcp_udp(pool)
 
         if pool.session_persistence:
             sp_dict = pool.session_persistence.to_dict(render_unsets=False)
-            validate._check_session_persistence(sp_dict)
+            validate.check_session_persistence(sp_dict)
 
         driver = driver_factory.get_driver(loadbalancer.provider)
 

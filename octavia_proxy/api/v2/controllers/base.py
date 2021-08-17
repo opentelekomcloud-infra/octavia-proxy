@@ -3,13 +3,12 @@ from oslo_log import log as logging
 from pecan import rest as pecan_rest
 from wsme import types as wtypes
 
+from octavia_proxy.api.drivers import driver_factory
+from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
-
-from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.drivers import driver_factory
-
 from octavia_proxy.common import policy
+from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -33,6 +32,7 @@ class BaseController(pecan_rest.RestController):
 
         def _convert(db_obj):
             return to_type.from_data_model(db_obj, children=children)
+
         if isinstance(sdk_entity, list):
             converted = [_convert(sdk_obj) for sdk_obj in sdk_entity]
         else:
@@ -87,6 +87,86 @@ class BaseController(pecan_rest.RestController):
                 id=id)
 
         return listener
+
+    def find_pool(self, context, id):
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        # TODO: perhaps memcached
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                pool = driver_utils.call_provider(
+                    driver.name, driver.pool_get,
+                    context.session,
+                    context.project_id,
+                    id)
+                if pool:
+                    setattr(pool, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if not pool:
+            raise exceptions.NotFound(
+                resource='Pool',
+                id=id)
+
+        return pool
+
+    @staticmethod
+    def _validate_protocol(listener_protocol, pool_protocol):
+        proto_map = constants.VALID_LISTENER_POOL_PROTOCOL_MAP
+        for valid_pool_proto in proto_map[listener_protocol]:
+            if pool_protocol == valid_pool_proto:
+                return
+        detail = _("The pool protocol '%(pool_protocol)s' is invalid while "
+                   "the listener protocol is '%(listener_protocol)s'.") % {
+                     "pool_protocol": pool_protocol,
+                     "listener_protocol": listener_protocol}
+        raise exceptions.ValidationException(detail=detail)
+
+    def _is_only_specified_in_request(self, request, **kwargs):
+        request_attrs = []
+        check_attrs = kwargs['check_exist_attrs']
+        escaped_attrs = ['from_data_model', 'translate_key_to_data_model',
+                         'translate_dict_keys_to_data_model', 'to_dict']
+
+        for attr in dir(request):
+            if attr.startswith('_') or attr in escaped_attrs:
+                continue
+            request_attrs.append(attr)
+
+        for req_attr in request_attrs:
+            if (getattr(request, req_attr) and req_attr not in check_attrs):
+                return False
+        return True
+
+    def _validate_pool_request_for_tcp_udp(self, request):
+        if request.session_persistence:
+            if (request.session_persistence.type ==
+                    constants.SESSION_PERSISTENCE_SOURCE_IP and
+                    not self._is_only_specified_in_request(
+                        request=request.session_persistence,
+                        check_exist_attrs=['type', 'persistence_timeout'])):
+                raise exceptions.ValidationException(detail=_(
+                    "session_persistence %s type for TCP and UDP protocol "
+                    "only accepts: type, persistence_timeout.") % (
+                    constants.SESSION_PERSISTENCE_SOURCE_IP))
+            if request.session_persistence.cookie_name:
+                raise exceptions.ValidationException(
+                    detail=_("Cookie names are not supported for %s pools.")
+                           % "/".join((constants.PROTOCOL_UDP,
+                                       constants.PROTOCOL_TCP)))
+            if request.session_persistence.type in [
+                constants.SESSION_PERSISTENCE_HTTP_COOKIE,
+                constants.SESSION_PERSISTENCE_APP_COOKIE]:
+                raise exceptions.ValidationException(
+                    detail=_(
+                        "Session persistence of type %(type)s is not supported"
+                        " for %(protocol)s protocol pools.") % {
+                               'type': request.session_persistence.type,
+                               'protocol': "/".join((constants.PROTOCOL_UDP,
+                                                     constants.PROTOCOL_TCP))})
 
     def _auth_get_all(self, context, project_id):
         # Check authorization to list objects under all projects
