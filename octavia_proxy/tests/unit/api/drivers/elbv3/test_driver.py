@@ -189,6 +189,7 @@ class TestElbv3ListenerDriver(base.TestCase):
         self.driver.listener_delete(self.sess, self.lsnr)
         self.sess.vlb.delete_listener.assert_called_with(self.lsnr.id)
 
+
 class TestElbv3PoolDriver(base.TestCase):
     attrs = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
@@ -268,6 +269,7 @@ class TestElbv3PoolDriver(base.TestCase):
     def test_pool_delete(self):
         self.driver.pool_delete(self.sess, self.pool)
         self.sess.vlb.delete_pool.assert_called_with(self.pool.id)
+
 
 class TestElbv3DriverRequests(base.TestCase):
 
