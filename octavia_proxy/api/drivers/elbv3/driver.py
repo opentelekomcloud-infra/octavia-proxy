@@ -3,6 +3,7 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import listener as _listener
+from octavia_proxy.api.v2.types import health_monitor as _hm
 from octavia_proxy.api.v2.types import pool as _pool
 from octavia_proxy.api.v2.types import load_balancer
 
@@ -221,6 +222,24 @@ class ELBv3Driver(driver_base.ProviderDriver):
             pool_data = _pool.PoolResponse.from_sdk_object(pool)
             pool_data.provider = 'elbv3'
             return pool_data
+
+    def pool_delete(self, session, pool):
+        LOG.debug('Deleting pool %s' % pool.to_dict())
+        session.vlb.delete_pool(pool.id)
+
+    def health_monitor_get(self, session, project_id, hm_id):
+        LOG.debug('Searching health monitor')
+
+        hm = session.vlb.find_health_monitor(
+            name_or_id=hm_id, ignore_missing=True)
+        if hm:
+            hm_data = _hm.HealthMonitorResponse.from_sdk_object(hm)
+            hm_data.provider = 'elbv3'
+            return hm_data
+
+    def health_monitor_delete(self, session, healthmonitor):
+        LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
+        session.elb.delete_health_monitor(healthmonitor.id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')

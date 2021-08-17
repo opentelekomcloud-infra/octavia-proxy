@@ -131,7 +131,49 @@ class PoolsController(base.BaseController):
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):
         """Deletes a pool from a load balancer."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        pool = None
+
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                pool = driver_utils.call_provider(
+                    driver.name, driver.pool_get,
+                    context.session,
+                    context.project_id,
+                    id)
+                if pool:
+                    setattr(pool, 'provider', provider)
+                    if pool.healthmonitor_id:
+                        hm = driver_utils.call_provider(
+                            driver.name, driver.health_monitor_get,
+                            context.session,
+                            context.project_id,
+                            pool.healthmonitor_id)
+                        driver_utils.call_provider(
+                            driver.name, driver.health_monitor_delete,
+                            context.session,
+                            hm)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+        if not pool:
+            raise exceptions.NotFound(
+                resource='pool',
+                id=id)
+        self._auth_validate_action(
+            context, pool.project_id,
+            constants.RBAC_DELETE)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(pool.provider)
+
+        driver_utils.call_provider(
+            driver.name, driver.pool_delete,
+            context.session,
+            pool)
 
     @pecan_expose()
     def _lookup(self, pool_id, *remainder):
