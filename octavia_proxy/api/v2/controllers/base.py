@@ -148,15 +148,17 @@ class BaseController(pecan_rest.RestController):
                     not self._is_only_specified_in_request(
                         request=request.session_persistence,
                         check_exist_attrs=['type', 'persistence_timeout'])):
-                raise exceptions.ValidationException(detail=_(
-                    "session_persistence %s type for TCP and UDP protocol "
-                    "only accepts: type, persistence_timeout.") % (
-                    constants.SESSION_PERSISTENCE_SOURCE_IP))
+                raise exceptions.ValidationException(
+                    detail=_(
+                        "session_persistence %s type for TCP and UDP protocol "
+                        "only accepts: type, persistence_timeout."
+                        "") % constants.SESSION_PERSISTENCE_SOURCE_IP)
             if request.session_persistence.cookie_name:
                 raise exceptions.ValidationException(
-                    detail=_("Cookie names are not supported for %s pools.")
-                           % "/".join((constants.PROTOCOL_UDP,
-                                       constants.PROTOCOL_TCP)))
+                    detail=_("Cookie names are not supported"
+                             " for %s pools.") % "/".join(
+                        (constants.PROTOCOL_UDP,
+                         constants.PROTOCOL_TCP)))
             if request.session_persistence.type in [
                 constants.SESSION_PERSISTENCE_HTTP_COOKIE,
                 constants.SESSION_PERSISTENCE_APP_COOKIE]:
