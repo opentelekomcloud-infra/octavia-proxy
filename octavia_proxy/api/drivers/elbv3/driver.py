@@ -125,6 +125,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
+        if 'id' in query_filter:
+            query_filter['name'] = self.listener_get(
+                project_id=project_id, session=session,
+                lsnr_id=query_filter['id']).name
+            query_filter.pop('id')
+
         query_filter.pop('project_id', None)
 
         result = []
@@ -201,6 +207,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
+        if 'id' in query_filter:
+            query_filter['name'] = self.pool_get(
+                project_id=project_id, session=session,
+                pool_id=query_filter['id']).name
+            query_filter.pop('id')
+
         query_filter.pop('project_id', None)
 
         result = []
@@ -224,10 +236,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def pool_create(self, session, pool):
         LOG.debug('Creating pool %s' % pool.to_dict())
-
         attrs = pool.to_dict()
 
-        res = session.elb.create_pool(**attrs)
+        res = session.vlb.create_pool(**attrs)
         result_data = _pool.PoolResponse.from_sdk_object(
             res)
         setattr(result_data, 'provider', 'elbv2')
@@ -236,7 +247,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def pool_update(self, session, original, new_attrs):
         LOG.debug('Updating pool')
 
-        res = session.elb.update_pool(
+        res = session.vlb.update_pool(
             original.id,
             **new_attrs)
         result_data = _pool.PoolResponse.from_sdk_object(

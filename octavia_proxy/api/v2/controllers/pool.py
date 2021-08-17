@@ -109,7 +109,6 @@ class PoolsController(base.BaseController):
 
         self._auth_validate_action(
             context, pool.project_id, constants.RBAC_POST)
-
         if pool.loadbalancer_id:
             loadbalancer = self.find_load_balancer(
                 context, pool.loadbalancer_id)
