@@ -2,14 +2,15 @@
 # from octavia_lib.api.drivers import data_models
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
+from wsme import types as wtypes
 
-from octavia_proxy.api.v2.types import listener as _listener
-from octavia_proxy.api.v2.types import load_balancer
-
-# from octavia.api.common import types
-# from wsme import types as wtypes
+from octavia_proxy.api.v2.types import (
+    health_monitor as _monitor, listener as _listener, load_balancer
+)
 
 LOG = logging.getLogger(__name__)
+
+ELBv2 = 'elbv2'
 
 
 class ELBv2Driver(driver_base.ProviderDriver):
@@ -139,3 +140,48 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting listener %s' % listener.to_dict())
 
         session.elb.delete_listener(listener.id)
+
+    def health_monitors(self, session, query_filter=None):
+        LOG.debug('Fetching health monitors')
+
+        query_filter = query_filter or {}
+
+        results = []
+        raw_results = session.elb.health_monitors(**query_filter)
+        for lb in raw_results:
+            result_data = _monitor.HealthMonitorResponse.from_sdk_object(lb)
+            result_data.provider = ELBv2
+            results.append(result_data)
+        return results
+
+    _hm_type = wtypes.Enum(str, 'TCP', 'UDP_CONNECT', 'HTTP')
+
+    def health_monitor_create(self, session, healthmonitor):
+        # validate values for ELBv2
+        wtypes.validate_value(self._hm_type, healthmonitor['type'])
+        return session.elb.create_health_monitor(**healthmonitor)
+
+    def health_monitor_update(self, session, old_healthmonitor,
+                              new_healthmonitor):
+        # validate values for ELBv2
+        # type is optional in the update
+        wtypes.validate_value(self._hm_type,
+                              new_healthmonitor.pop('type', None))
+        LOG.debug('Updating  monitor')
+
+        res = session.elb.update_health_monitor(
+            old_healthmonitor.id, **new_healthmonitor)
+        result_data = _monitor.HealthMonitorResponse.from_sdk_object(res)
+        result_data.provider = ELBv2
+        return result_data
+
+    def health_monitor_delete(self, session, healthmonitor):
+        return session.elb.delete_health_monitor(healthmonitor)
+
+    def health_monitor_get(self, session, name_or_id):
+        hm = session.elb.find_health_monitor(name_or_id=name_or_id,
+                                             ignore_missing=True)
+        if hm:
+            hm_data = _monitor.HealthMonitorResponse.from_sdk_object(hm)
+            hm_data.provider = ELBv2
+            return hm_data
