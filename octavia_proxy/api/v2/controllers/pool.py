@@ -116,8 +116,8 @@ class PoolsController(base.BaseController):
         elif pool.listener_id:
             listener = self.find_listener(context, pool.listener_id)
             loadbalancer = self.find_load_balancer(
-                context, listener.loadbalancers[0]['id'])
-            pool.loadbalancer_id = listener.loadbalancers[0]['id']
+                context, listener.loadbalancers[0].id)
+            pool.loadbalancer_id = listener.loadbalancers[0].id
         else:
             msg = _("Must provide at least one of: "
                     "loadbalancer_id, listener_id")

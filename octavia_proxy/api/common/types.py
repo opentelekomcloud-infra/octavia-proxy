@@ -245,8 +245,6 @@ class BaseType(wtypes.Base, metaclass=BaseMeta):
 class IdOnlyType(BaseType):
     id = wtypes.wsattr(wtypes.UuidType(), mandatory=True)
 
-    def __getitem__(self, id):
-        return getattr(self, id)
 
 class NameOnlyType(BaseType):
     name = wtypes.wsattr(wtypes.StringType(max_length=255), mandatory=True)
