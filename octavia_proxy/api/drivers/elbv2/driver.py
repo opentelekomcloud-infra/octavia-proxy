@@ -5,7 +5,7 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
-from octavia_proxy.api.v2.types import pool
+from octavia_proxy.api.v2.types import pool as _pool
 
 # from octavia.api.common import types
 # from wsme import types as wtypes
@@ -96,6 +96,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
+        if 'id' in query_filter:
+            query_filter['name'] = self.listener_get(
+                project_id=project_id, session=session,
+                listener_id=query_filter['id']).name
+            query_filter.pop('id')
+
         results = []
         for lsnr in session.elb.listeners(**query_filter):
             results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
@@ -155,7 +161,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         results = []
         for pl in session.elb.pools(**query_filter):
-            results.append(pool.PoolResponse.from_sdk_object(pl))
+            results.append(_pool.PoolResponse.from_sdk_object(pl))
         return results
 
     def pool_get(self, session, project_id, pool_id):
@@ -165,16 +171,19 @@ class ELBv2Driver(driver_base.ProviderDriver):
             name_or_id=pool_id, ignore_missing=True)
 
         if pl:
-            return pool.PoolResponse.from_sdk_object(pl)
+            return _pool.PoolResponse.from_sdk_object(pl)
 
     def pool_create(self, session, pool):
         LOG.debug('Creating pool %s' % pool.to_dict())
 
         attrs = pool.to_dict()
-        # TODO: do this differently
 
+        if 'tls_enabled' in attrs:
+            attrs.pop('tls_enabled')
+
+        # TODO: do this differently
         res = session.elb.create_pool(**attrs)
-        result_data = pool.PoolResponse.from_sdk_object(
+        result_data = _pool.PoolResponse.from_sdk_object(
             res)
         setattr(result_data, 'provider', 'elbv2')
         return result_data
@@ -185,7 +194,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         res = session.elb.update_pool(
             original.id,
             **new_attrs)
-        result_data = pool.PoolResponse.from_sdk_object(
+        result_data = _pool.PoolResponse.from_sdk_object(
             res)
         result_data.provider = 'elbv2'
         return result_data
