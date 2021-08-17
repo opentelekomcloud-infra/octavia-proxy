@@ -15,7 +15,7 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from otcextensions.sdk.vlb.v3 import load_balancer, listener
+from otcextensions.sdk.vlb.v3 import load_balancer, listener, pool
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.tests.unit import base
@@ -189,6 +189,85 @@ class TestElbv3ListenerDriver(base.TestCase):
         self.driver.listener_delete(self.sess, self.lsnr)
         self.sess.vlb.delete_listener.assert_called_with(self.lsnr.id)
 
+class TestElbv3PoolDriver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'description': 'desc',
+        'healthmonitor_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'ip_version': 4,
+        'lb_algorithm': 'ROUND_ROBIN',
+        'listener_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'listeners': [],
+        'loadbalancers': [],
+        'members': [],
+        'name': 'pool',
+        'protocol': 'TCP',
+        'session_persistence': None,
+        'slow_start': None,
+        'admin_state_up': True,
+    }
+    fakeCallCreate = {
+        'description': 'desc',
+        'healthmonitor_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'ip_version': 4,
+        'is_admin_state_up': True,
+        'lb_algorithm': 'ROUND_ROBIN',
+        'listener_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'listeners': [],
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'loadbalancers': [],
+        'location': None,
+        'members': [],
+        'name': 'pool',
+        'project_id': None,
+        'protocol': 'TCP',
+        'session_persistence': None,
+        'slow_start': None,
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.pool = pool.Pool(**self.attrs)
+        self.sess.vlb.create_pool = mock.MagicMock(return_value=self.pool)
+        self.sess.vlb.find_pool = mock.MagicMock(return_value=self.pool)
+        self.sess.vlb.update_pool = mock.MagicMock(return_value=self.pool)
+
+    def test_pools_no_qp(self):
+        self.driver.pools(self.sess, 'l1')
+        self.sess.vlb.pools.assert_called_with()
+
+    def test_pools_qp(self):
+        self.driver.pools(
+            self.sess, 'l1',
+            query_filter={'a': 'b'})
+        self.sess.vlb.pools.assert_called_with(
+            a='b'
+        )
+
+    def test_pool_get(self):
+        self.driver.pool_get(self.sess, 'test', self.pool)
+        self.sess.vlb.find_pool.assert_called_with(
+            name_or_id=self.pool, ignore_missing=True)
+
+    def test_listener_create(self):
+        self.driver.pool_create(self.sess, self.pool)
+        self.sess.vlb.create_pool.assert_called_with(**self.fakeCallCreate)
+
+    def test_pool_update(self):
+        attrs = {
+            'description': 'New Description',
+            'operating_status': 'ACTIVE',
+        }
+        self.driver.pool_update(self.sess, self.pool, attrs)
+        self.sess.vlb.update_pool.assert_called_with(self.pool.id, **attrs)
+
+    def test_pool_delete(self):
+        self.driver.pool_delete(self.sess, self.pool)
+        self.sess.vlb.delete_pool.assert_called_with(self.pool.id)
 
 class TestElbv3DriverRequests(base.TestCase):
 
