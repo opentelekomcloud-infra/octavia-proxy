@@ -142,6 +142,8 @@ class BaseController(pecan_rest.RestController):
         return True
 
     def _validate_pool_request_for_tcp_udp(self, request):
+        sp_type = [constants.SESSION_PERSISTENCE_HTTP_COOKIE,
+                   constants.SESSION_PERSISTENCE_APP_COOKIE]
         if request.session_persistence:
             if (request.session_persistence.type ==
                     constants.SESSION_PERSISTENCE_SOURCE_IP and
@@ -159,9 +161,7 @@ class BaseController(pecan_rest.RestController):
                              " for %s pools.") % "/".join(
                         (constants.PROTOCOL_UDP,
                          constants.PROTOCOL_TCP)))
-            if request.session_persistence.type in [
-                constants.SESSION_PERSISTENCE_HTTP_COOKIE,
-                constants.SESSION_PERSISTENCE_APP_COOKIE]:
+            if request.session_persistence.type in sp_type:
                 raise exceptions.ValidationException(
                     detail=_(
                         "Session persistence of type %(type)s is not supported"
