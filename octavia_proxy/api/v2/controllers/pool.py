@@ -215,9 +215,6 @@ class PoolsController(base.BaseController):
             context, pool.project_id,
             constants.RBAC_DELETE)
 
-        if pool.l7policies:
-            raise exceptions.PoolInUseByL7Policy(
-                id=pool.id, l7policy_id=pool.l7policies[0].id)
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(pool.provider)
 
@@ -225,3 +222,12 @@ class PoolsController(base.BaseController):
             driver.name, driver.pool_delete,
             context.session,
             pool)
+
+    @pecan_expose()
+    def _lookup(self, pool_id, *remainder):
+        """Overridden pecan _lookup method for custom routing.
+
+        Verifies that the pool passed in the url exists, and if so decides
+        which controller, if any, should control be passed.
+        """
+        return None
