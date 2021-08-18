@@ -38,6 +38,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
+        if 'id' in query_filter:
+            query_filter['name'] = self.loadbalancer_get(
+                project_id=project_id, session=session,
+                lb_id=query_filter['id']).name
+            query_filter.pop('id')
+
         results = []
         for lb in session.elb.load_balancers(**query_filter):
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
