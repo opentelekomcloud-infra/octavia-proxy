@@ -113,6 +113,32 @@ class BaseController(pecan_rest.RestController):
 
         return pool
 
+    def find_member(self, context, pool_id, id):
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        # TODO: perhaps memcached
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                member = driver_utils.call_provider(
+                    driver.name, driver.member_get,
+                    context.session,
+                    context.project_id,
+                    pool_id,
+                    id)
+                if member:
+                    setattr(member, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if not member:
+            raise exceptions.NotFound(
+                resource='Member',
+                id=id)
+
+        return member
+
     @staticmethod
     def _validate_protocol(listener_protocol, pool_protocol):
         proto_map = constants.VALID_LISTENER_POOL_PROTOCOL_MAP

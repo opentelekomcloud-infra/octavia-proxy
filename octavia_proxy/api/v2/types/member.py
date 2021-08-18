@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from dateutil import parser
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
@@ -47,6 +48,26 @@ class MemberResponse(BaseMemberType):
     def from_data_model(cls, data_model, children=False):
         member = super(MemberResponse, cls).from_data_model(
             data_model, children=children)
+        return member
+
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        member = cls()
+        for key in [
+            'id', 'name', 'operating_status', 'provisioning_status',
+            'address', 'protocol_port', 'weight', 'backup',
+            'subnet_id', 'project_id', 'monitor_address',
+            'monitor_port', 'tags'
+        ]:
+            v = sdk_entity.get(key)
+            if v:
+                setattr(member, key, v)
+
+        member.admin_state_up = sdk_entity.is_admin_state_up
+        for attr in ['created_at', 'updated_at']:
+            v = sdk_entity.get(attr)
+            if v:
+                setattr(member, attr, parser.parse(v) or None)
         return member
 
 

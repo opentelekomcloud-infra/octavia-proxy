@@ -5,6 +5,7 @@ from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import pool as _pool
+from octavia_proxy.api.v2.types import member as _member
 
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
@@ -255,6 +256,16 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def pool_delete(self, session, pool):
         LOG.debug('Deleting pool %s' % pool.to_dict())
         session.vlb.delete_pool(pool.id)
+
+    def member_get(self, session, project_id, pool_id, member_id):
+        LOG.debug('Searching pool')
+
+        member = session.vlb.find_member(
+            name_or_id=member_id, pool=pool_id, ignore_missing=True)
+        if member:
+            member_data = _member.MemberResponse.from_sdk_object(member)
+            member_data.provider = PROVIDER
+            return member_data
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')

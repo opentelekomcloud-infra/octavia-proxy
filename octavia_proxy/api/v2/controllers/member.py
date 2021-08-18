@@ -13,14 +13,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
 from oslo_log import log as logging
+from pecan import expose as pecan_expose
 from pecan import abort as pecan_abort
+from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.drivers import driver_factory
+from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import member as member_types
-from octavia_proxy.common import constants
+from octavia_proxy.common import constants, validate
+from octavia_proxy.common import exceptions
+from octavia_proxy.i18n import _
 
 
 LOG = logging.getLogger(__name__)
@@ -37,7 +44,16 @@ class MemberController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get(self, id, fields=None):
         """Gets a single pool member's details."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+        pool = self.find_pool(context, self.pool_id)
+        member = self.find_member(context, pool.id, id)
+
+        self._auth_validate_action(context, member.project_id,
+                                   constants.RBAC_GET_ONE)
+
+        if fields is not None:
+            member = self._filter_fields([member], fields)[0]
+        return member_types.MemberRootResponse(member=member)
 
     @wsme_pecan.wsexpose(member_types.MembersRootResponse, [wtypes.text],
                          ignore_extra_args=True)
