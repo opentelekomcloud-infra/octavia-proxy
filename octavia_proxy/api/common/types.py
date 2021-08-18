@@ -248,8 +248,10 @@ class IdOnlyType(BaseType):
     def __getitem__(self, id):
         return getattr(self, id)
 
+
 class NameOnlyType(BaseType):
     name = wtypes.wsattr(wtypes.StringType(max_length=255), mandatory=True)
+
 
 class PageType(BaseType):
     href = wtypes.StringType()

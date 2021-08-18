@@ -112,7 +112,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
             results.append(lsnr_data)
         else:
             for lsnr in session.elb.listeners(**query_filter):
-                results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
+                results.append(
+                    _listener.ListenerResponse.from_sdk_object(lsnr))
         return results
 
     def listener_get(self, session, project_id, listener_id):

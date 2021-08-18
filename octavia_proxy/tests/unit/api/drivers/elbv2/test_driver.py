@@ -27,7 +27,9 @@ EXAMPLE_LB = {
     "provider": "vlb",
 }
 
+
 class FakeResponse:
+
     def __init__(self, response, status_code=200, headers=None, reason=None):
         self.body = response
         self.content = response
@@ -42,6 +44,7 @@ class FakeResponse:
 
     def json(self):
         return self.body
+
 
 class TestElbv2Driver(base.TestCase):
     def setUp(self):
@@ -77,7 +80,8 @@ class TestElbv2Driver(base.TestCase):
             a='b'
         )
 
-class TestElbv3ListenerDriver(base.TestCase):
+
+class TestElbv2ListenerDriver(base.TestCase):
     attrs = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
@@ -134,7 +138,7 @@ class TestElbv3ListenerDriver(base.TestCase):
 
     def setUp(self):
         super().setUp()
-        self.driver = driver.ELBv3Driver()
+        self.driver = driver.ELBv2Driver()
         self.sess = mock.MagicMock()
         self.lsnr = listener.Listener(**self.attrs)
         self.sess.vlb.create_listener = mock.MagicMock(return_value=self.lsnr)
@@ -279,7 +283,7 @@ class TestElbv2DriverRequests(base.TestCase):
             "operating_status": "ONLINE",
             "vip_address": "192.168.0.100",
             "vip_subnet_id": "29bb7aa5-44d2-4aaf-8e49-993091c7fa42",
-            "provider": "elbv3",
+            "provider": "elbv2",
             "provisioning_status": "ACTIVE",
             "tenant_id": "1867112d054b427e808cc6096d8193a1",
             "created_at": "2021-08-10T09:39:24+00:00",
