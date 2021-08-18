@@ -4,12 +4,6 @@ from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 from wsme import types as wtypes
 
-from octavia_proxy.api.v2.types import listener as _listener
-from octavia_proxy.api.v2.types import load_balancer
-from octavia_proxy.api.v2.types import pool as _pool
-
-# from octavia.api.common import types
-# from wsme import types as wtypes
 from octavia_proxy.api.v2.types import (
     health_monitor as _monitor, listener as _listener, load_balancer,
     pool as _pool
@@ -45,18 +39,19 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
-        if 'id' in query_filter:
-            query_filter['name'] = self.loadbalancer_get(
-                project_id=project_id, session=session,
-                lb_id=query_filter['id']).name
-            query_filter.pop('id')
-
         results = []
-        for lb in session.elb.load_balancers(**query_filter):
-            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                lb)
-            lb_data.provider = 'elbv2'
+
+        if 'id' in query_filter:
+            lb_data = self.loadbalancer_get(
+                project_id=project_id, session=session,
+                lb_id=query_filter['id'])
             results.append(lb_data)
+        else:
+            for lb in session.elb.load_balancers(**query_filter):
+                lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+                    lb)
+                lb_data.provider = ELBv2
+                results.append(lb_data)
         return results
 
     def loadbalancer_get(self, session, project_id, lb_id):
@@ -109,15 +104,15 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
-        if 'id' in query_filter:
-            query_filter['name'] = self.listener_get(
-                project_id=project_id, session=session,
-                listener_id=query_filter['id']).name
-            query_filter.pop('id')
-
         results = []
-        for lsnr in session.elb.listeners(**query_filter):
-            results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
+        if 'id' in query_filter:
+            lsnr_data = self.listener_get(
+                project_id=project_id, session=session,
+                listener_id=query_filter['id'])
+            results.append(lsnr_data)
+        else:
+            for lsnr in session.elb.listeners(**query_filter):
+                results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
         return results
 
     def listener_get(self, session, project_id, listener_id):
@@ -211,15 +206,18 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
-        if 'id' in query_filter:
-            query_filter['name'] = self.pool_get(
-                project_id=project_id, session=session,
-                pool_id=query_filter['id']).name
-            query_filter.pop('id')
-
         results = []
-        for pl in session.elb.pools(**query_filter):
-            results.append(_pool.PoolResponse.from_sdk_object(pl))
+
+        if 'id' in query_filter:
+            pool_data = self.pool_get(
+                project_id=project_id, session=session,
+                pool_id=query_filter['id'])
+            results.append(pool_data)
+        else:
+            for pl in session.elb.pools(**query_filter):
+                pool_data = _pool.PoolResponce.from_sdk_object(pl)
+                pool_data.provider = ELBv2
+                results.append(pool_data)
         return results
 
     def pool_get(self, session, project_id, pool_id):

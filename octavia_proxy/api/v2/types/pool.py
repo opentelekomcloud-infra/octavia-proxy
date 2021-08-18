@@ -190,7 +190,6 @@ class PoolPOST(BasePoolType):
     session_persistence = wtypes.wsattr(SessionPersistencePOST)
     # TODO(johnsom) Remove after deprecation (R series)
     project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
-    provider = wtypes.wsattr(wtypes.StringType())
     healthmonitor = wtypes.wsattr(health_monitor.HealthMonitorSingleCreate)
     members = wtypes.wsattr([member.MemberSingleCreate])
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))

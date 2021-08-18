@@ -43,27 +43,7 @@ class PoolsController(base.BaseController):
     def get_one(self, id, fields=None):
         """Gets a pool's details."""
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        pool = None
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pool = driver_utils.call_provider(
-                    driver.name, driver.pool_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if pool:
-                    setattr(pool, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-
-        if not pool:
-            raise exceptions.NotFound(
-                resource='Pool',
-                id=id)
+        pool = self.find_pool(context, id)
 
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_GET_ONE)
@@ -129,7 +109,6 @@ class PoolsController(base.BaseController):
 
         self._auth_validate_action(
             context, pool.project_id, constants.RBAC_POST)
-
         if pool.loadbalancer_id:
             loadbalancer = self.find_load_balancer(
                 context, pool.loadbalancer_id)
@@ -137,8 +116,8 @@ class PoolsController(base.BaseController):
         elif pool.listener_id:
             listener = self.find_listener(context, pool.listener_id)
             loadbalancer = self.find_load_balancer(
-                context, listener.loadbalancers[0]['id'])
-            pool.loadbalancer_id = listener.loadbalancers[0]['id']
+                context, listener.loadbalancers[0].id)
+            pool.loadbalancer_id = listener.loadbalancers[0].id
         else:
             msg = _("Must provide at least one of: "
                     "loadbalancer_id, listener_id")
@@ -147,20 +126,12 @@ class PoolsController(base.BaseController):
         if pool.listener_id and listener:
             self._validate_protocol(listener.protocol, pool.protocol)
 
-        if pool.protocol in (constants.PROTOCOL_UDP,
-                             constants.PROTOCOL_SCTP):
-            self._validate_pool_request_for_udp_sctp(pool)
-        else:
-            if (pool.session_persistence and (
-                    pool.session_persistence.persistence_timeout or
-                    pool.session_persistence.persistence_granularity)):
-                raise exceptions.ValidationException(detail=_(
-                    "persistence_timeout and persistence_granularity "
-                    "is only for UDP and SCTP protocol pools."))
+        if pool.protocol in constants.PROTOCOL_UDP:
+            self._validate_pool_request_for_tcp_udp(pool)
 
         if pool.session_persistence:
             sp_dict = pool.session_persistence.to_dict(render_unsets=False)
-            validate._check_session_persistence(sp_dict)
+            validate.check_session_persistence(sp_dict)
 
         driver = driver_factory.get_driver(loadbalancer.provider)
 
@@ -207,11 +178,35 @@ class PoolsController(base.BaseController):
     def delete(self, id):
         """Deletes a pool from a load balancer."""
         context = pecan_request.context.get('octavia_context')
-        pool = self.find_pool(context, id)
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        pool = None
+
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                pool = driver_utils.call_provider(
+                    driver.name, driver.pool_get,
+                    context.session,
+                    context.project_id,
+                    id)
+                if pool:
+                    setattr(pool, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+        if not pool:
+            raise exceptions.NotFound(
+                resource='pool',
+                id=id)
 
         self._auth_validate_action(
             context, pool.project_id,
             constants.RBAC_DELETE)
+
+        if pool.healthmonitor_id:
+            raise exceptions.PoolInUseByHealthCheck(
+                id=pool.id, healthmonitor_id=pool.healthmonitor_id)
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(pool.provider)
