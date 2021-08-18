@@ -3,10 +3,11 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import listener as _listener
-from octavia_proxy.api.v2.types import pool as _pool
 from octavia_proxy.api.v2.types import load_balancer
+from octavia_proxy.api.v2.types import pool as _pool
 
 LOG = logging.getLogger(__name__)
+PROVIDER = 'elbv3'
 
 
 class ELBv3Driver(driver_base.ProviderDriver):
@@ -55,7 +56,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         for lb in session.vlb.load_balancers(**query_filter):
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                 self._normalize_lb(lb))
-            lb_data.provider = 'elbv3'
+            lb_data.provider = PROVIDER
             result.append(lb_data)
 
         return result
@@ -68,7 +69,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if lb:
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                 self._normalize_lb(lb))
-            lb_data.provider = 'elbv3'
+            lb_data.provider = PROVIDER
             return lb_data
 
     def loadbalancer_create(self, session, loadbalancer):
@@ -90,7 +91,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
 
-        lb_data.provider = 'elbv3'
+        lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
 
@@ -104,7 +105,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
-        lb_data.provider = 'elbv3'
+        lb_data.provider = PROVIDER
         return lb_data
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
@@ -121,18 +122,22 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def listeners(self, session, project_id, query_filter=None):
         LOG.debug('Fetching listeners')
+        result = []
 
         if not query_filter:
             query_filter = {}
-
         query_filter.pop('project_id', None)
 
-        result = []
-
-        for lsnr in session.vlb.listeners(**query_filter):
-            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
-            lsnr_data.provider = 'elbv3'
+        if 'id' in query_filter:
+            lsnr_data = self.listener_get(
+                project_id=project_id, session=session,
+                lsnr_id=query_filter['id'])
             result.append(lsnr_data)
+        else:
+            for lsnr in session.vlb.listeners(**query_filter):
+                lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+                lsnr_data.provider = PROVIDER
+                result.append(lsnr_data)
 
         return result
 
@@ -143,7 +148,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             name_or_id=lsnr_id, ignore_missing=True)
         if lsnr:
             lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
-            lsnr_data.provider = 'elbv3'
+            lsnr_data.provider = PROVIDER
             return lsnr_data
 
     def listener_create(self, session, listener):
@@ -166,7 +171,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lsnr_data = _listener.ListenerResponse.from_sdk_object(
             lsnr)
 
-        lsnr_data.provider = 'elbv3'
+        lsnr_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lsnr_data)
         return lsnr_data
 
@@ -187,7 +192,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             **new_attrs)
 
         lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
-        lsnr_data.provider = 'elbv3'
+        lsnr_data.provider = PROVIDER
         return lsnr_data
 
     def listener_delete(self, session, listener):
@@ -197,18 +202,22 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def pools(self, session, project_id, query_filter=None):
         LOG.debug('Fetching pools')
+        result = []
 
         if not query_filter:
             query_filter = {}
-
         query_filter.pop('project_id', None)
 
-        result = []
-
-        for pool in session.vlb.pools(**query_filter):
-            pool_data = _pool.PoolResponse.from_sdk_object(pool)
-            pool_data.provider = 'elbv3'
+        if 'id' in query_filter:
+            pool_data = self.pool_get(
+                project_id=project_id, session=session,
+                pool_id=query_filter['id'])
             result.append(pool_data)
+        else:
+            for pool in session.vlb.pools(**query_filter):
+                pool_data = _pool.PoolResponse.from_sdk_object(pool)
+                pool_data.provider = PROVIDER
+                result.append(pool_data)
 
         return result
 
@@ -219,8 +228,33 @@ class ELBv3Driver(driver_base.ProviderDriver):
             name_or_id=pool_id, ignore_missing=True)
         if pool:
             pool_data = _pool.PoolResponse.from_sdk_object(pool)
-            pool_data.provider = 'elbv3'
+            pool_data.provider = PROVIDER
             return pool_data
+
+    def pool_create(self, session, pool):
+        LOG.debug('Creating pool %s' % pool.to_dict())
+        attrs = pool.to_dict()
+
+        res = session.vlb.create_pool(**attrs)
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def pool_update(self, session, original, new_attrs):
+        LOG.debug('Updating pool')
+
+        res = session.vlb.update_pool(
+            original.id,
+            **new_attrs)
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def pool_delete(self, session, pool):
+        LOG.debug('Deleting pool %s' % pool.to_dict())
+        session.vlb.delete_pool(pool.id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
@@ -233,7 +267,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         for fl in session.vlb.flavors(**query_filter):
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
-            fl_data.provider = 'elbv3'
+            fl_data.provider = PROVIDER
             result.append(fl_data)
 
         return result
@@ -245,5 +279,5 @@ class ELBv3Driver(driver_base.ProviderDriver):
             name_or_id=fl_id, ignore_missing=True)
         if fl:
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
-            fl_data.provider = 'elbv3'
+            fl_data.provider = PROVIDER
             return fl_data
