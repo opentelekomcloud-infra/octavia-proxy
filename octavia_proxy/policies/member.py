@@ -25,6 +25,13 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         '{rbac_obj}{action}'.format(rbac_obj=constants.RBAC_MEMBER,
+                                    action=constants.RBAC_GET_ALL_GLOBAL),
+        constants.RULE_API_READ_GLOBAL,
+        "List Members including resources owned by others",
+        [{'method': 'GET', 'path': '/v2/lbaas/pools/{pool_id}/members'}]
+    ),
+    policy.DocumentedRuleDefault(
+        '{rbac_obj}{action}'.format(rbac_obj=constants.RBAC_MEMBER,
                                     action=constants.RBAC_POST),
         constants.RULE_API_WRITE,
         "Create a Member",

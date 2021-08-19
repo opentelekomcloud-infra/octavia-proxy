@@ -36,7 +36,7 @@ class TestElbv2Driver(base.TestCase):
         self.assertDictEqual(
             resp,
             {"compute_zone": "The compute availability zone to use for "
-             "this loadbalancer."}
+                             "this loadbalancer."}
         )
 
     def test_loadbalancers_no_qp(self):

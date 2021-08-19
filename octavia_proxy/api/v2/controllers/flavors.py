@@ -14,16 +14,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from pecan import abort as pecan_abort
+from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.drivers import driver_factory
+from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import flavors as flavor_types
 from octavia_proxy.common import constants
+from octavia_proxy.common import exceptions
 
-
+CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -36,14 +41,62 @@ class FlavorsController(base.BaseController):
     @wsme_pecan.wsexpose(flavor_types.FlavorRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
-        """Gets a flavor's detail."""
-        pecan_abort(501)
+        """Gets a single flavor's details."""
+        context = pecan_request.context.get('octavia_context')
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        flavor = None
 
-    @wsme_pecan.wsexpose(flavor_types.FlavorsRootResponse,
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                flavor = driver_utils.call_provider(
+                    driver.name, driver.flavor_get,
+                    context.session,
+                    id)
+                if flavor:
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if not flavor:
+            raise exceptions.NotFound(
+                resource='Flavor',
+                id=id)
+
+        if fields is not None:
+            flavor = self._filter_fields([flavor], fields)[0]
+        return flavor_types.FlavorRootResponse(flavor=flavor)
+
+    @wsme_pecan.wsexpose(flavor_types.FlavorsRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
-    def get_all(self, fields=None):
+    def get_all(self, project_id=None, fields=None):
         """Lists all flavors."""
-        pecan_abort(501)
+        pcontext = pecan_request.context
+        context = pcontext.get('octavia_context')
+        query_filter = self._auth_get_all(context, project_id)
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        result = []
+        links = []
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                fl = driver_utils.call_provider(
+                    driver.name, driver.flavors,
+                    context.session,
+                    context.project_id,
+                    query_filter)
+                if fl:
+                    LOG.debug('Received %s from %s' % (fl, driver.name))
+                    result.extend(fl)
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if fields is not None:
+            result = self._filter_fields(result, fields)
+        return flavor_types.FlavorsRootResponse(
+            flavors=result, flavors_links=links)
 
     @wsme_pecan.wsexpose(flavor_types.FlavorRootResponse,
                          body=flavor_types.FlavorRootPOST, status_code=201)
