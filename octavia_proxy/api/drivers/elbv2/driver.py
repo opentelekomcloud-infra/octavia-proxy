@@ -7,12 +7,13 @@ from oslo_log import log as logging
 from wsme import types as wtypes
 
 from octavia_proxy.api.v2.types import (
-    health_monitor as _monitor, listener as _listener, load_balancer
+    health_monitor as _monitor, listener as _listener, load_balancer,
+    member as _member
 )
 
 LOG = logging.getLogger(__name__)
 
-ELBv2 = 'elbv2'
+PROVIDER = 'elbv2'
 
 
 class ELBv2Driver(driver_base.ProviderDriver):
@@ -194,9 +195,13 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
+        query_filter.pop('project_id', None)
+
         results = []
         for member in session.elb.members(**query_filter):
-            results.append(_member.MemberResponse.from_sdk_object(member))
+            member_data = _member.MemberResponse.from_sdk_object(member)
+            member_data.provider = PROVIDER
+            results.append(member_data)
         return results
 
     def member_get(self, session, project_id, member_id):
