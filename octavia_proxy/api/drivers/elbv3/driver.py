@@ -257,6 +257,20 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting pool %s' % pool.to_dict())
         session.vlb.delete_pool(pool.id)
 
+    def members(self, session, project_id, pool_id, query_filter=None):
+        LOG.debug('Fetching pools')
+        result = []
+        if not query_filter:
+            query_filter = {}
+        query_filter.pop('project_id', None)
+
+        for member in session.vlb.members(pool_id, **query_filter):
+            member_data = _member.MemberResponse.from_sdk_object(member)
+            member_data.provider = PROVIDER
+            result.append(member_data)
+
+        return result
+
     def member_get(self, session, project_id, pool_id, member_id):
         LOG.debug('Searching pool')
 

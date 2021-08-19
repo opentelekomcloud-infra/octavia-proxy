@@ -29,7 +29,7 @@ from octavia_proxy.common import constants, validate
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
 
-
+CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -42,11 +42,10 @@ class MemberController(base.BaseController):
 
     @wsme_pecan.wsexpose(member_types.MemberRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
-    def get(self, id, fields=None):
+    def get_one(self, id, fields=None):
         """Gets a single pool member's details."""
         context = pecan_request.context.get('octavia_context')
-        pool = self.find_pool(context, self.pool_id)
-        member = self.find_member(context, pool.id, id)
+        member = self.find_member(context, self.pool_id, id)
 
         self._auth_validate_action(context, member.project_id,
                                    constants.RBAC_GET_ONE)
@@ -55,11 +54,42 @@ class MemberController(base.BaseController):
             member = self._filter_fields([member], fields)[0]
         return member_types.MemberRootResponse(member=member)
 
-    @wsme_pecan.wsexpose(member_types.MembersRootResponse, [wtypes.text],
-                         ignore_extra_args=True)
-    def get_all(self, fields=None):
+    @wsme_pecan.wsexpose(member_types.MembersRootResponse, wtypes.text,
+                         [wtypes.text], ignore_extra_args=True)
+    def get_all(self, project_id=None, fields=None):
         """Lists all pool members of a pool."""
-        pecan_abort(501)
+        pcontext = pecan_request.context
+        context = pcontext.get('octavia_context')
+
+        query_filter = self._auth_get_all(context, project_id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+
+        query_filter.update(query_params)
+
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        result = []
+        links = []
+
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                members = driver_utils.call_provider(
+                    driver.name, driver.members,
+                    context.session,
+                    context.project_id,
+                    self.pool_id,
+                    query_filter)
+                if members:
+                    LOG.debug('Received %s from %s' % (members, driver.name))
+                    result.extend(members)
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if fields is not None:
+            result = self._filter_fields(result, fields)
+        return member_types.MembersRootResponse(
+            members=result, members_links=links)
 
     @wsme_pecan.wsexpose(member_types.MemberRootResponse,
                          body=member_types.MemberRootPOST, status_code=201)
