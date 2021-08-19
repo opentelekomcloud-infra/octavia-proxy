@@ -95,7 +95,31 @@ class MemberController(base.BaseController):
                          body=member_types.MemberRootPOST, status_code=201)
     def post(self, member_):
         """Creates a pool member on a pool."""
-        pecan_abort(501)
+        member = member_.member
+        context = pecan_request.context.get('octavia_context')
+
+        if not member.project_id and context.project_id:
+            member.project_id = context.project_id
+
+        self._auth_validate_action(
+            context, member.project_id, constants.RBAC_POST)
+
+        pool = self.find_pool(
+            context, member.pool_id)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(pool.provider)
+
+        obj_dict = member.to_dict(render_unsets=False)
+        obj_dict['id'] = None
+
+        # Dispatch to the driver
+        result = driver_utils.call_provider(
+            driver.name, driver.member_create,
+            context.session,
+            member)
+
+        return member_types.MemberRootResponse(member=result)
 
     @wsme_pecan.wsexpose(member_types.MemberRootResponse,
                          wtypes.text, body=member_types.MemberRootPUT,
