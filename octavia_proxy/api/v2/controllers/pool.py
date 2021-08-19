@@ -22,7 +22,7 @@ from wsmeext import pecan as wsme_pecan
 
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.v2.controllers import base
+from octavia_proxy.api.v2.controllers import base, member
 from octavia_proxy.api.v2.types import pool as pool_types
 from octavia_proxy.common import constants, validate
 from octavia_proxy.common import exceptions
@@ -44,7 +44,6 @@ class PoolsController(base.BaseController):
         """Gets a pool's details."""
         context = pecan_request.context.get('octavia_context')
         pool = self.find_pool(context, id)
-
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_GET_ONE)
 
@@ -223,4 +222,16 @@ class PoolsController(base.BaseController):
         Verifies that the pool passed in the url exists, and if so decides
         which controller, if any, should control be passed.
         """
+        context = pecan_request.context.get('octavia_context')
+        if pool_id and remainder and remainder[0] == 'members':
+            remainder = remainder[1:]
+            pool = self.find_pool(context, pool_id)
+            if not pool:
+                LOG.info("Pool %s not found.", pool_id)
+                raise exceptions.NotFound(
+                    resource='pool',
+                    id=pool_id)
+            if remainder:
+                return member.MemberController(pool_id=pool.id), remainder
+            return member.MembersController(pool_id=pool.id), remainder
         return None
