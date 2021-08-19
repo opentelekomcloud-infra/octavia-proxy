@@ -136,7 +136,42 @@ class MemberController(base.BaseController):
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):
         """Deletes a pool member."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        member = None
+
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                member = driver_utils.call_provider(
+                    driver.name, driver.member_get,
+                    context.session,
+                    context.project_id,
+                    self.pool_id,
+                    id)
+                if member:
+                    setattr(member, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+        if not member:
+            raise exceptions.NotFound(
+                resource='member',
+                id=id)
+
+        self._auth_validate_action(
+            context, member.project_id,
+            constants.RBAC_DELETE)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(member.provider)
+
+        driver_utils.call_provider(
+            driver.name, driver.member_delete,
+            context.session,
+            self.pool_id,
+            member)
 
 
 class MembersController(MemberController):

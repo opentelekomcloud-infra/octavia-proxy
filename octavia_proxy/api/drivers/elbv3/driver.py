@@ -299,6 +299,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
+    def member_delete(self, session, pool_id, member):
+        LOG.debug('Deleting pool %s' % member.to_dict())
+        session.vlb.delete_member(member.id, pool_id)
+
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
         if not query_filter:
