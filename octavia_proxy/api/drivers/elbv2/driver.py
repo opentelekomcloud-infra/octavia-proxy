@@ -130,7 +130,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         attrs = listener.to_dict()
         # TODO: do this differently
-        attrs.pop('l7policies')
+        attrs.pop('l7policies', None)
 
         res = session.elb.create_listener(**attrs)
 
