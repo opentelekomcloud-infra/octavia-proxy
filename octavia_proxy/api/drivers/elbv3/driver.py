@@ -51,8 +51,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         query_filter.pop('project_id', None)
-        LOG.debug(f'FILTER LOADBALANCERS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!{query_filter}')
+
         result = []
+
         if 'id' in query_filter:
             lb_data = self.loadbalancer_get(
                 project_id=project_id, session=session,

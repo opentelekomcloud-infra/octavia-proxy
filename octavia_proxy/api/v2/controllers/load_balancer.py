@@ -73,6 +73,7 @@ class LoadBalancersController(base.BaseController):
         # TODO: parallelize drivers querying
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
+        query_filter.update(query_params)
 
         enabled_providers = CONF.api_settings.enabled_provider_drivers
         result = []
