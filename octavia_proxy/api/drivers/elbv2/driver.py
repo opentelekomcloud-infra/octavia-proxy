@@ -5,6 +5,7 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
+from octavia_proxy.api.v2.types import l7policy
 
 # from octavia.api.common import types
 # from wsme import types as wtypes
@@ -139,3 +140,62 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting listener %s' % listener.to_dict())
 
         session.elb.delete_listener(listener.id)
+
+    def l7policies(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching L7 policies')
+
+        if not query_filter:
+            query_filter = {}
+
+        results = []
+        for l7_policy in session.load_balancer.l7_policies(**query_filter):
+            l7policy_data = l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+            l7policy_data.provider = 'elbv2'
+            results.append(l7policy_data)
+        return results
+
+    def l7policy_get(self, session, project_id, l7policy_id):
+        LOG.debug('Searching L7 Policy')
+
+        l7_policy = session.load_balancer.find_l7_policy(
+            name_or_id=l7policy_id,
+            ignore_missing=True
+        )
+        LOG.debug('l7policy is %s' % l7_policy)
+
+        if l7_policy:
+            l7policy_data = l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+            l7policy_data.provider = 'elbv2'
+            return l7policy_data
+
+    def l7policy_create(self, session, project_id, policy_l7):
+        LOG.debug('Creating L7 Policy %s' % policy_l7.to_dict())
+
+        l7policy_attrs = policy_l7.to_dict()
+
+        l7_policy = session.load_balancer.create_l7_policy(**l7policy_attrs)
+        l7_policy_data = l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+        l7_policy_data.provider = 'elbv2'
+        LOG.debug('Created L7 Policy according to API is %s' % l7_policy_data)
+        return l7_policy_data
+
+    def l7policy_update(self, session, project_id, original_l7policy,
+                        new_attrs):
+        LOG.debug('Updating L7 Policy')
+
+        l7_policy = session.load_balancer.update_l7_policy(
+            original_l7policy,
+            **new_attrs
+        )
+
+        l7_policy_data = l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+        l7_policy_data.provider = 'elbv2'
+        return l7_policy_data
+
+    def l7policy_delete(self, session, policy_l7, ignore_missing=True):
+        LOG.debug('Deleting L7 Policy %s' % policy_l7.to_dict())
+
+        session.load_balancer.delete_l7_policy(
+            l7_policy=policy_l7,
+            ignore_missing=True
+        )
