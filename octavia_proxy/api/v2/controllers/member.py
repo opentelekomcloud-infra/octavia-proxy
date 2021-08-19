@@ -107,13 +107,6 @@ class MemberController(base.BaseController):
         self._auth_validate_action(context, member.project_id,
                                    constants.RBAC_POST)
 
-        # validate.ip_not_reserved(member.address)
-
-        # Validate member subnet
-        # if (member.subnet_id and
-        #         not validate.subnet_exists(member.subnet_id, context=context)):
-        #     raise exceptions.NotFound(resource='Subnet', id=member.subnet_id)
-
         if pool.loadbalancers:
             loadbalancer = self.find_load_balancer(
                 context, pool.loadbalancers[0].id)
