@@ -95,7 +95,43 @@ class MemberController(base.BaseController):
                          body=member_types.MemberRootPOST, status_code=201)
     def post(self, member_):
         """Creates a pool member on a pool."""
-        pecan_abort(501)
+        loadbalancer = None
+
+        member = member_.member
+        context = pecan_request.context.get('octavia_context')
+        pool = self.find_pool(context, id=self.pool_id)
+
+        if not member.project_id and context.project_id:
+            member.project_id = context.project_id
+
+        self._auth_validate_action(context, member.project_id,
+                                   constants.RBAC_POST)
+
+        # validate.ip_not_reserved(member.address)
+
+        # Validate member subnet
+        # if (member.subnet_id and
+        #         not validate.subnet_exists(member.subnet_id, context=context)):
+        #     raise exceptions.NotFound(resource='Subnet', id=member.subnet_id)
+
+        if pool.loadbalancers:
+            loadbalancer = self.find_load_balancer(
+                context, pool.loadbalancers[0].id)
+        elif pool.listeners:
+            loadbalancer = self.find_load_balancer(
+                context, pool.listeners[0].id)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(loadbalancer.provider)
+
+        result = driver_utils.call_provider(
+            driver.name, driver.member_create,
+            context.session,
+            pool.id,
+            member
+        )
+
+        return member_types.MemberRootResponse(member=result)
 
     @wsme_pecan.wsexpose(member_types.MemberRootResponse,
                          wtypes.text, body=member_types.MemberRootPUT,
