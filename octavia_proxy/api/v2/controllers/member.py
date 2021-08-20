@@ -15,7 +15,6 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from pecan import expose as pecan_expose
 from pecan import abort as pecan_abort
 from pecan import request as pecan_request
 from wsme import types as wtypes
@@ -25,9 +24,8 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import member as member_types
-from octavia_proxy.common import constants, validate
+from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
-from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -116,6 +114,7 @@ class MemberController(base.BaseController):
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(loadbalancer.provider)
+
         result = driver_utils.call_provider(
             driver.name, driver.member_create,
             context.session,
@@ -130,7 +129,37 @@ class MemberController(base.BaseController):
                          status_code=200)
     def put(self, id, member_):
         """Updates a pool member."""
-        pecan_abort(501)
+        loadbalancer = None
+        member = member_.member
+        context = pecan_request.context.get('octavia_context')
+
+        pool = self.find_pool(context, id=self.pool_id)
+        orig_member = self.find_member(context, self.pool_id, id)
+
+        if pool.loadbalancers:
+            loadbalancer = self.find_load_balancer(
+                context, pool.loadbalancers[0].id)
+        elif pool.listeners:
+            loadbalancer = self.find_load_balancer(
+                context, pool.listeners[0].id)
+
+        self._auth_validate_action(context, pool.project_id,
+                                   constants.RBAC_PUT)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(loadbalancer.provider)
+
+        member_dict = member.to_dict(render_unsets=False)
+
+        result = driver_utils.call_provider(
+            driver.name, driver.member_update,
+            context.session,
+            self.pool_id,
+            orig_member,
+            member_dict
+        )
+
+        return member_types.MemberRootResponse(member=result)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):

@@ -269,7 +269,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             query_filter = {}
         query_filter.pop('project_id', None)
 
-        if id in query_filter:
+        if 'id' in query_filter:
             member_data = self.member_get(
                 project_id=project_id, session=session,
                 pool_id=pool_id,
@@ -306,6 +306,18 @@ class ELBv2Driver(driver_base.ProviderDriver):
         res = session.elb.create_member(pool_id, **attrs)
         result_data = _member.MemberResponse.from_sdk_object(res)
         setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def member_update(self, session, pool_id, original, new_attrs):
+        LOG.debug('Updating member')
+
+        res = session.elb.update_member(
+            original.id,
+            pool_id,
+            **new_attrs)
+        result_data = _member.MemberResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
         return result_data
 
     def member_delete(self, session, pool_id, member):
