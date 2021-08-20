@@ -6,7 +6,7 @@ from wsme import types as wtypes
 
 from octavia_proxy.api.v2.types import (
     health_monitor as _monitor, listener as _listener, l7policy as _l7policy,
-load_balancer
+    load_balancer
 )
 
 LOG = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         for lb in session.elb.load_balancers(**query_filter):
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                 lb)
-            lb_data.provider = 'elbv2'
+            lb_data.provider = ELBv2
             results.append(lb_data)
         return results
 
@@ -56,7 +56,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         if lb:
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(lb)
-            lb_data.provider = 'elbv2'
+            lb_data.provider = ELBv2
             return lb_data
 
     def loadbalancer_create(self, session, loadbalancer):
@@ -69,7 +69,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
-        lb_data.provider = 'elbv2'
+        lb_data.provider = ELBv2
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
 
@@ -83,7 +83,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
-        lb_data.provider = 'elbv2'
+        lb_data.provider = ELBv2
         return lb_data
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
@@ -122,7 +122,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         result_data = _listener.ListenerResponse.from_sdk_object(
             res)
-        result_data.provider = 'elbv2'
+        result_data.provider = ELBv2
         return result_data
 
     def listener_update(self, session, original, new_attrs):
@@ -134,7 +134,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         result_data = _listener.ListenerResponse.from_sdk_object(
             res)
-        result_data.provider = 'elbv2'
+        result_data.provider = ELBv2
         return result_data
 
     def listener_delete(self, session, listener):
@@ -198,7 +198,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
                 l7_policy
             )
-            l7policy_data.provider = 'elbv2'
+            l7policy_data.provider = ELBv2
             results.append(l7policy_data)
         return results
 
@@ -215,7 +215,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
                 l7_policy
             )
-            l7policy_data.provider = 'elbv2'
+            l7policy_data.provider = ELBv2
             return l7policy_data
 
     def l7policy_create(self, session, policy_l7):
@@ -224,7 +224,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         l7_policy = session.elb.create_l7_policy(**l7policy_attrs)
         l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
-        l7_policy_data.provider = 'elbv2'
+        l7_policy_data.provider = ELBv2
         LOG.debug('Created L7 Policy according to API is %s' % l7_policy_data)
         return l7_policy_data
 
@@ -237,7 +237,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         )
 
         l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
-        l7_policy_data.provider = 'elbv2'
+        l7_policy_data.provider = ELBv2
         return l7_policy_data
 
     def l7policy_delete(self, session, l7policy, ignore_missing=True):
