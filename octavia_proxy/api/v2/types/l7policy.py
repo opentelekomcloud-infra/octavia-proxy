@@ -11,7 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+from dateutil.parser import parser
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
@@ -58,6 +58,26 @@ class L7PolicyResponse(BaseL7PolicyType):
         policy.rules = [
             rule_model.from_data_model(i) for i in data_model.l7rules]
         return policy
+
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        l7_policy = cls()
+        for key in [
+            'id', 'name',
+            'action', 'description', 'listener_id', 'operating_status',
+            'position', 'project_id', 'redirect_pool_id', 'redirect_url',
+            'provisioning_status', 'redirect_prefix'
+        ]:
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(l7_policy, key, v)
+        l7_policy.admin_state_up = sdk_entity.is_admin_state_up
+        for attr in ['created_at', 'updated_at']:
+            setattr(l7_policy, attr, parser.parse(sdk_entity[attr]))
+        if sdk_entity.rules:
+            l7_policy.rules = sdk_entity.rules
+        return l7_policy
 
 
 class L7PolicyFullResponse(L7PolicyResponse):
