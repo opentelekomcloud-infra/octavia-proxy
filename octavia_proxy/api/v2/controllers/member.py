@@ -131,7 +131,37 @@ class MemberController(base.BaseController):
                          status_code=200)
     def put(self, id, member_):
         """Updates a pool member."""
-        pecan_abort(501)
+        loadbalancer = None
+        member = member_.member
+        context = pecan_request.context.get('octavia_context')
+
+        pool = self.find_pool(context, id=self.pool_id)
+        orig_member = self.find_member(context, self.pool_id, id)
+
+        if pool.loadbalancers:
+            loadbalancer = self.find_load_balancer(
+                context, pool.loadbalancers[0].id)
+        elif pool.listeners:
+            loadbalancer = self.find_load_balancer(
+                context, pool.listeners[0].id)
+
+        self._auth_validate_action(context, pool.project_id,
+                                   constants.RBAC_PUT)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(loadbalancer.provider)
+
+        member_dict = member.to_dict(render_unsets=False)
+
+        result = driver_utils.call_provider(
+            driver.name, driver.member_update,
+            context.session,
+            self.pool_id,
+            orig_member,
+            member_dict
+        )
+
+        return member_types.MemberRootResponse(member=result)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):

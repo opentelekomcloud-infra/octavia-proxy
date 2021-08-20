@@ -299,8 +299,20 @@ class ELBv3Driver(driver_base.ProviderDriver):
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
+    def member_update(self, session, pool_id, original, new_attrs):
+        LOG.debug('Updating member')
+
+        res = session.vlb.update_member(
+            original.id,
+            pool_id,
+            **new_attrs)
+        result_data = _member.MemberResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
     def member_delete(self, session, pool_id, member):
-        LOG.debug('Deleting pool %s' % member.to_dict())
+        LOG.debug('Deleting member %s' % member.to_dict())
         session.vlb.delete_member(member.id, pool_id)
 
     def flavors(self, session, project_id, query_filter=None):
