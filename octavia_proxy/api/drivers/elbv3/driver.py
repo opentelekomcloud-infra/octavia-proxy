@@ -51,8 +51,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         query_filter.pop('project_id', None)
-        LOG.debug(f'FILTER LOADBALANCERS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!{query_filter}')
+
         result = []
+
         if 'id' in query_filter:
             lb_data = self.loadbalancer_get(
                 project_id=project_id, session=session,
@@ -297,6 +298,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         result_data = _member.MemberResponse.from_sdk_object(res)
         setattr(result_data, 'provider', PROVIDER)
         return result_data
+
+    def member_delete(self, session, pool_id, member):
+        LOG.debug('Deleting pool %s' % member.to_dict())
+        session.vlb.delete_member(member.id, pool_id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
