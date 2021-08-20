@@ -116,7 +116,6 @@ class MemberController(base.BaseController):
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(loadbalancer.provider)
-
         result = driver_utils.call_provider(
             driver.name, driver.member_create,
             context.session,
