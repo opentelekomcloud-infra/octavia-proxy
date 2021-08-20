@@ -12,8 +12,6 @@
 
 import openstack
 
-from oslo_utils import uuidutils
-
 from octavia_proxy.common import constants
 from octavia_proxy.tests.functional import base
 import pecan.testing
@@ -23,37 +21,6 @@ from octavia_proxy.api import config as pconfig
 _network = None
 _sdk = None
 _lb = None
-
-
-def _destroy_network(_network: dict):
-    router_id = _network.get('router_id')
-    subnet_id = _network.get('subnet_id')
-    network_id = _network.get('network_id')
-    router = _sdk.network.get_router(router_id)
-
-    router.remove_interface(
-        _sdk.network,
-        subnet_id=subnet_id
-    )
-    _sdk.network.delete_router(
-        router_id,
-        ignore_missing=False
-    )
-    _sdk.network.delete_subnet(
-        subnet_id,
-        ignore_missing=False
-    )
-    _sdk.network.delete_network(
-        network_id,
-        ignore_missing=False
-    )
-
-
-def _destroy_lb(_lb: dict):
-    if _lb.get('provider') == 'elbv2':
-        _sdk.elb.delete_load_balancer(_lb.get('id'))
-    else:
-        _sdk.vlb.delete_load_balancer(_lb.get('id'))
 
 
 class BaseAPITest(base.TestCase):
@@ -146,14 +113,6 @@ class BaseAPITest(base.TestCase):
             self._sdk_connection.close()
         super().tearDown()
 
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            _destroy_lb(_lb)
-            _destroy_network(_network)
-        except:
-            pass
-
     def _get_sdk_connection(self):
         global _sdk
         if not _sdk:
@@ -164,10 +123,9 @@ class BaseAPITest(base.TestCase):
         global _network
         cidr = '192.168.0.0/16'
         ipv4 = 4
-        uuid_v4 = uuidutils.generate_uuid()
-        router_name = 'octavia-proxy-test-router-' + uuid_v4
-        net_name = 'octavia-proxy-test-net-' + uuid_v4
-        subnet_name = 'octavia-proxy-test-subnet-' + uuid_v4
+        router_name = 'octavia-proxy-test-router'
+        net_name = 'octavia-proxy-test-net'
+        subnet_name = 'octavia-proxy-test-subnet'
 
         if not _network:
             if not self._sdk_connection:
@@ -197,29 +155,6 @@ class BaseAPITest(base.TestCase):
             }
         return _network
 
-    def _remove_network(self, params: dict):
-        router_id = params.get('router_id')
-        subnet_id = params.get('subnet_id')
-        network_id = params.get('network_id')
-        router = self._sdk_connection.network.get_router(router_id)
-
-        router.remove_interface(
-            self._sdk_connection.network,
-            subnet_id=subnet_id
-        )
-        self._sdk_connection.network.delete_router(
-            router_id,
-            ignore_missing=False
-        )
-        self._sdk_connection.network.delete_subnet(
-            subnet_id,
-            ignore_missing=False
-        )
-        self._sdk_connection.network.delete_network(
-            network_id,
-            ignore_missing=False
-        )
-
     def _create_lb(self):
         global _lb
         if not _lb:
@@ -235,19 +170,6 @@ class BaseAPITest(base.TestCase):
     def _cleanup_lb(self):
         try:
             self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
-        except Exception:
-            pass
-
-    def _cleanup_network(self):
-        try:
-            self._remove_network(self._network)
-        except Exception:
-            pass
-
-    def _cleanup(self):
-        try:
-            self._cleanup_lb()
-            self._cleanup_network()
         except Exception:
             pass
 
