@@ -341,7 +341,8 @@ class TestElbv3MemberDriver(base.TestCase):
             'weight': 5,
         }
         self.driver.member_update(self.sess, 'pid', self.member, attrs)
-        self.sess.vlb.update_member.assert_called_with(self.member.id, 'pid', **attrs)
+        self.sess.vlb.update_member.assert_called_with(
+            self.member.id, 'pid', **attrs)
 
     def test_member_delete(self):
         self.driver.member_delete(self.sess, 'pid', self.member)
