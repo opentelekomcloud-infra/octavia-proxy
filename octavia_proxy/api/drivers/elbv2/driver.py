@@ -187,7 +187,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             hm_data.provider = ELBv2
             return hm_data
 
-    def l7policies(self, session, query_filter=None):
+    def l7policies(self, session, project_id, query_filter=None):
         LOG.debug('Fetching L7 policies')
 
         if not query_filter:
@@ -202,7 +202,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             results.append(l7policy_data)
         return results
 
-    def l7policy_get(self, session, l7_policy):
+    def l7policy_get(self, session, project_id, l7_policy):
         LOG.debug('Searching L7 Policy')
 
         l7policy = session.elb.find_l7_policy(
