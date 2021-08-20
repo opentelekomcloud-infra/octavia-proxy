@@ -81,40 +81,17 @@ def call_provider(provider, driver_method, *args, **kwargs):
 
 def _base_to_provider_dict(current_dict, include_project_id=False):
     new_dict = copy.deepcopy(current_dict)
-    if 'provisioning_status' in new_dict:
-        del new_dict['provisioning_status']
-    if 'operating_status' in new_dict:
-        del new_dict['operating_status']
-    if 'provider' in new_dict:
-        del new_dict['provider']
-    if 'created_at' in new_dict:
-        del new_dict['created_at']
-    if 'updated_at' in new_dict:
-        del new_dict['updated_at']
+    for key in [
+            'provisioning_status', 'operating_status', 'provider',
+            'created_at', 'updated_at', 'tenant_id', 'tags',
+            'flavor_id', 'topology', 'vrrp_group', 'amphorae', 'vip',
+            'listeners', 'pools', 'server_group_id',
+    ]:
+        new_dict.pop(key, None)
     if 'enabled' in new_dict:
         new_dict['admin_state_up'] = new_dict.pop('enabled')
     if 'project_id' in new_dict and not include_project_id:
         del new_dict['project_id']
-    if 'tenant_id' in new_dict:
-        del new_dict['tenant_id']
-    if 'tags' in new_dict:
-        del new_dict['tags']
-    if 'flavor_id' in new_dict:
-        del new_dict['flavor_id']
-    if 'topology' in new_dict:
-        del new_dict['topology']
-    if 'vrrp_group' in new_dict:
-        del new_dict['vrrp_group']
-    if 'amphorae' in new_dict:
-        del new_dict['amphorae']
-    if 'vip' in new_dict:
-        del new_dict['vip']
-    if 'listeners' in new_dict:
-        del new_dict['listeners']
-    if 'pools' in new_dict:
-        del new_dict['pools']
-    if 'server_group_id' in new_dict:
-        del new_dict['server_group_id']
     return new_dict
 
 
