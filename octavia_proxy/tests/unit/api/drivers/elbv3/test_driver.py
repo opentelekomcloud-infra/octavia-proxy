@@ -15,7 +15,7 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from otcextensions.sdk.vlb.v3 import load_balancer, listener, pool,\
+from otcextensions.sdk.vlb.v3 import load_balancer, listener, pool, \
     member
 
 from octavia_proxy.api.drivers.elbv3 import driver
@@ -271,6 +271,7 @@ class TestElbv3PoolDriver(base.TestCase):
         self.driver.pool_delete(self.sess, self.pool)
         self.sess.vlb.delete_pool.assert_called_with(self.pool.id)
 
+
 class TestElbv3MemberDriver(base.TestCase):
     attrs = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
@@ -345,6 +346,7 @@ class TestElbv3MemberDriver(base.TestCase):
     def test_member_delete(self):
         self.driver.member_delete(self.sess, 'pid', self.member)
         self.sess.vlb.delete_member.assert_called_with(self.member.id, 'pid')
+
 
 class TestElbv3DriverRequests(base.TestCase):
 
