@@ -344,6 +344,31 @@ class ELBv3Driver(driver_base.ProviderDriver):
             healthmonitor_data.provider = PROVIDER
             return healthmonitor_data
 
+    def healthmonitor_create(self, session, healthmonitor):
+        LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
+        attrs = healthmonitor.to_dict()
+
+        res = session.vlb.create_health_monitor(**attrs)
+        result_data = _hm.HealthMonitorResponse.from_sdk_object(
+            res)
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def healthmonitor_update(self, session, original, new_attrs):
+        LOG.debug('Updating health monitor')
+
+        res = session.vlb.update_health_monitor(
+            original.id,
+            **new_attrs)
+        result_data = _hm.HealthMonitorResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def healthmonitor_delete(self, session, healthmonitor):
+        LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
+        session.vlb.delete_health_monitor(healthmonitor.id)
+
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
         if not query_filter:
