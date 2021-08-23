@@ -21,6 +21,7 @@ import warnings
 extensions = [
     'sphinx.ext.autodoc',
     'oslo_config.sphinxext',
+    'sphinx_feature_classification.support_matrix',
     'otcdocstheme',
 ]
 
