@@ -232,7 +232,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Updating L7 Policy')
 
         l7_policy = session.elb.update_l7_policy(
-            original_l7policy,
+            l7_policy=original_l7policy,
             **new_attrs
         )
 
@@ -245,5 +245,5 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         session.elb.delete_l7_policy(
             l7_policy=l7policy,
-            ignore_missing=True
+            ignore_missing=ignore_missing
         )

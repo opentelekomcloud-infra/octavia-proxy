@@ -11,7 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from dateutil.parser import parser
+from dateutil import parser
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
@@ -74,9 +74,12 @@ class L7PolicyResponse(BaseL7PolicyType):
                     setattr(l7_policy, key, v)
         l7_policy.admin_state_up = sdk_entity.is_admin_state_up
         for attr in ['created_at', 'updated_at']:
-            setattr(l7_policy, attr, parser.parse(sdk_entity[attr]))
+            setattr(l7_policy, attr, parser.parse(sdk_entity[attr]) or
+                    None)
         if sdk_entity.rules:
-            l7_policy.rules = sdk_entity.rules
+            l7_policy.rules = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.rules
+            ]
         return l7_policy
 
 
