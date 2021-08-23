@@ -5,7 +5,8 @@ from oslo_log import log as logging
 from wsme import types as wtypes
 
 from octavia_proxy.api.v2.types import (
-    health_monitor as _monitor, listener as _listener, load_balancer
+    health_monitor as _monitor, listener as _listener, load_balancer,
+    pool as _pool
 )
 
 LOG = logging.getLogger(__name__)
@@ -39,11 +40,18 @@ class ELBv2Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         results = []
-        for lb in session.elb.load_balancers(**query_filter):
-            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                lb)
-            lb_data.provider = 'elbv2'
+
+        if 'id' in query_filter:
+            lb_data = self.loadbalancer_get(
+                project_id=project_id, session=session,
+                lb_id=query_filter['id'])
             results.append(lb_data)
+        else:
+            for lb in session.elb.load_balancers(**query_filter):
+                lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+                    lb)
+                lb_data.provider = ELBv2
+                results.append(lb_data)
         return results
 
     def loadbalancer_get(self, session, project_id, lb_id):
@@ -97,8 +105,15 @@ class ELBv2Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         results = []
-        for lsnr in session.elb.listeners(**query_filter):
-            results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
+        if 'id' in query_filter:
+            lsnr_data = self.listener_get(
+                project_id=project_id, session=session,
+                listener_id=query_filter['id'])
+            results.append(lsnr_data)
+        else:
+            for lsnr in session.elb.listeners(**query_filter):
+                results.append(
+                    _listener.ListenerResponse.from_sdk_object(lsnr))
         return results
 
     def listener_get(self, session, project_id, listener_id):
@@ -115,7 +130,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         attrs = listener.to_dict()
         # TODO: do this differently
-        attrs.pop('l7policies')
+        attrs.pop('l7policies', None)
 
         res = session.elb.create_listener(**attrs)
 
@@ -185,3 +200,62 @@ class ELBv2Driver(driver_base.ProviderDriver):
             hm_data = _monitor.HealthMonitorResponse.from_sdk_object(hm)
             hm_data.provider = ELBv2
             return hm_data
+
+    def pools(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching pools')
+
+        if not query_filter:
+            query_filter = {}
+
+        results = []
+
+        if 'id' in query_filter:
+            pool_data = self.pool_get(
+                project_id=project_id, session=session,
+                pool_id=query_filter['id'])
+            results.append(pool_data)
+        else:
+            for pl in session.elb.pools(**query_filter):
+                pool_data = _pool.PoolResponce.from_sdk_object(pl)
+                pool_data.provider = ELBv2
+                results.append(pool_data)
+        return results
+
+    def pool_get(self, session, project_id, pool_id):
+        LOG.debug('Searching pool')
+
+        pl = session.elb.find_pool(
+            name_or_id=pool_id, ignore_missing=True)
+
+        if pl:
+            return _pool.PoolResponse.from_sdk_object(pl)
+
+    def pool_create(self, session, pool):
+        LOG.debug('Creating pool %s' % pool.to_dict())
+
+        attrs = pool.to_dict()
+
+        if 'tls_enabled' in attrs:
+            attrs.pop('tls_enabled')
+
+        # TODO: do this differently
+        res = session.elb.create_pool(**attrs)
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        setattr(result_data, 'provider', 'elbv2')
+        return result_data
+
+    def pool_update(self, session, original, new_attrs):
+        LOG.debug('Updating pool')
+
+        res = session.elb.update_pool(
+            original.id,
+            **new_attrs)
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        result_data.provider = 'elbv2'
+        return result_data
+
+    def pool_delete(self, session, pool):
+        LOG.debug('Deleting pool %s' % pool.to_dict())
+        session.elb.delete_pool(pool.id)

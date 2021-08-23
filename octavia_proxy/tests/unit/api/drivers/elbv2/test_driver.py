@@ -13,8 +13,35 @@
 #    under the License.
 from unittest import mock
 
+import requests
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
+from openstack.load_balancer.v2 import listener, pool
+
+EXAMPLE_LB = {
+    "name": "lb-unit-test",
+    "description": "LB for unit tests",
+    "vip_subnet_cidr_id": "29bb7aa5-44d2-4aaf-8e49-993091c7fa42",
+    "provider": "elb",
+}
+
+
+class FakeResponse:
+
+    def __init__(self, response, status_code=200, headers=None, reason=None):
+        self.body = response
+        self.content = response
+        self.text = response
+        self.status_code = status_code
+        headers = headers if headers else {'content-type': 'application/json'}
+        self.headers = requests.structures.CaseInsensitiveDict(headers)
+        if reason:
+            self.reason = reason
+        # for the sake of "list" response faking
+        self.links = []
+
+    def json(self):
+        return self.body
 
 
 class TestElbv2Driver(base.TestCase):
@@ -50,3 +77,185 @@ class TestElbv2Driver(base.TestCase):
         self.sess.elb.load_balancers.assert_called_with(
             a='b'
         )
+
+
+class TestElbv2ListenerDriver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'protocol_port': 80,
+        'protocol': "TCP",
+        'insert_headers': {'X-Forwarded-ELB-IP': True},
+        'name': 'test',
+        'admin_state_up': True,
+        'tags': [],
+        'timeout_client_data': 10,
+        'timeout_member_data': 10,
+        'timeout_member_connect': 10,
+        'timeout_tcp_inspect': 10,
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}]
+    }
+    fakeCallCreate = {
+        'allowed_cidrs': None,
+        'alpn_protocols': None,
+        'connection_limit': None,
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'default_pool': None,
+        'default_pool_id': None,
+        'default_tls_container_ref': None,
+        'description': None,
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'insert_headers': {'X-Forwarded-ELB-IP': True},
+        'is_admin_state_up': True,
+        'l7_policies': None,
+        'load_balancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'location': None,
+        'name': 'test',
+        'operating_status': None,
+        'project_id': None,
+        'protocol': 'TCP',
+        'protocol_port': 80,
+        'provisioning_status': None,
+        'sni_container_refs': None,
+        'tags': [],
+        'timeout_client_data': 10,
+        'timeout_member_connect': 10,
+        'timeout_member_data': 10,
+        'timeout_tcp_inspect': 10,
+        'tls_ciphers': None,
+        'tls_versions': None,
+        'updated_at': '2021-08-10T09:39:24+00:00'
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.lsnr = listener.Listener(**self.attrs)
+        self.sess.elb.create_listener = mock.MagicMock(return_value=self.lsnr)
+        self.sess.elb.find_listener = mock.MagicMock(return_value=self.lsnr)
+        self.sess.elb.update_listener = mock.MagicMock(return_value=self.lsnr)
+
+    def test_listeners_no_qp(self):
+        self.driver.listeners(self.sess, 'l1')
+        self.sess.elb.listeners.assert_called_with()
+
+    def test_listeners_qp(self):
+        self.driver.listeners(
+            self.sess, 'l1',
+            query_filter={'a': 'b'})
+        self.sess.elb.listeners.assert_called_with(
+            a='b'
+        )
+
+    def test_listener_get(self):
+        self.driver.listener_get(self.sess, 'test', self.lsnr)
+        self.sess.elb.find_listener.assert_called_with(
+            name_or_id=self.lsnr, ignore_missing=True)
+
+    def test_listener_create(self):
+        self.driver.listener_create(self.sess, self.lsnr)
+        self.sess.elb.create_listener.assert_called_with(**self.fakeCallCreate)
+
+    def test_listener_delete(self):
+        self.driver.listener_delete(self.sess, self.lsnr)
+        self.sess.elb.delete_listener.assert_called_with(self.lsnr.id)
+
+    def test_listener_update(self):
+        attrs = {
+            'description': 'New Description',
+            'operating_status': 'ACTIVE',
+        }
+        self.driver.listener_update(self.sess, self.lsnr, attrs)
+        self.sess.elb.update_listener.assert_called_with(self.lsnr.id, **attrs)
+
+
+class TestElbv2PoolDriver(base.TestCase):
+
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'description': 'desc',
+        'healthmonitor_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'ip_version': 4,
+        'lb_algorithm': 'ROUND_ROBIN',
+        'listener_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'listeners': [],
+        'loadbalancers': [],
+        'members': [],
+        'name': 'pool',
+        'protocol': 'TCP',
+        'session_persistence': None,
+        'slow_start': None,
+        'admin_state_up': True,
+    }
+    fakeCallCreate = {
+        'alpn_protocols': None,
+        'created_at': None,
+        'description': 'desc',
+        'health_monitor_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'is_admin_state_up': True,
+        'lb_algorithm': 'ROUND_ROBIN',
+        'listener_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'listeners': [],
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'loadbalancers': [],
+        'location': None,
+        'members': [],
+        'name': 'pool',
+        'operating_status': None,
+        'project_id': None,
+        'protocol': 'TCP',
+        'provisioning_status': None,
+        'session_persistence': None,
+        'tags': [],
+        'tls_ciphers': None,
+        'tls_versions': None,
+        'updated_at': None
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.pool = pool.Pool(**self.attrs)
+        self.sess.elb.create_pool = mock.MagicMock(return_value=self.pool)
+        self.sess.elb.find_pool = mock.MagicMock(return_value=self.pool)
+        self.sess.elb.update_pool = mock.MagicMock(return_value=self.pool)
+
+    def test_pools_no_qp(self):
+        self.driver.pools(self.sess, 'l1')
+        self.sess.elb.pools.assert_called_with()
+
+    def test_pools_qp(self):
+        self.driver.pools(
+            self.sess, 'l1',
+            query_filter={'a': 'b'})
+        self.sess.elb.pools.assert_called_with(
+            a='b'
+        )
+
+    def test_pool_get(self):
+        self.driver.pool_get(self.sess, 'test', self.pool)
+        self.sess.elb.find_pool.assert_called_with(
+            name_or_id=self.pool, ignore_missing=True)
+
+    def test_pool_create(self):
+        self.driver.pool_create(self.sess, self.pool)
+        self.sess.elb.create_pool.assert_called_with(**self.fakeCallCreate)
+
+    def test_pool_update(self):
+        attrs = {
+            'description': 'New Description',
+            'operating_status': 'ACTIVE',
+        }
+        self.driver.pool_update(self.sess, self.pool, attrs)
+        self.sess.elb.update_pool.assert_called_with(self.pool.id, **attrs)
+
+    def test_pool_delete(self):
+        self.driver.pool_delete(self.sess, self.pool)
+        self.sess.elb.delete_pool.assert_called_with(self.pool.id)
