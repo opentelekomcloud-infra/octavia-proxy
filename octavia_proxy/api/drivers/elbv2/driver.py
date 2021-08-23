@@ -6,12 +6,12 @@ from wsme import types as wtypes
 
 from octavia_proxy.api.v2.types import (
     health_monitor as _monitor, listener as _listener, load_balancer,
-    pool as _pool
+    pool as _pool, member as _member
 )
 
 LOG = logging.getLogger(__name__)
 
-ELBv2 = 'elbv2'
+PROVIDER = 'elbv2'
 
 
 class ELBv2Driver(driver_base.ProviderDriver):
@@ -50,7 +50,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             for lb in session.elb.load_balancers(**query_filter):
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                     lb)
-                lb_data.provider = ELBv2
+                lb_data.provider = PROVIDER
                 results.append(lb_data)
         return results
 
@@ -165,7 +165,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         raw_results = session.elb.health_monitors(**query_filter)
         for lb in raw_results:
             result_data = _monitor.HealthMonitorResponse.from_sdk_object(lb)
-            result_data.provider = ELBv2
+            result_data.provider = PROVIDER
             results.append(result_data)
         return results
 
@@ -187,7 +187,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         res = session.elb.update_health_monitor(
             old_healthmonitor.id, **new_healthmonitor)
         result_data = _monitor.HealthMonitorResponse.from_sdk_object(res)
-        result_data.provider = ELBv2
+        result_data.provider = PROVIDER
         return result_data
 
     def health_monitor_delete(self, session, healthmonitor):
@@ -198,7 +198,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
                                              ignore_missing=True)
         if hm:
             hm_data = _monitor.HealthMonitorResponse.from_sdk_object(hm)
-            hm_data.provider = ELBv2
+            hm_data.provider = PROVIDER
             return hm_data
 
     def pools(self, session, project_id, query_filter=None):
@@ -217,7 +217,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         else:
             for pl in session.elb.pools(**query_filter):
                 pool_data = _pool.PoolResponce.from_sdk_object(pl)
-                pool_data.provider = ELBv2
+                pool_data.provider = PROVIDER
                 results.append(pool_data)
         return results
 
@@ -259,3 +259,64 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def pool_delete(self, session, pool):
         LOG.debug('Deleting pool %s' % pool.to_dict())
         session.elb.delete_pool(pool.id)
+
+    def members(self, session, project_id, pool_id, query_filter=None):
+        LOG.debug('Fetching pools')
+        result = []
+        if not query_filter:
+            query_filter = {}
+        query_filter.pop('project_id', None)
+
+        if 'id' in query_filter:
+            member_data = self.member_get(
+                project_id=project_id, session=session,
+                pool_id=pool_id,
+                member_id=query_filter['id']
+            )
+            result.append(member_data)
+        else:
+            for member in session.elb.members(pool_id, **query_filter):
+                member_data = _member.MemberResponse.from_sdk_object(member)
+                member_data.provider = PROVIDER
+                result.append(member_data)
+
+        return result
+
+    def member_get(self, session, project_id, pool_id, member_id):
+        LOG.debug('Searching pool')
+
+        member = session.elb.find_member(
+            name_or_id=member_id, pool=pool_id, ignore_missing=True)
+        if member:
+            member_data = _member.MemberResponse.from_sdk_object(member)
+            member_data.provider = PROVIDER
+            return member_data
+
+    def member_create(self, session, pool_id, member):
+        LOG.debug('Creating member %s' % member.to_dict())
+        attrs = member.to_dict()
+
+        attrs['address'] = attrs.pop('ip_address', None)
+        attrs.pop('backup', None)
+        attrs.pop('monitor_port', None)
+        attrs.pop('monitor_address', None)
+        res = session.elb.create_member(pool_id, **attrs)
+        result_data = _member.MemberResponse.from_sdk_object(res)
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def member_update(self, session, pool_id, original, new_attrs):
+        LOG.debug('Updating member')
+
+        res = session.elb.update_member(
+            original.id,
+            pool_id,
+            **new_attrs)
+        result_data = _member.MemberResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def member_delete(self, session, pool_id, member):
+        LOG.debug('Deleting pool %s' % member.to_dict())
+        session.elb.delete_member(member.id, pool_id)

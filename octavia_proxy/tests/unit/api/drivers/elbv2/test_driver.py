@@ -16,7 +16,7 @@ from unittest import mock
 import requests
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
-from openstack.load_balancer.v2 import listener, pool
+from openstack.load_balancer.v2 import listener, pool, member
 
 EXAMPLE_LB = {
     "name": "lb-unit-test",
@@ -259,3 +259,84 @@ class TestElbv2PoolDriver(base.TestCase):
     def test_pool_delete(self):
         self.driver.pool_delete(self.sess, self.pool)
         self.sess.elb.delete_pool.assert_called_with(self.pool.id)
+
+
+class TestElbv2MemberDriver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'address': '192.168.1.10',
+        'ip_address': '192.168.1.10',
+        'admin_state_up': True,
+        'ip_version': 4,
+        'name': 'fake',
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'protocol_port': 4321,
+        'subnet_cidr_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'weight': 10,
+
+    }
+    fakeCallCreate = {
+        'address': None,
+        'created_at': None,
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'is_admin_state_up': True,
+        'location': None,
+        'name': 'fake',
+        'operating_status': None,
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'protocol_port': 4321,
+        'provisioning_status': None,
+        'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'tags': [],
+        'updated_at': None,
+        'weight': 10
+
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.member = member.Member(**self.attrs)
+        self.sess.elb.create_member = mock.MagicMock(return_value=self.member)
+        self.sess.elb.find_member = mock.MagicMock(return_value=self.member)
+        self.sess.elb.update_member = mock.MagicMock(return_value=self.member)
+
+    def test_members_no_qp(self):
+        self.driver.members(self.sess, 'l1', 'pid')
+        self.sess.elb.members.assert_called_with('pid')
+
+    def test_members_qp(self):
+        self.driver.members(
+            self.sess, 'l1', 'pid',
+            query_filter={'a': 'b'})
+        self.sess.elb.members.assert_called_with(
+            'pid',
+            a='b'
+        )
+
+    def test_member_get(self):
+        self.driver.member_get(self.sess, 'test', 'pid', 'mid')
+        self.sess.elb.find_member.assert_called_with(
+            name_or_id='mid', pool='pid', ignore_missing=True)
+
+    def test_member_create(self):
+        self.driver.member_create(self.sess, 'pid', self.member)
+        self.sess.elb.create_member.assert_called_with(
+            'pid',
+            **self.fakeCallCreate
+        )
+
+    def test_member_update(self):
+        attrs = {
+            'name': 'New Fake',
+            'weight': 5,
+        }
+        self.driver.member_update(self.sess, 'pid', self.member, attrs)
+        self.sess.elb.update_member.assert_called_with(
+            self.member.id, 'pid', **attrs)
+
+    def test_member_delete(self):
+        self.driver.member_delete(self.sess, 'pid', self.member)
+        self.sess.elb.delete_member.assert_called_with(self.member.id, 'pid')

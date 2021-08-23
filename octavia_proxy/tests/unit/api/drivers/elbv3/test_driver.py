@@ -15,7 +15,7 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from otcextensions.sdk.vlb.v3 import load_balancer, listener, pool, \
+from otcextensions.sdk.vlb.v3 import load_balancer, listener, pool,\
     member
 
 from octavia_proxy.api.drivers.elbv3 import driver
