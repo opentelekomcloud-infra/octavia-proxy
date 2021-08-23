@@ -16,20 +16,23 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 from pecan import abort as pecan_abort
-from wsmeext import pecan as wsme_pecan
+from pecan import request as pecan_request
 from wsme import types as wtypes
+from wsmeext import pecan as wsme_pecan
 
-from octavia_proxy.api.v2.types import health_monitor as hm_types
+from octavia_proxy.api.drivers import driver_factory
+from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
-from octavia_proxy.common import constants as consts
-
+from octavia_proxy.api.v2.types import health_monitor as hm_types
+from octavia_proxy.common import constants
+from octavia_proxy.common import exceptions
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
 class HealthMonitorController(base.BaseController):
-    RBAC_TYPE = consts.RBAC_HEALTHMONITOR
+    RBAC_TYPE = constants.RBAC_HEALTHMONITOR
 
     def __init__(self):
         super().__init__()
@@ -38,13 +41,49 @@ class HealthMonitorController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single healthmonitor's details."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+        hm = self.find_healthmonitor(context, id)
+        self._auth_validate_action(context, hm.project_id,
+                                   constants.RBAC_GET_ONE)
+
+        if fields is not None:
+            hm = self._filter_fields([hm], fields)[0]
+        return hm_types.HealthMonitorRootResponse(healthmonitor=hm)
 
     @wsme_pecan.wsexpose(hm_types.HealthMonitorsRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_all(self, project_id=None, fields=None):
         """Gets all health monitors."""
-        pecan_abort(501)
+        pcontext = pecan_request.context
+        context = pcontext.get('octavia_context')
+
+        query_filter = self._auth_get_all(context, project_id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+
+        query_filter.update(query_params)
+
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        result = []
+        links = []
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                hms = driver_utils.call_provider(
+                    driver.name, driver.healthmonitors,
+                    context.session,
+                    context.project_id,
+                    query_filter)
+                if hms:
+                    LOG.debug('Received %s from %s' % (hms, driver.name))
+                    result.extend(hms)
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if fields is not None:
+            result = self._filter_fields(result, fields)
+        return hm_types.HealthMonitorsRootResponse(
+            healthmonitors=result, pools_links=links)
 
     @wsme_pecan.wsexpose(hm_types.HealthMonitorRootResponse,
                          body=hm_types.HealthMonitorRootPOST, status_code=201)

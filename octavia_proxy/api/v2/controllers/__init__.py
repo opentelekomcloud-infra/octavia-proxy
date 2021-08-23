@@ -3,8 +3,9 @@ from wsmeext import pecan as wsme_pecan
 
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.controllers import flavors
-from octavia_proxy.api.v2.controllers import load_balancer
+from octavia_proxy.api.v2.controllers import health_monitor
 from octavia_proxy.api.v2.controllers import listener
+from octavia_proxy.api.v2.controllers import load_balancer
 from octavia_proxy.api.v2.controllers import pool
 from octavia_proxy.api.v2.controllers import provider
 
@@ -23,7 +24,7 @@ class BaseV2Controller(base.BaseController):
         self.listeners = listener.ListenersController()
         self.pools = pool.PoolsController()
 #        self.l7policies = l7policy.L7PolicyController()
-#        self.healthmonitors = health_monitor.HealthMonitorController()
+        self.healthmonitors = health_monitor.HealthMonitorController()
 #        self.quotas = quotas.QuotasController()
         self.providers = provider.ProviderController()
         self.flavors = flavors.FlavorsController()
