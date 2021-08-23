@@ -50,7 +50,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             for lb in session.elb.load_balancers(**query_filter):
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                     lb)
-                lb_data.provider = ELBv2
+                lb_data.provider = PROVIDER
                 results.append(lb_data)
         return results
 
@@ -300,7 +300,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
         attrs.pop('backup', None)
         attrs.pop('monitor_port', None)
         attrs.pop('monitor_address', None)
-        LOG.debug(f'HREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!{member}')
         res = session.elb.create_member(pool_id, **attrs)
         result_data = _member.MemberResponse.from_sdk_object(res)
         setattr(result_data, 'provider', PROVIDER)
