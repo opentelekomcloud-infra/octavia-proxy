@@ -55,7 +55,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         return results
 
     def loadbalancer_get(self, session, project_id, lb_id):
-        LOG.debug('Searching loadbalancer')
+        LOG.debug('Searching for loadbalancer')
 
         lb = session.elb.find_load_balancer(
             name_or_id=lb_id, ignore_missing=True)
