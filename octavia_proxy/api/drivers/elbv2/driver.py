@@ -5,13 +5,13 @@ from oslo_log import log as logging
 from wsme import types as wtypes
 
 from octavia_proxy.api.v2.types import (
-    health_monitor as _monitor, listener as _listener, l7policy as _l7policy,
-    load_balancer
+    health_monitor as _monitor, listener as _listener, load_balancer,
+    pool as _pool, member as _member, l7policy as _l7policy
 )
 
 LOG = logging.getLogger(__name__)
 
-ELBv2 = 'elbv2'
+PROVIDER = 'elbv2'
 
 
 class ELBv2Driver(driver_base.ProviderDriver):
@@ -40,11 +40,18 @@ class ELBv2Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         results = []
-        for lb in session.elb.load_balancers(**query_filter):
-            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                lb)
-            lb_data.provider = ELBv2
+
+        if 'id' in query_filter:
+            lb_data = self.loadbalancer_get(
+                project_id=project_id, session=session,
+                lb_id=query_filter['id'])
             results.append(lb_data)
+        else:
+            for lb in session.elb.load_balancers(**query_filter):
+                lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+                    lb)
+                lb_data.provider = PROVIDER
+                results.append(lb_data)
         return results
 
     def loadbalancer_get(self, session, project_id, lb_id):
@@ -56,7 +63,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         if lb:
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(lb)
-            lb_data.provider = ELBv2
+            lb_data.provider = PROVIDER
             return lb_data
 
     def loadbalancer_create(self, session, loadbalancer):
@@ -69,7 +76,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
-        lb_data.provider = ELBv2
+        lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
 
@@ -83,7 +90,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
-        lb_data.provider = ELBv2
+        lb_data.provider = PROVIDER
         return lb_data
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
@@ -98,8 +105,15 @@ class ELBv2Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         results = []
-        for lsnr in session.elb.listeners(**query_filter):
-            results.append(_listener.ListenerResponse.from_sdk_object(lsnr))
+        if 'id' in query_filter:
+            lsnr_data = self.listener_get(
+                project_id=project_id, session=session,
+                listener_id=query_filter['id'])
+            results.append(lsnr_data)
+        else:
+            for lsnr in session.elb.listeners(**query_filter):
+                results.append(
+                    _listener.ListenerResponse.from_sdk_object(lsnr))
         return results
 
     def listener_get(self, session, project_id, listener_id):
@@ -116,13 +130,13 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         attrs = listener.to_dict()
         # TODO: do this differently
-        attrs.pop('l7policies')
+        attrs.pop('l7policies', None)
 
         res = session.elb.create_listener(**attrs)
 
         result_data = _listener.ListenerResponse.from_sdk_object(
             res)
-        result_data.provider = ELBv2
+        result_data.provider = PROVIDER
         return result_data
 
     def listener_update(self, session, original, new_attrs):
@@ -134,7 +148,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         result_data = _listener.ListenerResponse.from_sdk_object(
             res)
-        result_data.provider = ELBv2
+        result_data.provider = PROVIDER
         return result_data
 
     def listener_delete(self, session, listener):
@@ -151,7 +165,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         raw_results = session.elb.health_monitors(**query_filter)
         for lb in raw_results:
             result_data = _monitor.HealthMonitorResponse.from_sdk_object(lb)
-            result_data.provider = ELBv2
+            result_data.provider = PROVIDER
             results.append(result_data)
         return results
 
@@ -173,7 +187,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         res = session.elb.update_health_monitor(
             old_healthmonitor.id, **new_healthmonitor)
         result_data = _monitor.HealthMonitorResponse.from_sdk_object(res)
-        result_data.provider = ELBv2
+        result_data.provider = PROVIDER
         return result_data
 
     def health_monitor_delete(self, session, healthmonitor):
@@ -184,8 +198,128 @@ class ELBv2Driver(driver_base.ProviderDriver):
                                              ignore_missing=True)
         if hm:
             hm_data = _monitor.HealthMonitorResponse.from_sdk_object(hm)
-            hm_data.provider = ELBv2
+            hm_data.provider = PROVIDER
             return hm_data
+
+    def pools(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching pools')
+
+        if not query_filter:
+            query_filter = {}
+
+        results = []
+
+        if 'id' in query_filter:
+            pool_data = self.pool_get(
+                project_id=project_id, session=session,
+                pool_id=query_filter['id'])
+            results.append(pool_data)
+        else:
+            for pl in session.elb.pools(**query_filter):
+                pool_data = _pool.PoolResponce.from_sdk_object(pl)
+                pool_data.provider = PROVIDER
+                results.append(pool_data)
+        return results
+
+    def pool_get(self, session, project_id, pool_id):
+        LOG.debug('Searching pool')
+
+        pl = session.elb.find_pool(
+            name_or_id=pool_id, ignore_missing=True)
+
+        if pl:
+            return _pool.PoolResponse.from_sdk_object(pl)
+
+    def pool_create(self, session, pool):
+        LOG.debug('Creating pool %s' % pool.to_dict())
+
+        attrs = pool.to_dict()
+
+        if 'tls_enabled' in attrs:
+            attrs.pop('tls_enabled')
+
+        # TODO: do this differently
+        res = session.elb.create_pool(**attrs)
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        setattr(result_data, 'provider', 'elbv2')
+        return result_data
+
+    def pool_update(self, session, original, new_attrs):
+        LOG.debug('Updating pool')
+
+        res = session.elb.update_pool(
+            original.id,
+            **new_attrs)
+        result_data = _pool.PoolResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def pool_delete(self, session, pool):
+        LOG.debug('Deleting pool %s' % pool.to_dict())
+        session.elb.delete_pool(pool.id)
+
+    def members(self, session, project_id, pool_id, query_filter=None):
+        LOG.debug('Fetching pools')
+        result = []
+        if not query_filter:
+            query_filter = {}
+        query_filter.pop('project_id', None)
+
+        if 'id' in query_filter:
+            member_data = self.member_get(
+                project_id=project_id, session=session,
+                pool_id=pool_id,
+                member_id=query_filter['id']
+            )
+            result.append(member_data)
+        else:
+            for member in session.elb.members(pool_id, **query_filter):
+                member_data = _member.MemberResponse.from_sdk_object(member)
+                member_data.provider = PROVIDER
+                result.append(member_data)
+
+        return result
+
+    def member_get(self, session, project_id, pool_id, member_id):
+        LOG.debug('Searching pool')
+
+        member = session.elb.find_member(
+            name_or_id=member_id, pool=pool_id, ignore_missing=True)
+        if member:
+            member_data = _member.MemberResponse.from_sdk_object(member)
+            member_data.provider = PROVIDER
+            return member_data
+
+    def member_create(self, session, pool_id, member):
+        LOG.debug('Creating member %s' % member.to_dict())
+        attrs = member.to_dict()
+
+        attrs['address'] = attrs.pop('ip_address', None)
+        attrs.pop('backup', None)
+        attrs.pop('monitor_port', None)
+        attrs.pop('monitor_address', None)
+        res = session.elb.create_member(pool_id, **attrs)
+        result_data = _member.MemberResponse.from_sdk_object(res)
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def member_update(self, session, pool_id, original, new_attrs):
+        LOG.debug('Updating member')
+
+        res = session.elb.update_member(
+            original.id,
+            pool_id,
+            **new_attrs)
+        result_data = _member.MemberResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def member_delete(self, session, pool_id, member):
+        LOG.debug('Deleting pool %s' % member.to_dict())
+        session.elb.delete_member(member.id, pool_id)
 
     def l7policies(self, session, project_id, query_filter=None):
         LOG.debug('Fetching L7 policies')
@@ -198,7 +332,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
                 l7_policy
             )
-            l7policy_data.provider = ELBv2
+            l7policy_data.provider = PROVIDER
             results.append(l7policy_data)
         return results
 
@@ -215,7 +349,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
                 l7_policy
             )
-            l7policy_data.provider = ELBv2
+            l7policy_data.provider = PROVIDER
             return l7policy_data
 
     def l7policy_create(self, session, policy_l7):
@@ -224,7 +358,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         l7_policy = session.elb.create_l7_policy(**l7policy_attrs)
         l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
-        l7_policy_data.provider = ELBv2
+        l7_policy_data.provider = PROVIDER
         LOG.debug('Created L7 Policy according to API is %s' % l7_policy_data)
         return l7_policy_data
 
@@ -237,7 +371,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         )
 
         l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
-        l7_policy_data.provider = ELBv2
+        l7_policy_data.provider = PROVIDER
         return l7_policy_data
 
     def l7policy_delete(self, session, l7policy, ignore_missing=True):

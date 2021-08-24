@@ -5,6 +5,7 @@ from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import pool as _pool
+from octavia_proxy.api.v2.types import member as _member
 
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
@@ -53,11 +54,17 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         result = []
 
-        for lb in session.vlb.load_balancers(**query_filter):
-            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                self._normalize_lb(lb))
-            lb_data.provider = PROVIDER
+        if 'id' in query_filter:
+            lb_data = self.loadbalancer_get(
+                project_id=project_id, session=session,
+                lb_id=query_filter['id'])
             result.append(lb_data)
+        else:
+            for lb in session.vlb.load_balancers(**query_filter):
+                lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+                    self._normalize_lb(lb))
+                lb_data.provider = PROVIDER
+                result.append(lb_data)
 
         return result
 
@@ -255,6 +262,58 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def pool_delete(self, session, pool):
         LOG.debug('Deleting pool %s' % pool.to_dict())
         session.vlb.delete_pool(pool.id)
+
+    def members(self, session, project_id, pool_id, query_filter=None):
+        LOG.debug('Fetching pools')
+        result = []
+        if not query_filter:
+            query_filter = {}
+        query_filter.pop('project_id', None)
+
+        for member in session.vlb.members(pool_id, **query_filter):
+            member_data = _member.MemberResponse.from_sdk_object(member)
+            member_data.provider = PROVIDER
+            result.append(member_data)
+
+        return result
+
+    def member_get(self, session, project_id, pool_id, member_id):
+        LOG.debug('Searching pool')
+
+        member = session.vlb.find_member(
+            name_or_id=member_id, pool=pool_id, ignore_missing=True)
+        if member:
+            member_data = _member.MemberResponse.from_sdk_object(member)
+            member_data.provider = PROVIDER
+            return member_data
+
+    def member_create(self, session, pool_id, member):
+        LOG.debug('Creating member %s' % member.to_dict())
+        attrs = member.to_dict()
+
+        attrs['address'] = attrs.pop('ip_address', None)
+        attrs['subnet_cidr_id'] = attrs.pop('subnet_id', None)
+
+        res = session.vlb.create_member(pool_id, **attrs)
+        result_data = _member.MemberResponse.from_sdk_object(res)
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def member_update(self, session, pool_id, original, new_attrs):
+        LOG.debug('Updating member')
+
+        res = session.vlb.update_member(
+            original.id,
+            pool_id,
+            **new_attrs)
+        result_data = _member.MemberResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def member_delete(self, session, pool_id, member):
+        LOG.debug('Deleting member %s' % member.to_dict())
+        session.vlb.delete_member(member.id, pool_id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
