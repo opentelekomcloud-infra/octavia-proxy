@@ -136,7 +136,27 @@ class HealthMonitorController(base.BaseController):
                          body=hm_types.HealthMonitorRootPUT, status_code=200)
     def put(self, id, health_monitor_):
         """Updates a health monitor."""
-        pecan_abort(501)
+        healthmonitor = health_monitor_.healthmonitor
+        context = pecan_request.context.get('octavia_context')
+
+        orig_hm = self.find_healthmonitor(context, id)
+
+        self._auth_validate_action(
+            context, orig_hm.project_id,
+            constants.RBAC_PUT)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(orig_hm.provider)
+
+        # Prepare the data for the driver data model
+        hm_dict = healthmonitor.to_dict(render_unsets=False)
+
+        result = driver_utils.call_provider(
+            driver.name, driver.healthmonitor_update,
+            context.session,
+            orig_hm, hm_dict)
+
+        return hm_types.HealthMonitorRootResponse(healthmonitor=result)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):

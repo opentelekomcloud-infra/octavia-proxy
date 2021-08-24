@@ -347,6 +347,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def healthmonitor_create(self, session, healthmonitor):
         LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
         attrs = healthmonitor.to_dict()
+        if 'UDP-CONNECT' in attrs['type']:
+            attrs['type'] = 'UDP_CONNECT'
         res = session.vlb.create_health_monitor(**attrs)
         result_data = _hm.HealthMonitorResponse.from_sdk_object(
             res)
