@@ -8,6 +8,7 @@ from octavia_proxy.api.v2.controllers import listener
 from octavia_proxy.api.v2.controllers import load_balancer
 from octavia_proxy.api.v2.controllers import pool
 from octavia_proxy.api.v2.controllers import provider
+from octavia_proxy.api.v2.controllers import health_monitor
 
 
 class BaseV2Controller(base.BaseController):

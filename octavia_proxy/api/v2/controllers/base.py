@@ -139,7 +139,7 @@ class BaseController(pecan_rest.RestController):
 
         return member
 
-    def find_health_monitor(self, context, id):
+    def find_healthmonitor(self, context, id):
         enabled_providers = CONF.api_settings.enabled_provider_drivers
         # TODO: perhaps memcached
         for provider in enabled_providers:
@@ -147,7 +147,7 @@ class BaseController(pecan_rest.RestController):
 
             try:
                 hm = driver_utils.call_provider(
-                    driver.name, driver.health_monitor_get,
+                    driver.name, driver.healthmonitor_get,
                     context.session,
                     context.project_id,
                     id)
@@ -241,6 +241,7 @@ class BaseController(pecan_rest.RestController):
         # check the delay value if the HM type is UDP-CONNECT
         if request.type == constants.HEALTH_MONITOR_UDP_CONNECT:
             hm_is_type_udp = request.type
+
         conf_min_delay = (
             CONF.api_settings.udp_connect_min_interval_health_monitor)
         if hm_is_type_udp and request.delay < conf_min_delay:

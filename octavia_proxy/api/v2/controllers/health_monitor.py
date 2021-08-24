@@ -15,24 +15,26 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
+from pecan import abort as pecan_abort
 from pecan import request as pecan_request
-from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
+from wsme import types as wtypes
 
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import health_monitor as hm_types
-from octavia_proxy.common import constants as const
+from octavia_proxy.api.v2.controllers import base
+from octavia_proxy.common import constants as consts
+from octavia_proxy.api.v2.types import health_monitor as hm_types
+from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
-from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
 class HealthMonitorController(base.BaseController):
-    RBAC_TYPE = const.RBAC_HEALTHMONITOR
+    RBAC_TYPE = consts.RBAC_HEALTHMONITOR
 
     def __init__(self):
         super().__init__()
@@ -42,9 +44,9 @@ class HealthMonitorController(base.BaseController):
     def get_one(self, id, fields=None):
         """Gets a single healthmonitor's details."""
         context = pecan_request.context.get('octavia_context')
-        hm = self.find_health_monitor(context, id)
+        hm = self.find_healthmonitor(context, id)
         self._auth_validate_action(context, hm.project_id,
-                                   const.RBAC_GET_ONE)
+                                   constants.RBAC_GET_ONE)
 
         if fields is not None:
             hm = self._filter_fields([hm], fields)[0]
@@ -58,7 +60,7 @@ class HealthMonitorController(base.BaseController):
         context = pcontext.get('octavia_context')
 
         query_filter = self._auth_get_all(context, project_id)
-        query_params = pcontext.get(const.PAGINATION_HELPER).params
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
 
         query_filter.update(query_params)
 
@@ -70,7 +72,7 @@ class HealthMonitorController(base.BaseController):
 
             try:
                 hms = driver_utils.call_provider(
-                    driver.name, driver.health_monitors,
+                    driver.name, driver.healthmonitors,
                     context.session,
                     context.project_id,
                     query_filter)
@@ -85,140 +87,60 @@ class HealthMonitorController(base.BaseController):
         return hm_types.HealthMonitorsRootResponse(
             healthmonitors=result, pools_links=links)
 
-    def _validate_create_hm(self, hm):
-        """Validate creating health monitor on pool."""
-        mandatory_fields = (const.TYPE, const.DELAY, const.TIMEOUT,
-                            const.POOL_ID, const.MAX_RETRIES)
-        for field in mandatory_fields:
-            if hm.get(field, None) is None:
-                raise exceptions.InvalidOption(value='None', option=field)
-        http_s_types = (const.HEALTH_MONITOR_HTTP, const.HEALTH_MONITOR_HTTPS)
-        if hm[const.TYPE] not in http_s_types:
-            if hm.get(const.HTTP_METHOD, None):
-                raise exceptions.InvalidOption(
-                    value=const.HTTP_METHOD,
-                    option='health monitors of '
-                           'type {}'.format(hm[const.TYPE]))
-            if hm.get(const.URL_PATH, None):
-                raise exceptions.InvalidOption(
-                    value=const.URL_PATH,
-                    option='health monitors of '
-                           'type {}'.format(hm[const.TYPE]))
-            if hm.get(const.EXPECTED_CODES, None):
-                raise exceptions.InvalidOption(
-                    value=const.EXPECTED_CODES,
-                    option='health monitors of '
-                           'type {}'.format(hm[const.TYPE]))
-        else:
-            if not hm.get(const.HTTP_METHOD, None):
-                hm[const.HTTP_METHOD] = (
-                    const.HEALTH_MONITOR_HTTP_DEFAULT_METHOD)
-            if not hm.get(const.URL_PATH, None):
-                hm[const.URL_PATH] = (
-                    const.HEALTH_MONITOR_DEFAULT_URL_PATH)
-            if not hm.get(const.EXPECTED_CODES, None):
-                hm[const.EXPECTED_CODES] = (
-                    const.HEALTH_MONITOR_DEFAULT_EXPECTED_CODES)
-
-        if hm.get('domain_name') and not hm.get('http_version'):
-            raise exceptions.ValidationException(
-                detail=_("'http_version' must be specified when 'domain_name' "
-                         "is provided."))
-
-        if hm.get('http_version') and hm.get('domain_name'):
-            if hm['http_version'] < 1.1:
-                raise exceptions.InvalidOption(
-                    value='http_version %s' % hm['http_version'],
-                    option='health monitors HTTP 1.1 domain name health check')
-
     @wsme_pecan.wsexpose(hm_types.HealthMonitorRootResponse,
                          body=hm_types.HealthMonitorRootPOST, status_code=201)
     def post(self, health_monitor_):
         """Creates a health monitor on a pool."""
         hm = health_monitor_.healthmonitor
         context = pecan_request.context.get('octavia_context')
+        listener = None
         loadbalancer = None
 
         if not hm.project_id and context.project_id:
             hm.project_id = context.project_id
 
         self._auth_validate_action(
-            context, hm.project_id, const.RBAC_POST)
+            context, hm.project_id, constants.RBAC_POST)
 
         pool = self.find_pool(context, id=hm.pool_id)
 
         if pool.loadbalancers:
             loadbalancer = self.find_load_balancer(
                 context, pool.loadbalancers[0].id)
-        elif pool.listeners:
+            pool.loadbalancer_id = loadbalancer.id
+        elif pool.listener_id:
+            listener = self.find_listener(context, pool.listener_id)
             loadbalancer = self.find_load_balancer(
-                context, pool.listeners[0].id)
+                context, listener.loadbalancers[0].id)
+            pool.loadbalancer_id = listener.loadbalancers[0].id
+        else:
+            msg = _("Must provide at least one of: "
+                    "loadbalancer_id, listener_id")
+            raise exceptions.ValidationException(detail=msg)
 
         if (not CONF.api_settings.allow_ping_health_monitors and
-                hm.type == const.HEALTH_MONITOR_PING):
+                hm.type == constants.HEALTH_MONITOR_PING):
             raise exceptions.DisabledOption(
-                option='type', value=const.HEALTH_MONITOR_PING)
+                option='type', value=constants.HEALTH_MONITOR_PING)
 
-        if pool.protocol is const.PROTOCOL_UDP:
+        if pool.protocol is constants.PROTOCOL_UDP:
             self._validate_healthmonitor_request_for_udp(hm, pool.protocol)
         else:
-            if hm.type is const.HEALTH_MONITOR_UDP_CONNECT:
-                raise exceptions.ValidationException(
-                    detail=_(
-                        "The %(type)s type is only supported for pools of type"
-                        " %(protocols)s.") % {
+            if hm.type is constants.HEALTH_MONITOR_UDP_CONNECT:
+                raise exceptions.ValidationException(detail=_(
+                    "The %(type)s type is only supported for pools of type "
+                    "%(protocols)s.") % {
                         'type': hm.type,
-                        'protocols': '/'.join(const.PROTOCOL_UDP)})
-
-        self._validate_create_hm(hm.to_dict(render_unsets=True))
+                        'protocols': '/'.join(constants.PROTOCOL_UDP)})
 
         driver = driver_factory.get_driver(loadbalancer.provider)
+
         result = driver_utils.call_provider(
-            driver.name, driver.health_monitor_create,
+            driver.name, driver.healthmonitor_create,
             context.session,
             hm)
 
         return hm_types.HealthMonitorRootResponse(healthmonitor=result)
-
-    def _validate_update_hm(self, hm, health_monitor):
-        if hm.type not in (const.HEALTH_MONITOR_HTTP,
-                           const.HEALTH_MONITOR_HTTPS):
-            if health_monitor.http_method != wtypes.Unset:
-                raise exceptions.InvalidOption(
-                    value=const.HTTP_METHOD,
-                    option='health monitors of '
-                           'type {}'.format(hm.type))
-            if health_monitor.url_path != wtypes.Unset:
-                raise exceptions.InvalidOption(
-                    value=const.URL_PATH,
-                    option='health monitors of '
-                           'type {}'.format(hm.type))
-            if health_monitor.expected_codes != wtypes.Unset:
-                raise exceptions.InvalidOption(
-                    value=const.EXPECTED_CODES,
-                    option='health monitors of '
-                           'type {}'.format(hm.type))
-        if health_monitor.delay is None:
-            raise exceptions.InvalidOption(value=None, option=const.DELAY)
-        if health_monitor.max_retries is None:
-            raise exceptions.InvalidOption(
-                value=None, option=const.MAX_RETRIES)
-        if health_monitor.timeout is None:
-            raise exceptions.InvalidOption(value=None, option=const.TIMEOUT)
-
-        if health_monitor.domain_name and not (
-                hm.http_version or health_monitor.http_version):
-            raise exceptions.ValidationException(
-                detail=_("'http_version' must be specified when 'domain_name' "
-                         "is provided."))
-
-        if ((hm.http_version or health_monitor.http_version) and
-                (hm.domain_name or health_monitor.domain_name)):
-            http_version = health_monitor.http_version or hm.http_version
-            if http_version < 1.1:
-                raise exceptions.InvalidOption(
-                    value='http_version %s' % http_version,
-                    option='health monitors HTTP 1.1 domain name health check')
 
     @wsme_pecan.wsexpose(hm_types.HealthMonitorRootResponse, wtypes.text,
                          body=hm_types.HealthMonitorRootPUT, status_code=200)
@@ -227,13 +149,12 @@ class HealthMonitorController(base.BaseController):
         healthmonitor = health_monitor_.healthmonitor
         context = pecan_request.context.get('octavia_context')
 
-        orig_hm = self.find_health_monitor(context, id)
+        orig_hm = self.find_healthmonitor(context, id)
 
         self._auth_validate_action(
             context, orig_hm.project_id,
-            const.RBAC_PUT)
+            constants.RBAC_PUT)
 
-        self._validate_update_hm(orig_hm, healthmonitor)
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(orig_hm.provider)
 
@@ -241,7 +162,7 @@ class HealthMonitorController(base.BaseController):
         hm_dict = healthmonitor.to_dict(render_unsets=False)
 
         result = driver_utils.call_provider(
-            driver.name, driver.health_monitor_update,
+            driver.name, driver.healthmonitor_update,
             context.session,
             orig_hm, hm_dict)
 
@@ -259,7 +180,7 @@ class HealthMonitorController(base.BaseController):
 
             try:
                 health_monitor = driver_utils.call_provider(
-                    driver.name, driver.health_monitor_get,
+                    driver.name, driver.healthmonitor_get,
                     context.session,
                     context.project_id,
                     id)
@@ -275,12 +196,12 @@ class HealthMonitorController(base.BaseController):
 
         self._auth_validate_action(
             context, health_monitor.project_id,
-            const.RBAC_DELETE)
+            constants.RBAC_DELETE)
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(health_monitor.provider)
 
         driver_utils.call_provider(
-            driver.name, driver.health_monitor_delete,
+            driver.name, driver.healthmonitor_delete,
             context.session,
             health_monitor)
