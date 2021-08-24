@@ -347,10 +347,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def healthmonitor_create(self, session, healthmonitor):
         LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
         attrs = healthmonitor.to_dict()
-
         res = session.vlb.create_health_monitor(**attrs)
         result_data = _hm.HealthMonitorResponse.from_sdk_object(
             res)
+
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 

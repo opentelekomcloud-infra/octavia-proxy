@@ -90,9 +90,8 @@ class HealthMonitorController(base.BaseController):
                          body=hm_types.HealthMonitorRootPOST, status_code=201)
     def post(self, health_monitor_):
         """Creates a health monitor on a pool."""
-        hm = health_monitor_.health_monitor
+        hm = health_monitor_.healthmonitor
         context = pecan_request.context.get('octavia_context')
-        listener = None
         loadbalancer = None
 
         if not hm.project_id and context.project_id:
@@ -103,19 +102,12 @@ class HealthMonitorController(base.BaseController):
 
         pool = self.find_pool(context, id=hm.pool_id)
 
-        if pool.loadbalancer_id:
+        if pool.loadbalancers:
             loadbalancer = self.find_load_balancer(
-                context, pool.loadbalancer_id)
-            pool.loadbalancer_id = loadbalancer.id
-        elif pool.listener_id:
-            listener = self.find_listener(context, pool.listener_id)
+                context, pool.loadbalancers[0].id)
+        elif pool.listeners:
             loadbalancer = self.find_load_balancer(
-                context, listener.loadbalancers[0].id)
-            pool.loadbalancer_id = listener.loadbalancers[0].id
-        else:
-            msg = _("Must provide at least one of: "
-                    "loadbalancer_id, listener_id")
-            raise exceptions.ValidationException(detail=msg)
+                context, pool.listeners[0].id)
 
         if (not CONF.api_settings.allow_ping_health_monitors and
                 hm.type == constants.HEALTH_MONITOR_PING):
@@ -133,7 +125,6 @@ class HealthMonitorController(base.BaseController):
                         'protocols': '/'.join(constants.PROTOCOL_UDP)})
 
         driver = driver_factory.get_driver(loadbalancer.provider)
-
         result = driver_utils.call_provider(
             driver.name, driver.healthmonitor_create,
             context.session,
