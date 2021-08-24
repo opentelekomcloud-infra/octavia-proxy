@@ -17,21 +17,11 @@ import requests
 from keystoneauth1 import adapter
 from openstack.load_balancer.v2._proxy import Proxy
 from openstack.load_balancer.v2.health_monitor import HealthMonitor
-from openstack.load_balancer.v2 import l7_policy
-from openstack.load_balancer.v2 import load_balancer
 
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
-from octavia_proxy.tests.unit.api.drivers.elbv2.fixtures import FakeResponse
-from openstack.load_balancer.v2 import listener, pool, member
-
-EXAMPLE_LB = {
-    "name": "lb-unit-test",
-    "description": "LB for unit tests",
-    "vip_subnet_cidr_id": "29bb7aa5-44d2-4aaf-8e49-993091c7fa42",
-    "provider": "elb",
-}
-
+from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
+                                        load_balancer)
 
 class FakeResponse:
 
@@ -617,10 +607,10 @@ class TestElbv2HealthMonitors(base.TestCase):
 
 class TestElbv2Loadbalancers(base.TestCase):
     attrs = {
-    "name": "lb-unit-test",
-    "description": "LB for unit tests",
-    "vip_subnet_id": "29bb7aa5-44d2-4aaf-8e49-993091c7fa42",
-    "provider": "vlb",
+        "name": "lb-unit-test",
+        "description": "LB for unit tests",
+        "vip_subnet_id": "29bb7aa5-44d2-4aaf-8e49-993091c7fa42",
+        "provider": "elb",
     }
     def setUp(self):
         super().setUp()
