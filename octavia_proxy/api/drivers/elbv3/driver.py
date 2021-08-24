@@ -316,7 +316,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting member %s' % member.to_dict())
         session.vlb.delete_member(member.id, pool_id)
 
-    def healthmonitors(
+    def health_monitors(
             self, session, project_id,
             query_filter=None):
         LOG.debug('Fetching health monitor')
@@ -333,7 +333,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         return result
 
-    def healthmonitor_get(self, session, project_id, healthmonitor_id):
+    def health_monitor_get(self, session, project_id, healthmonitor_id):
         LOG.debug('Searching health monitor')
         healthmonitor = session.vlb.find_health_monitor(
             name_or_id=healthmonitor_id, ignore_missing=True)
@@ -344,7 +344,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             healthmonitor_data.provider = PROVIDER
             return healthmonitor_data
 
-    def healthmonitor_create(self, session, healthmonitor):
+    def health_monitor_create(self, session, healthmonitor):
         LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
         attrs = healthmonitor.to_dict()
         if 'UDP-CONNECT' in attrs['type']:
@@ -356,9 +356,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
-    def healthmonitor_update(self, session, original, new_attrs):
+    def health_monitor_update(self, session, original, new_attrs):
         LOG.debug('Updating health monitor')
-
+        if 'UDP-CONNECT' in new_attrs['type']:
+            new_attrs['type'] = 'UDP_CONNECT'
         res = session.vlb.update_health_monitor(
             original.id,
             **new_attrs)
@@ -367,7 +368,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         result_data.provider = PROVIDER
         return result_data
 
-    def healthmonitor_delete(self, session, healthmonitor):
+    def health_monitor_delete(self, session, healthmonitor):
         LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
         session.vlb.delete_health_monitor(healthmonitor.id)
 

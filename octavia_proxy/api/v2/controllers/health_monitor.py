@@ -43,7 +43,7 @@ class HealthMonitorController(base.BaseController):
     def get_one(self, id, fields=None):
         """Gets a single healthmonitor's details."""
         context = pecan_request.context.get('octavia_context')
-        hm = self.find_healthmonitor(context, id)
+        hm = self.find_health_monitor(context, id)
         self._auth_validate_action(context, hm.project_id,
                                    constants.RBAC_GET_ONE)
 
@@ -71,7 +71,7 @@ class HealthMonitorController(base.BaseController):
 
             try:
                 hms = driver_utils.call_provider(
-                    driver.name, driver.healthmonitors,
+                    driver.name, driver.health_monitors,
                     context.session,
                     context.project_id,
                     query_filter)
@@ -126,7 +126,7 @@ class HealthMonitorController(base.BaseController):
 
         driver = driver_factory.get_driver(loadbalancer.provider)
         result = driver_utils.call_provider(
-            driver.name, driver.healthmonitor_create,
+            driver.name, driver.health_monitor_create,
             context.session,
             hm)
 
@@ -139,7 +139,7 @@ class HealthMonitorController(base.BaseController):
         healthmonitor = health_monitor_.healthmonitor
         context = pecan_request.context.get('octavia_context')
 
-        orig_hm = self.find_healthmonitor(context, id)
+        orig_hm = self.find_health_monitor(context, id)
 
         self._auth_validate_action(
             context, orig_hm.project_id,
@@ -152,7 +152,7 @@ class HealthMonitorController(base.BaseController):
         hm_dict = healthmonitor.to_dict(render_unsets=False)
 
         result = driver_utils.call_provider(
-            driver.name, driver.healthmonitor_update,
+            driver.name, driver.health_monitor_update,
             context.session,
             orig_hm, hm_dict)
 
@@ -161,4 +161,37 @@ class HealthMonitorController(base.BaseController):
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):
         """Deletes a health monitor."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        health_monitor = None
+
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                health_monitor = driver_utils.call_provider(
+                    driver.name, driver.health_monitor_get,
+                    context.session,
+                    context.project_id,
+                    id)
+                if health_monitor:
+                    setattr(health_monitor, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+        if not health_monitor:
+            raise exceptions.NotFound(
+                resource='health_monitor',
+                id=id)
+
+        self._auth_validate_action(
+            context, health_monitor.project_id,
+            constants.RBAC_DELETE)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(health_monitor.provider)
+
+        driver_utils.call_provider(
+            driver.name, driver.health_monitor_delete,
+            context.session,
+            health_monitor)
