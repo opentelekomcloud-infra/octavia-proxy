@@ -15,7 +15,6 @@
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from pecan import abort as pecan_abort
 from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
@@ -121,8 +120,8 @@ class HealthMonitorController(base.BaseController):
                 raise exceptions.ValidationException(detail=_(
                     "The %(type)s type is only supported for pools of type "
                     "%(protocols)s.") % {
-                        'type': hm.type,
-                        'protocols': '/'.join(constants.PROTOCOL_UDP)})
+                    'type': hm.type,
+                    'protocols': '/'.join(constants.PROTOCOL_UDP)})
 
         driver = driver_factory.get_driver(loadbalancer.provider)
         result = driver_utils.call_provider(
