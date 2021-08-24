@@ -23,6 +23,7 @@ from octavia_proxy.tests.unit import base
 from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
                                         load_balancer)
 
+
 class FakeResponse:
 
     def __init__(self, response, status_code=200, headers=None, reason=None):
@@ -356,7 +357,7 @@ class TestElbv2L7Policy(base.TestCase):
         "redirect_prefix": None,
         "redirect_url": "http://www.example.com",
         "rules": [{
-            "id":"742600d9-2a14-4808-af69-336883dbb590"
+            "id": "742600d9-2a14-4808-af69-336883dbb590"
         }],
         "updated_at": "2021-08-20T12:15:57"
     }
@@ -365,7 +366,7 @@ class TestElbv2L7Policy(base.TestCase):
         "description": "test_description",
         "is_admin_state_up": True,
         "rules": [{
-            "id":"742600d9-2a14-4808-af69-336883dbb590"
+            "id": "742600d9-2a14-4808-af69-336883dbb590"
         }],
         "created_at": "2021-08-20T12:14:57",
         "provisioning_status": "ACTIVE",
@@ -380,8 +381,9 @@ class TestElbv2L7Policy(base.TestCase):
         "operating_status": "ONLINE",
         "name": "test_l7_policy",
         "location": None,
-        "tags":[]
+        "tags": []
     }
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv2Driver()
@@ -419,7 +421,9 @@ class TestElbv2L7Policy(base.TestCase):
 
     def test_l7policy_create(self):
         self.driver.l7policy_create(self.sess, self.l7_policy)
-        self.sess.elb.create_l7_policy.assert_called_with(**self.fakeCallCreate)
+        self.sess.elb.create_l7_policy.assert_called_with(
+            **self.fakeCallCreate
+        )
 
     def test_l7policy_update(self):
         attrs = {
@@ -612,6 +616,7 @@ class TestElbv2Loadbalancers(base.TestCase):
         "vip_subnet_id": "29bb7aa5-44d2-4aaf-8e49-993091c7fa42",
         "provider": "elb",
     }
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv2Driver()
