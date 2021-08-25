@@ -2,10 +2,11 @@ from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import flavors as _flavors
+from octavia_proxy.api.v2.types import health_monitor as _hm
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
-from octavia_proxy.api.v2.types import pool as _pool
 from octavia_proxy.api.v2.types import member as _member
+from octavia_proxy.api.v2.types import pool as _pool
 
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
@@ -314,6 +315,63 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def member_delete(self, session, pool_id, member):
         LOG.debug('Deleting member %s' % member.to_dict())
         session.vlb.delete_member(member.id, pool_id)
+
+    def health_monitors(
+            self, session, project_id,
+            query_filter=None):
+        LOG.debug('Fetching health monitor')
+        result = []
+        if not query_filter:
+            query_filter = {}
+        query_filter.pop('project_id', None)
+        for healthmonitor in session.vlb.health_monitors(**query_filter):
+            healthmonitor_data = _hm.HealthMonitorResponse.from_sdk_object(
+                healthmonitor
+            )
+            healthmonitor_data.provider = PROVIDER
+            result.append(healthmonitor_data)
+
+        return result
+
+    def health_monitor_get(self, session, project_id, healthmonitor_id):
+        LOG.debug('Searching health monitor')
+        healthmonitor = session.vlb.find_health_monitor(
+            name_or_id=healthmonitor_id, ignore_missing=True)
+        if healthmonitor:
+            healthmonitor_data = _hm.HealthMonitorResponse.from_sdk_object(
+                healthmonitor
+            )
+            healthmonitor_data.provider = PROVIDER
+            return healthmonitor_data
+
+    def health_monitor_create(self, session, healthmonitor):
+        LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
+        attrs = healthmonitor.to_dict()
+        if 'UDP-CONNECT' in attrs['type']:
+            attrs['type'] = 'UDP_CONNECT'
+        res = session.vlb.create_health_monitor(**attrs)
+        result_data = _hm.HealthMonitorResponse.from_sdk_object(
+            res)
+
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def health_monitor_update(self, session, original, new_attrs):
+        LOG.debug('Updating health monitor')
+        type = new_attrs.pop('type', None)
+        if type and 'UDP-CONNECT' in type:
+            new_attrs['type'] = 'UDP_CONNECT'
+        res = session.vlb.update_health_monitor(
+            original.id,
+            **new_attrs)
+        result_data = _hm.HealthMonitorResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def health_monitor_delete(self, session, healthmonitor):
+        LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
+        session.vlb.delete_health_monitor(healthmonitor.id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')

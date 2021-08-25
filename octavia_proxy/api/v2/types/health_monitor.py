@@ -19,9 +19,7 @@ from octavia_proxy.common import constants
 
 
 class BaseHealthMonitorType(types.BaseType):
-    _type_to_model_map = {'admin_state_up': 'enabled',
-                          'max_retries': 'rise_threshold',
-                          'max_retries_down': 'fall_threshold'}
+    _type_to_model_map = {}
     _child_map = {}
 
 
