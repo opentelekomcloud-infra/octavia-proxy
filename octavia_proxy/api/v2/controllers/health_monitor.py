@@ -23,7 +23,7 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import health_monitor as hm_types
-from octavia_proxy.common import constants
+from octavia_proxy.common import constants as const
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
 
@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 class HealthMonitorController(base.BaseController):
-    RBAC_TYPE = constants.RBAC_HEALTHMONITOR
+    RBAC_TYPE = const.RBAC_HEALTHMONITOR
 
     def __init__(self):
         super().__init__()
@@ -44,7 +44,7 @@ class HealthMonitorController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         hm = self.find_health_monitor(context, id)
         self._auth_validate_action(context, hm.project_id,
-                                   constants.RBAC_GET_ONE)
+                                   const.RBAC_GET_ONE)
 
         if fields is not None:
             hm = self._filter_fields([hm], fields)[0]
@@ -58,7 +58,7 @@ class HealthMonitorController(base.BaseController):
         context = pcontext.get('octavia_context')
 
         query_filter = self._auth_get_all(context, project_id)
-        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        query_params = pcontext.get(const.PAGINATION_HELPER).params
 
         query_filter.update(query_params)
 
@@ -87,36 +87,38 @@ class HealthMonitorController(base.BaseController):
 
     def _validate_create_hm(self, hm):
         """Validate creating health monitor on pool."""
-        mandatory_fields = (constants.TYPE, constants.DELAY, constants.TIMEOUT,
-                            constants.POOL_ID, constants.MAX_RETRIES)
+        mandatory_fields = (const.TYPE, const.DELAY, const.TIMEOUT,
+                            const.POOL_ID, const.MAX_RETRIES)
         for field in mandatory_fields:
             if hm.get(field, None) is None:
                 raise exceptions.InvalidOption(value='None', option=field)
-
-        if hm[constants.TYPE] not in (constants.HEALTH_MONITOR_HTTP,
-                                   constants.HEALTH_MONITOR_HTTPS):
-            if hm.get(constants.HTTP_METHOD, None):
+        http_s_types = (const.HEALTH_MONITOR_HTTP, const.HEALTH_MONITOR_HTTPS)
+        if hm[const.TYPE] not in http_s_types:
+            if hm.get(const.HTTP_METHOD, None):
                 raise exceptions.InvalidOption(
-                    value=constants.HTTP_METHOD, option='health monitors of '
-                    'type {}'.format(hm[constants.TYPE]))
-            if hm.get(constants.URL_PATH, None):
+                    value=const.HTTP_METHOD,
+                    option='health monitors of '
+                           'type {}'.format(hm[const.TYPE]))
+            if hm.get(const.URL_PATH, None):
                 raise exceptions.InvalidOption(
-                    value=constants.URL_PATH, option='health monitors of '
-                    'type {}'.format(hm[constants.TYPE]))
-            if hm.get(constants.EXPECTED_CODES, None):
+                    value=const.URL_PATH,
+                    option='health monitors of '
+                           'type {}'.format(hm[const.TYPE]))
+            if hm.get(const.EXPECTED_CODES, None):
                 raise exceptions.InvalidOption(
-                    value=constants.EXPECTED_CODES, option='health monitors of '
-                    'type {}'.format(hm[constants.TYPE]))
+                    value=const.EXPECTED_CODES,
+                    option='health monitors of '
+                           'type {}'.format(hm[const.TYPE]))
         else:
-            if not hm.get(constants.HTTP_METHOD, None):
-                hm[constants.HTTP_METHOD] = (
-                    constants.HEALTH_MONITOR_HTTP_DEFAULT_METHOD)
-            if not hm.get(constants.URL_PATH, None):
-                hm[constants.URL_PATH] = (
-                    constants.HEALTH_MONITOR_DEFAULT_URL_PATH)
-            if not hm.get(constants.EXPECTED_CODES, None):
-                hm[constants.EXPECTED_CODES] = (
-                    constants.HEALTH_MONITOR_DEFAULT_EXPECTED_CODES)
+            if not hm.get(const.HTTP_METHOD, None):
+                hm[const.HTTP_METHOD] = (
+                    const.HEALTH_MONITOR_HTTP_DEFAULT_METHOD)
+            if not hm.get(const.URL_PATH, None):
+                hm[const.URL_PATH] = (
+                    const.HEALTH_MONITOR_DEFAULT_URL_PATH)
+            if not hm.get(const.EXPECTED_CODES, None):
+                hm[const.EXPECTED_CODES] = (
+                    const.HEALTH_MONITOR_DEFAULT_EXPECTED_CODES)
 
         if hm.get('domain_name') and not hm.get('http_version'):
             raise exceptions.ValidationException(
@@ -141,7 +143,7 @@ class HealthMonitorController(base.BaseController):
             hm.project_id = context.project_id
 
         self._auth_validate_action(
-            context, hm.project_id, constants.RBAC_POST)
+            context, hm.project_id, const.RBAC_POST)
 
         pool = self.find_pool(context, id=hm.pool_id)
 
@@ -153,19 +155,20 @@ class HealthMonitorController(base.BaseController):
                 context, pool.listeners[0].id)
 
         if (not CONF.api_settings.allow_ping_health_monitors and
-                hm.type == constants.HEALTH_MONITOR_PING):
+                hm.type == const.HEALTH_MONITOR_PING):
             raise exceptions.DisabledOption(
-                option='type', value=constants.HEALTH_MONITOR_PING)
+                option='type', value=const.HEALTH_MONITOR_PING)
 
-        if pool.protocol is constants.PROTOCOL_UDP:
+        if pool.protocol is const.PROTOCOL_UDP:
             self._validate_healthmonitor_request_for_udp(hm, pool.protocol)
         else:
-            if hm.type is constants.HEALTH_MONITOR_UDP_CONNECT:
-                raise exceptions.ValidationException(detail=_(
-                    "The %(type)s type is only supported for pools of type "
-                    "%(protocols)s.") % {
-                    'type': hm.type,
-                    'protocols': '/'.join(constants.PROTOCOL_UDP)})
+            if hm.type is const.HEALTH_MONITOR_UDP_CONNECT:
+                raise exceptions.ValidationException(
+                    detail=_(
+                        "The %(type)s type is only supported for pools of type "
+                        "%(protocols)s.") % {
+                        'type': hm.type,
+                        'protocols': '/'.join(const.PROTOCOL_UDP)})
 
         self._validate_create_hm(hm.to_dict(render_unsets=True))
 
@@ -178,30 +181,30 @@ class HealthMonitorController(base.BaseController):
         return hm_types.HealthMonitorRootResponse(healthmonitor=result)
 
     def _validate_update_hm(self, hm, health_monitor):
-        if hm.type not in (constants.HEALTH_MONITOR_HTTP,
-                           constants.HEALTH_MONITOR_HTTPS):
+        if hm.type not in (const.HEALTH_MONITOR_HTTP,
+                           const.HEALTH_MONITOR_HTTPS):
             if health_monitor.http_method != wtypes.Unset:
                 raise exceptions.InvalidOption(
-                    value=constants.HTTP_METHOD,
+                    value=const.HTTP_METHOD,
                     option='health monitors of '
                            'type {}'.format(hm.type))
             if health_monitor.url_path != wtypes.Unset:
                 raise exceptions.InvalidOption(
-                    value=constants.URL_PATH,
+                    value=const.URL_PATH,
                     option='health monitors of '
                            'type {}'.format(hm.type))
             if health_monitor.expected_codes != wtypes.Unset:
                 raise exceptions.InvalidOption(
-                    value=constants.EXPECTED_CODES,
+                    value=const.EXPECTED_CODES,
                     option='health monitors of '
                            'type {}'.format(hm.type))
         if health_monitor.delay is None:
-            raise exceptions.InvalidOption(value=None, option=constants.DELAY)
+            raise exceptions.InvalidOption(value=None, option=const.DELAY)
         if health_monitor.max_retries is None:
-            raise exceptions.InvalidOption(value=None,
-                                           option=constants.MAX_RETRIES)
+            raise exceptions.InvalidOption(
+                value=None, option=const.MAX_RETRIES)
         if health_monitor.timeout is None:
-            raise exceptions.InvalidOption(value=None, option=constants.TIMEOUT)
+            raise exceptions.InvalidOption(value=None, option=const.TIMEOUT)
 
         if health_monitor.domain_name and not (
                 hm.http_version or health_monitor.http_version):
@@ -228,7 +231,7 @@ class HealthMonitorController(base.BaseController):
 
         self._auth_validate_action(
             context, orig_hm.project_id,
-            constants.RBAC_PUT)
+            const.RBAC_PUT)
 
         self._validate_update_hm(orig_hm, healthmonitor)
         # Load the driver early as it also provides validation
@@ -272,7 +275,7 @@ class HealthMonitorController(base.BaseController):
 
         self._auth_validate_action(
             context, health_monitor.project_id,
-            constants.RBAC_DELETE)
+            const.RBAC_DELETE)
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(health_monitor.provider)

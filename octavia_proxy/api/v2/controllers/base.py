@@ -225,7 +225,6 @@ class BaseController(pecan_rest.RestController):
                                                 pool_protocol):
         if request.type not in (
                 constants.HEALTH_MONITOR_UDP_CONNECT,
-                constants.HEALTH_MONITOR_UDP_CONNECT_OTC,
                 constants.HEALTH_MONITOR_TCP,
                 constants.HEALTH_MONITOR_HTTP,
                 constants.HEALTH_MONITOR_HTTPS,
@@ -235,14 +234,12 @@ class BaseController(pecan_rest.RestController):
                 "a %(types)s health monitor is supported.") % {
                 'pool_protocol': pool_protocol,
                 'types': '/'.join((constants.HEALTH_MONITOR_UDP_CONNECT,
-                                   constants.HEALTH_MONITOR_UDP_CONNECT_OTC,
                                    constants.HEALTH_MONITOR_TCP,
                                    constants.HEALTH_MONITOR_HTTP,
                                    constants.HEALTH_MONITOR_HTTPS,
                                    constants.HEALTH_MONITOR_PING))})
         # check the delay value if the HM type is UDP-CONNECT
-        if request.type in [constants.HEALTH_MONITOR_UDP_CONNECT,
-                            constants.HEALTH_MONITOR_UDP_CONNECT_OTC]:
+        if request.type == constants.HEALTH_MONITOR_UDP_CONNECT:
             hm_is_type_udp = request.type
         conf_min_delay = (
             CONF.api_settings.udp_connect_min_interval_health_monitor)
