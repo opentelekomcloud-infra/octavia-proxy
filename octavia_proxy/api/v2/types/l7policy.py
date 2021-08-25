@@ -21,7 +21,6 @@ from octavia_proxy.common import constants
 
 
 class BaseL7PolicyType(types.BaseType):
-    _type_to_model_map = {'admin_state_up': 'enabled'}
     _child_map = {}
 
 
@@ -66,7 +65,8 @@ class L7PolicyResponse(BaseL7PolicyType):
             'id', 'name',
             'action', 'description', 'listener_id', 'operating_status',
             'position', 'project_id', 'redirect_pool_id', 'redirect_url',
-            'provisioning_status', 'redirect_prefix'
+            'provisioning_status', 'redirect_prefix', 'redirect_http_code',
+            'tags'
         ]:
             if hasattr(sdk_entity, key):
                 v = getattr(sdk_entity, key)

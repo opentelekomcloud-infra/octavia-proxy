@@ -337,7 +337,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         return results
 
     def l7policy_get(self, session, project_id, l7_policy):
-        LOG.debug('Searching L7 Policy')
+        LOG.debug('Searching for L7 Policy')
 
         l7policy = session.elb.find_l7_policy(
             name_or_id=l7_policy,
