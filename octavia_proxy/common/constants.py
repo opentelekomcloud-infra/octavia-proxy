@@ -222,8 +222,8 @@ VALID_LISTENER_POOL_PROTOCOL_MAP = {
                      lib_consts.PROTOCOL_PROXYV2, PROTOCOL_TCP],
     PROTOCOL_TERMINATED_HTTPS: [PROTOCOL_HTTP, PROTOCOL_PROXY,
                                 lib_consts.PROTOCOL_PROXYV2],
-    PROTOCOL_UDP: [PROTOCOL_UDP],
-    lib_consts.PROTOCOL_SCTP: [lib_consts.PROTOCOL_SCTP]}
+    PROTOCOL_UDP: [PROTOCOL_UDP]}
+
 
 # API Integer Ranges
 MIN_PORT_NUMBER = 1
