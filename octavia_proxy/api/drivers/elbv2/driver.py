@@ -6,7 +6,7 @@ from wsme import types as wtypes
 
 from octavia_proxy.api.v2.types import (
     health_monitor as _monitor, listener as _listener, load_balancer,
-    pool as _pool, member as _member
+    pool as _pool, member as _member, l7policy as _l7policy
 )
 
 LOG = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         return results
 
     def loadbalancer_get(self, session, project_id, lb_id):
-        LOG.debug('Searching loadbalancer')
+        LOG.debug('Searching for loadbalancer')
 
         lb = session.elb.find_load_balancer(
             name_or_id=lb_id, ignore_missing=True)
@@ -63,7 +63,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         if lb:
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(lb)
-            lb_data.provider = 'elbv2'
+            lb_data.provider = PROVIDER
             return lb_data
 
     def loadbalancer_create(self, session, loadbalancer):
@@ -76,7 +76,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
-        lb_data.provider = 'elbv2'
+        lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
 
@@ -90,7 +90,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
-        lb_data.provider = 'elbv2'
+        lb_data.provider = PROVIDER
         return lb_data
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
@@ -136,7 +136,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         result_data = _listener.ListenerResponse.from_sdk_object(
             res)
-        result_data.provider = 'elbv2'
+        result_data.provider = PROVIDER
         return result_data
 
     def listener_update(self, session, original, new_attrs):
@@ -148,7 +148,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         result_data = _listener.ListenerResponse.from_sdk_object(
             res)
-        result_data.provider = 'elbv2'
+        result_data.provider = PROVIDER
         return result_data
 
     def listener_delete(self, session, listener):
@@ -253,7 +253,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             **new_attrs)
         result_data = _pool.PoolResponse.from_sdk_object(
             res)
-        result_data.provider = 'elbv2'
+        result_data.provider = PROVIDER
         return result_data
 
     def pool_delete(self, session, pool):
@@ -320,3 +320,64 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def member_delete(self, session, pool_id, member):
         LOG.debug('Deleting pool %s' % member.to_dict())
         session.elb.delete_member(member.id, pool_id)
+
+    def l7policies(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching L7 policies')
+
+        if not query_filter:
+            query_filter = {}
+
+        results = []
+        for l7_policy in session.elb.l7_policies(**query_filter):
+            l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
+                l7_policy
+            )
+            l7policy_data.provider = PROVIDER
+            results.append(l7policy_data)
+        return results
+
+    def l7policy_get(self, session, project_id, l7_policy):
+        LOG.debug('Searching for L7 Policy')
+
+        l7policy = session.elb.find_l7_policy(
+            name_or_id=l7_policy,
+            ignore_missing=True
+        )
+        LOG.debug('l7policy is %s' % l7policy)
+
+        if l7policy:
+            l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
+                l7_policy
+            )
+            l7policy_data.provider = PROVIDER
+            return l7policy_data
+
+    def l7policy_create(self, session, policy_l7):
+        l7policy_attrs = policy_l7.to_dict()
+        LOG.debug('Creating L7 Policy %s' % l7policy_attrs)
+
+        l7_policy = session.elb.create_l7_policy(**l7policy_attrs)
+        l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+        l7_policy_data.provider = PROVIDER
+        LOG.debug('Created L7 Policy according to API is %s' % l7_policy_data)
+        return l7_policy_data
+
+    def l7policy_update(self, session, original_l7policy, new_attrs):
+        LOG.debug('Updating L7 Policy')
+
+        l7_policy = session.elb.update_l7_policy(
+            l7_policy=original_l7policy,
+            **new_attrs
+        )
+
+        l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+        l7_policy_data.provider = PROVIDER
+        return l7_policy_data
+
+    def l7policy_delete(self, session, l7policy, ignore_missing=True):
+        LOG.debug('Deleting L7 Policy %s' % l7policy.to_dict())
+
+        session.elb.delete_l7_policy(
+            l7_policy=l7policy,
+            ignore_missing=ignore_missing
+        )
