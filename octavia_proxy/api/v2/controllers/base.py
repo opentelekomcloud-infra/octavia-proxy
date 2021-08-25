@@ -241,7 +241,6 @@ class BaseController(pecan_rest.RestController):
         # check the delay value if the HM type is UDP-CONNECT
         if request.type == constants.HEALTH_MONITOR_UDP_CONNECT:
             hm_is_type_udp = request.type
-
         conf_min_delay = (
             CONF.api_settings.udp_connect_min_interval_health_monitor)
         if hm_is_type_udp and request.delay < conf_min_delay:
