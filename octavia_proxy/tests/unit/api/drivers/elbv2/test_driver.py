@@ -21,7 +21,15 @@ from openstack.load_balancer.v2.health_monitor import HealthMonitor
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
 from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
-                                        load_balancer)
+                                        load_balancer, health_monitor)
+
+
+EXAMPLE_LB = {
+    "name": "lb-unit-test",
+    "description": "LB for unit tests",
+    "vip_subnet_cidr_id": "29bb7aa5-44d2-4aaf-8e49-993091c7fa42",
+    "provider": "elb",
+}
 
 
 class FakeResponse:
@@ -156,7 +164,8 @@ class TestElbv2ListenerDriver(base.TestCase):
 
     def test_listener_create(self):
         self.driver.listener_create(self.sess, self.lsnr)
-        self.sess.elb.create_listener.assert_called_with(**self.fakeCallCreate)
+        self.sess.elb.create_listener.assert_called_with(
+            **self.fakeCallCreate)
 
     def test_listener_delete(self):
         self.driver.listener_delete(self.sess, self.lsnr)
@@ -338,6 +347,88 @@ class TestElbv2MemberDriver(base.TestCase):
     def test_member_delete(self):
         self.driver.member_delete(self.sess, 'pid', self.member)
         self.sess.elb.delete_member.assert_called_with(self.member.id, 'pid')
+
+
+class TestElbv2HealthMonitorDriver(base.TestCase):
+
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'pool_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'type': 'TCP',
+        'timeout': 3,
+        'delay': 3,
+        'max_retries': 3,
+        'admin_state_up': True,
+        'monitor_port': 3333,
+
+    }
+    fakeCallCreate = {
+        'created_at': None,
+        'delay': 3,
+        'expected_codes': None,
+        'http_method': None,
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'is_admin_state_up': True,
+        'location': None,
+        'max_retries': 3,
+        'max_retries_down': None,
+        'name': None,
+        'operating_status': None,
+        'pool_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'pools': None,
+        'project_id': None,
+        'provisioning_status': None,
+        'tags': [],
+        'timeout': 3,
+        'type': 'TCP',
+        'updated_at': None,
+        'url_path': None
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.healthmonitor = health_monitor.HealthMonitor(**self.attrs)
+        self.sess.elb.create_health_monitor = mock.MagicMock(
+            return_value=self.healthmonitor)
+        self.sess.elb.find_health_monitor = mock.MagicMock(
+            return_value=self.healthmonitor)
+        self.sess.elb.update_health_monitor = mock.MagicMock(
+            return_value=self.healthmonitor)
+
+    def test_healthmonitors_no_qp(self):
+        self.driver.health_monitors(self.sess, 'l1')
+        self.sess.elb.health_monitors.assert_called_with()
+
+    def test_health_monitors_qp(self):
+        self.driver.health_monitors(
+            self.sess, 'l1',
+            query_filter={'a': 'b'})
+        self.sess.elb.health_monitors.assert_called_with(
+            a='b'
+        )
+
+    def test_health_monitor_get(self):
+        self.driver.health_monitor_get(self.sess, 'test', self.healthmonitor)
+        self.sess.elb.find_health_monitor.assert_called_with(
+            name_or_id=self.healthmonitor, ignore_missing=True)
+
+    def test_health_monitor_create(self):
+        self.driver.health_monitor_create(self.sess, self.healthmonitor)
+        self.sess.elb.create_health_monitor.assert_called_with(
+            **self.fakeCallCreate)
+
+    def test_health_monitor_update(self):
+        attrs = {'delay': 5, 'name': 'hm'}
+        self.driver.health_monitor_update(self.sess, self.healthmonitor, attrs)
+        self.sess.elb.update_health_monitor.assert_called_with(
+            self.healthmonitor.id, **attrs)
+
+    def test_healthmonitor_delete(self):
+        self.driver.health_monitor_delete(self.sess, self.healthmonitor)
+        self.sess.elb.delete_health_monitor.assert_called_with(
+            self.healthmonitor.id)
 
 
 class TestElbv2L7Policy(base.TestCase):

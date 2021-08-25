@@ -3,7 +3,6 @@ from wsmeext import pecan as wsme_pecan
 
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.controllers import flavors
-from octavia_proxy.api.v2.controllers import health_monitor
 from octavia_proxy.api.v2.controllers import listener
 from octavia_proxy.api.v2.controllers import load_balancer
 from octavia_proxy.api.v2.controllers import pool

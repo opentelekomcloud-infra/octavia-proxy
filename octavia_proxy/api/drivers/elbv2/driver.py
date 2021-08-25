@@ -1,5 +1,6 @@
+# from dateutil import parser
+# from octavia_lib.api.drivers import data_models
 from octavia_lib.api.drivers import provider_base as driver_base
-from oslo_log import log as logging
 from octavia_proxy.api.v2.types import (
     health_monitor as _hm, listener as _listener, load_balancer,
     pool as _pool, member as _member, l7policy as _l7policy
@@ -152,7 +153,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         session.elb.delete_listener(listener.id)
 
-    def healthmonitors(self, session, project_id, query_filter=None):
+    def health_monitors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching health monitor')
         results = []
         if not query_filter:
@@ -174,7 +175,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         return results
 
-    def healthmonitor_get(self, session, project_id, healthmonitor_id):
+    def health_monitor_get(self, session, project_id, healthmonitor_id):
         LOG.debug('Searching health monitor')
         healthmonitor = session.elb.find_health_monitor(
             name_or_id=healthmonitor_id, ignore_missing=True)
@@ -185,7 +186,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             healthmonitor_data.provider = PROVIDER
             return healthmonitor_data
 
-    def healthmonitor_create(self, session, healthmonitor):
+    def health_monitor_create(self, session, healthmonitor):
         LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
 
         attrs = healthmonitor.to_dict()
@@ -199,11 +200,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
-    def healthmonitor_update(self, session, original, new_attrs):
+    def health_monitor_update(self, session, original, new_attrs):
         LOG.debug('Updating health monitor')
-
-        if 'UDP-CONNECT' in new_attrs['type']:
-            new_attrs['type'] = 'UDP_CONNECT'
 
         res = session.elb.update_health_monitor(
             original.id,
@@ -213,7 +211,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         result_data.provider = PROVIDER
         return result_data
 
-    def healthmonitor_delete(self, session, healthmonitor):
+    def health_monitor_delete(self, session, healthmonitor):
         LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
         session.elb.delete_health_monitor(healthmonitor.id)
 
@@ -397,4 +395,3 @@ class ELBv2Driver(driver_base.ProviderDriver):
             l7_policy=l7policy,
             ignore_missing=ignore_missing
         )
-

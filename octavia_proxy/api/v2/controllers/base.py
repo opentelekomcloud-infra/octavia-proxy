@@ -147,7 +147,7 @@ class BaseController(pecan_rest.RestController):
 
             try:
                 hm = driver_utils.call_provider(
-                    driver.name, driver.healthmonitor_get,
+                    driver.name, driver.health_monitor_get,
                     context.session,
                     context.project_id,
                     id)
