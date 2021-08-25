@@ -85,6 +85,50 @@ class HealthMonitorController(base.BaseController):
         return hm_types.HealthMonitorsRootResponse(
             healthmonitors=result, pools_links=links)
 
+    def _validate_create_hm(self, hm):
+        """Validate creating health monitor on pool."""
+        mandatory_fields = (constants.TYPE, constants.DELAY, constants.TIMEOUT,
+                            constants.POOL_ID, constants.MAX_RETRIES)
+        for field in mandatory_fields:
+            if hm.get(field, None) is None:
+                raise exceptions.InvalidOption(value='None', option=field)
+
+        if hm[constants.TYPE] not in (constants.HEALTH_MONITOR_HTTP,
+                                   constants.HEALTH_MONITOR_HTTPS):
+            if hm.get(constants.HTTP_METHOD, None):
+                raise exceptions.InvalidOption(
+                    value=constants.HTTP_METHOD, option='health monitors of '
+                    'type {}'.format(hm[constants.TYPE]))
+            if hm.get(constants.URL_PATH, None):
+                raise exceptions.InvalidOption(
+                    value=constants.URL_PATH, option='health monitors of '
+                    'type {}'.format(hm[constants.TYPE]))
+            if hm.get(constants.EXPECTED_CODES, None):
+                raise exceptions.InvalidOption(
+                    value=constants.EXPECTED_CODES, option='health monitors of '
+                    'type {}'.format(hm[constants.TYPE]))
+        else:
+            if not hm.get(constants.HTTP_METHOD, None):
+                hm[constants.HTTP_METHOD] = (
+                    constants.HEALTH_MONITOR_HTTP_DEFAULT_METHOD)
+            if not hm.get(constants.URL_PATH, None):
+                hm[constants.URL_PATH] = (
+                    constants.HEALTH_MONITOR_DEFAULT_URL_PATH)
+            if not hm.get(constants.EXPECTED_CODES, None):
+                hm[constants.EXPECTED_CODES] = (
+                    constants.HEALTH_MONITOR_DEFAULT_EXPECTED_CODES)
+
+        if hm.get('domain_name') and not hm.get('http_version'):
+            raise exceptions.ValidationException(
+                detail=_("'http_version' must be specified when 'domain_name' "
+                         "is provided."))
+
+        if hm.get('http_version') and hm.get('domain_name'):
+            if hm['http_version'] < 1.1:
+                raise exceptions.InvalidOption(
+                    value='http_version %s' % hm['http_version'],
+                    option='health monitors HTTP 1.1 domain name health check')
+
     @wsme_pecan.wsexpose(hm_types.HealthMonitorRootResponse,
                          body=hm_types.HealthMonitorRootPOST, status_code=201)
     def post(self, health_monitor_):
@@ -123,6 +167,8 @@ class HealthMonitorController(base.BaseController):
                     'type': hm.type,
                     'protocols': '/'.join(constants.PROTOCOL_UDP)})
 
+        self._validate_create_hm(hm.to_dict(render_unsets=True))
+
         driver = driver_factory.get_driver(loadbalancer.provider)
         result = driver_utils.call_provider(
             driver.name, driver.health_monitor_create,
@@ -130,6 +176,46 @@ class HealthMonitorController(base.BaseController):
             hm)
 
         return hm_types.HealthMonitorRootResponse(healthmonitor=result)
+
+    def _validate_update_hm(self, hm, health_monitor):
+        if hm.type not in (constants.HEALTH_MONITOR_HTTP,
+                           constants.HEALTH_MONITOR_HTTPS):
+            if health_monitor.http_method != wtypes.Unset:
+                raise exceptions.InvalidOption(
+                    value=constants.HTTP_METHOD,
+                    option='health monitors of '
+                           'type {}'.format(hm.type))
+            if health_monitor.url_path != wtypes.Unset:
+                raise exceptions.InvalidOption(
+                    value=constants.URL_PATH,
+                    option='health monitors of '
+                           'type {}'.format(hm.type))
+            if health_monitor.expected_codes != wtypes.Unset:
+                raise exceptions.InvalidOption(
+                    value=constants.EXPECTED_CODES,
+                    option='health monitors of '
+                           'type {}'.format(hm.type))
+        if health_monitor.delay is None:
+            raise exceptions.InvalidOption(value=None, option=constants.DELAY)
+        if health_monitor.max_retries is None:
+            raise exceptions.InvalidOption(value=None,
+                                           option=constants.MAX_RETRIES)
+        if health_monitor.timeout is None:
+            raise exceptions.InvalidOption(value=None, option=constants.TIMEOUT)
+
+        if health_monitor.domain_name and not (
+                hm.http_version or health_monitor.http_version):
+            raise exceptions.ValidationException(
+                detail=_("'http_version' must be specified when 'domain_name' "
+                         "is provided."))
+
+        if ((hm.http_version or health_monitor.http_version) and
+                (hm.domain_name or health_monitor.domain_name)):
+            http_version = health_monitor.http_version or hm.http_version
+            if http_version < 1.1:
+                raise exceptions.InvalidOption(
+                    value='http_version %s' % http_version,
+                    option='health monitors HTTP 1.1 domain name health check')
 
     @wsme_pecan.wsexpose(hm_types.HealthMonitorRootResponse, wtypes.text,
                          body=hm_types.HealthMonitorRootPUT, status_code=200)
@@ -144,6 +230,7 @@ class HealthMonitorController(base.BaseController):
             context, orig_hm.project_id,
             constants.RBAC_PUT)
 
+        self._validate_update_hm(orig_hm, healthmonitor)
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(orig_hm.provider)
 
