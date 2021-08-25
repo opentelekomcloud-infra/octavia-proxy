@@ -139,7 +139,7 @@ class BaseController(pecan_rest.RestController):
 
         return member
 
-    def find_healthmonitor(self, context, id):
+    def find_health_monitor(self, context, id):
         enabled_providers = CONF.api_settings.enabled_provider_drivers
         # TODO: perhaps memcached
         for provider in enabled_providers:

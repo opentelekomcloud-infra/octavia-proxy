@@ -1,6 +1,5 @@
-# from dateutil import parser
-# from octavia_lib.api.drivers import data_models
 from octavia_lib.api.drivers import provider_base as driver_base
+from oslo_log import log as logging
 from octavia_proxy.api.v2.types import (
     health_monitor as _hm, listener as _listener, load_balancer,
     pool as _pool, member as _member, l7policy as _l7policy
