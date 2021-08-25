@@ -386,9 +386,12 @@ class TestElbv3HealthMonitorDriver(base.TestCase):
         self.driver = driver.ELBv3Driver()
         self.sess = mock.MagicMock()
         self.hm = health_monitor.HealthMonitor(**self.attrs)
-        self.sess.vlb.create_health_monitor = mock.MagicMock(return_value=self.hm)
-        self.sess.vlb.find_health_monitor = mock.MagicMock(return_value=self.hm)
-        self.sess.vlb.update_health_monitor = mock.MagicMock(return_value=self.hm)
+        self.sess.vlb.create_health_monitor = mock.MagicMock(
+            return_value=self.hm)
+        self.sess.vlb.find_health_monitor = mock.MagicMock(
+            return_value=self.hm)
+        self.sess.vlb.update_health_monitor = mock.MagicMock(
+            return_value=self.hm)
 
     def test_health_monitor_no_qp(self):
         self.driver.health_monitors(self.sess, 'l1')
@@ -419,7 +422,10 @@ class TestElbv3HealthMonitorDriver(base.TestCase):
             'name': 'hm',
         }
         self.driver.health_monitor_update(self.sess, self.hm, attrs)
-        self.sess.vlb.update_health_monitor.assert_called_with(self.hm.id, **attrs)
+        self.sess.vlb.update_health_monitor.assert_called_with(
+            self.hm.id,
+            **attrs
+        )
 
     def test_health_monitor_delete(self):
         self.driver.health_monitor_delete(self.sess, self.hm)
