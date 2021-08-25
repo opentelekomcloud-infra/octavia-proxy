@@ -165,8 +165,8 @@ class HealthMonitorController(base.BaseController):
             if hm.type is const.HEALTH_MONITOR_UDP_CONNECT:
                 raise exceptions.ValidationException(
                     detail=_(
-                        "The %(type)s type is only supported for pools of type "
-                        "%(protocols)s.") % {
+                        "The %(type)s type is only supported for pools of type"
+                        " %(protocols)s.") % {
                         'type': hm.type,
                         'protocols': '/'.join(const.PROTOCOL_UDP)})
 
