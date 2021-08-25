@@ -23,10 +23,14 @@ _sdk = None
 _lb = None
 
 
-class BaseAPITest(base.TestCase):
+def _destroy_lb(_lb: dict):
+    if _lb.get('provider') == 'elbv2':
+        _sdk.elb.delete_load_balancer(_lb.get('id'))
+    else:
+        _sdk.vlb.delete_load_balancer(_lb.get('id'))
 
-    def runTest():
-        pass
+
+class BaseAPITest(base.TestCase):
 
     BASE_PATH = '/v2'
     BASE_PATH_v2_0 = '/v2.0'
@@ -113,6 +117,13 @@ class BaseAPITest(base.TestCase):
             self._sdk_connection.close()
         super().tearDown()
 
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            _destroy_lb(_lb)
+        except Exception:
+            pass
+
     def _get_sdk_connection(self):
         global _sdk
         if not _sdk:
@@ -130,24 +141,30 @@ class BaseAPITest(base.TestCase):
         if not _network:
             if not self._sdk_connection:
                 self._sdk_connection = self._get_sdk_connection()
-            network = self._sdk_connection.network.create_network(
-                name=net_name)
+            network = self._sdk_connection.network.find_network(net_name)
+            if not network:
+                network = self._sdk_connection.network.create_network(
+                    name=net_name)
             net_id = network.id
-            subnet = self._sdk_connection.network.create_subnet(
-                name=subnet_name,
-                ip_version=ipv4,
-                network_id=net_id,
-                cidr=cidr
-            )
+            subnet = self._sdk_connection.network.find_subnet(subnet_name)
+            if not subnet:
+                subnet = self._sdk_connection.network.create_subnet(
+                    name=subnet_name,
+                    ip_version=ipv4,
+                    network_id=net_id,
+                    cidr=cidr
+                )
             subnet_id = subnet.id
 
-            router = self._sdk_connection.network.create_router(
-                name=router_name)
+            router = self._sdk_connection.network.find_router(router_name)
+            if not router:
+                router = self._sdk_connection.network.create_router(
+                    name=router_name)
+                router.add_interface(
+                    self._sdk_connection.network,
+                    subnet_id=subnet_id)
             router_id = router.id
-            router.add_interface(
-                self._sdk_connection.network,
-                subnet_id=subnet_id
-            )
+
             _network = {
                 'router_id': router_id,
                 'subnet_id': subnet_id,
