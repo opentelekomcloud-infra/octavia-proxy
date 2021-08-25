@@ -139,6 +139,31 @@ class BaseController(pecan_rest.RestController):
 
         return member
 
+    def find_health_monitor(self, context, id):
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        # TODO: perhaps memcached
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                hm = driver_utils.call_provider(
+                    driver.name, driver.health_monitor_get,
+                    context.session,
+                    context.project_id,
+                    id)
+                if hm:
+                    setattr(hm, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if not hm:
+            raise exceptions.NotFound(
+                resource='Healthmonitor',
+                id=id)
+
+        return hm
+
     @staticmethod
     def _validate_protocol(listener_protocol, pool_protocol):
         proto_map = constants.VALID_LISTENER_POOL_PROTOCOL_MAP
@@ -195,6 +220,36 @@ class BaseController(pecan_rest.RestController):
                                'type': request.session_persistence.type,
                                'protocol': "/".join((constants.PROTOCOL_UDP,
                                                      constants.PROTOCOL_TCP))})
+
+    def _validate_healthmonitor_request_for_udp(self, request,
+                                                pool_protocol):
+        if request.type not in (
+                constants.HEALTH_MONITOR_UDP_CONNECT,
+                constants.HEALTH_MONITOR_TCP,
+                constants.HEALTH_MONITOR_HTTP,
+                constants.HEALTH_MONITOR_HTTPS,
+                constants.HEALTH_MONITOR_PING):
+            raise exceptions.ValidationException(detail=_(
+                "The associated pool protocol is %(pool_protocol)s, so only "
+                "a %(types)s health monitor is supported.") % {
+                'pool_protocol': pool_protocol,
+                'types': '/'.join((constants.HEALTH_MONITOR_UDP_CONNECT,
+                                   constants.HEALTH_MONITOR_TCP,
+                                   constants.HEALTH_MONITOR_HTTP,
+                                   constants.HEALTH_MONITOR_HTTPS,
+                                   constants.HEALTH_MONITOR_PING))})
+        # check the delay value if the HM type is UDP-CONNECT
+        if request.type == constants.HEALTH_MONITOR_UDP_CONNECT:
+            hm_is_type_udp = request.type
+        conf_min_delay = (
+            CONF.api_settings.udp_connect_min_interval_health_monitor)
+        if hm_is_type_udp and request.delay < conf_min_delay:
+            raise exceptions.ValidationException(detail=_(
+                "The request delay value %(delay)s should be larger than "
+                "%(conf_min_delay)s for %(type)s health monitor type.") % {
+                'delay': request.delay,
+                'conf_min_delay': conf_min_delay,
+                'type': constants.HEALTH_MONITOR_UDP_CONNECT})
 
     def _auth_get_all(self, context, project_id):
         # Check authorization to list objects under all projects

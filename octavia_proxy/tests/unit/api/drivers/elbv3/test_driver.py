@@ -15,8 +15,8 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from otcextensions.sdk.vlb.v3 import load_balancer, listener, pool,\
-    member
+from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
+                                      member, health_monitor)
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.tests.unit import base
@@ -347,6 +347,89 @@ class TestElbv3MemberDriver(base.TestCase):
     def test_member_delete(self):
         self.driver.member_delete(self.sess, 'pid', self.member)
         self.sess.vlb.delete_member.assert_called_with(self.member.id, 'pid')
+
+
+class TestElbv3HealthMonitorDriver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'pool_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'type': 'TCP',
+        'timeout': 3,
+        'delay': 3,
+        'max_retries': 3,
+        'admin_state_up': True,
+        'monitor_port': 3333,
+
+    }
+    fakeCallCreate = {
+        'delay': 3,
+        'domain_name': None,
+        'expected_codes': None,
+        'http_method': None,
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'is_admin_state_up': True,
+        'location': None,
+        'max_retries': 3,
+        'max_retries_down': None,
+        'monitor_port': 3333,
+        'name': None,
+        'pool_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'pools': None,
+        'project_id': None,
+        'timeout': 3,
+        'type': 'TCP',
+        'url_path': None,
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.hm = health_monitor.HealthMonitor(**self.attrs)
+        self.sess.vlb.create_health_monitor = mock.MagicMock(
+            return_value=self.hm)
+        self.sess.vlb.find_health_monitor = mock.MagicMock(
+            return_value=self.hm)
+        self.sess.vlb.update_health_monitor = mock.MagicMock(
+            return_value=self.hm)
+
+    def test_health_monitor_no_qp(self):
+        self.driver.health_monitors(self.sess, 'l1')
+        self.sess.vlb.health_monitors.assert_called_with()
+
+    def test_health_monitor_qp(self):
+        self.driver.health_monitors(
+            self.sess, 'l1',
+            query_filter={'a': 'b'})
+        self.sess.vlb.health_monitors.assert_called_with(
+            a='b'
+        )
+
+    def test_health_monitor_get(self):
+        self.driver.health_monitor_get(self.sess, 'test', self.hm)
+        self.sess.vlb.find_health_monitor.assert_called_with(
+            name_or_id=self.hm, ignore_missing=True)
+
+    def test_health_monitor_create(self):
+        self.driver.health_monitor_create(self.sess, self.hm)
+        self.sess.vlb.create_health_monitor.assert_called_with(
+            **self.fakeCallCreate
+        )
+
+    def test_health_monitor_update(self):
+        attrs = {
+            'delay': 5,
+            'name': 'hm',
+        }
+        self.driver.health_monitor_update(self.sess, self.hm, attrs)
+        self.sess.vlb.update_health_monitor.assert_called_with(
+            self.hm.id,
+            **attrs
+        )
+
+    def test_health_monitor_delete(self):
+        self.driver.health_monitor_delete(self.sess, self.hm)
+        self.sess.vlb.delete_health_monitor.assert_called_with(self.hm.id)
 
 
 class TestElbv3DriverRequests(base.TestCase):

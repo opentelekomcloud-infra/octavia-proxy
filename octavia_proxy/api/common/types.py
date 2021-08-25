@@ -14,8 +14,8 @@
 
 import copy
 
-from dateutil import parser
 import netaddr
+from dateutil import parser
 from wsme import types as wtypes
 
 from octavia_proxy.common import constants
