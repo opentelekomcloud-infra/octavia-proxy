@@ -1,11 +1,7 @@
-# from dateutil import parser
-# from octavia_lib.api.drivers import data_models
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
-from wsme import types as wtypes
-
 from octavia_proxy.api.v2.types import (
-    health_monitor as _monitor, listener as _listener, load_balancer,
+    health_monitor as _hm, listener as _listener, load_balancer,
     pool as _pool, member as _member, l7policy as _l7policy
 )
 
@@ -156,50 +152,67 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         session.elb.delete_listener(listener.id)
 
-    def health_monitors(self, session, query_filter=None):
-        LOG.debug('Fetching health monitors')
-
-        query_filter = query_filter or {}
-
+    def health_monitors(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching health monitor')
         results = []
-        raw_results = session.elb.health_monitors(**query_filter)
-        for lb in raw_results:
-            result_data = _monitor.HealthMonitorResponse.from_sdk_object(lb)
-            result_data.provider = PROVIDER
-            results.append(result_data)
+        if not query_filter:
+            query_filter = {}
+        query_filter.pop('project_id', None)
+
+        if 'id' in query_filter:
+            hm_data = self.healthmonitor_get(
+                project_id=project_id, session=session,
+                healthmonitor_id=query_filter['id'])
+            results.append(hm_data)
+        else:
+            for healthmonitor in session.elb.health_monitors(**query_filter):
+                healthmonitor_data = _hm.HealthMonitorResponse.from_sdk_object(
+                    healthmonitor
+                )
+                healthmonitor_data.provider = PROVIDER
+                results.append(healthmonitor_data)
+
         return results
 
-    _hm_type = wtypes.Enum(str, 'TCP', 'UDP_CONNECT', 'HTTP')
+    def health_monitor_get(self, session, project_id, healthmonitor_id):
+        LOG.debug('Searching health monitor')
+        healthmonitor = session.elb.find_health_monitor(
+            name_or_id=healthmonitor_id, ignore_missing=True)
+        if healthmonitor:
+            healthmonitor_data = _hm.HealthMonitorResponse.from_sdk_object(
+                healthmonitor
+            )
+            healthmonitor_data.provider = PROVIDER
+            return healthmonitor_data
 
     def health_monitor_create(self, session, healthmonitor):
-        # validate values for ELBv2
-        wtypes.validate_value(self._hm_type, healthmonitor['type'])
-        return session.elb.create_health_monitor(**healthmonitor)
+        LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
 
-    def health_monitor_update(self, session, old_healthmonitor,
-                              new_healthmonitor):
-        # validate values for ELBv2
-        # type is optional in the update
-        wtypes.validate_value(self._hm_type,
-                              new_healthmonitor.pop('type', None))
-        LOG.debug('Updating  monitor')
+        attrs = healthmonitor.to_dict()
+
+        if 'UDP-CONNECT' in attrs['type']:
+            attrs['type'] = 'UDP_CONNECT'
+
+        res = session.elb.create_health_monitor(**attrs)
+        result_data = _hm.HealthMonitorResponse.from_sdk_object(
+            res)
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def health_monitor_update(self, session, original, new_attrs):
+        LOG.debug('Updating health monitor')
 
         res = session.elb.update_health_monitor(
-            old_healthmonitor.id, **new_healthmonitor)
-        result_data = _monitor.HealthMonitorResponse.from_sdk_object(res)
+            original.id,
+            **new_attrs)
+        result_data = _hm.HealthMonitorResponse.from_sdk_object(
+            res)
         result_data.provider = PROVIDER
         return result_data
 
     def health_monitor_delete(self, session, healthmonitor):
-        return session.elb.delete_health_monitor(healthmonitor)
-
-    def health_monitor_get(self, session, name_or_id):
-        hm = session.elb.find_health_monitor(name_or_id=name_or_id,
-                                             ignore_missing=True)
-        if hm:
-            hm_data = _monitor.HealthMonitorResponse.from_sdk_object(hm)
-            hm_data.provider = PROVIDER
-            return hm_data
+        LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
+        session.elb.delete_health_monitor(healthmonitor.id)
 
     def pools(self, session, project_id, query_filter=None):
         LOG.debug('Fetching pools')

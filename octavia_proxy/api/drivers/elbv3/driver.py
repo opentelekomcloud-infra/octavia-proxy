@@ -358,9 +358,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def health_monitor_update(self, session, original, new_attrs):
         LOG.debug('Updating health monitor')
-        type = new_attrs.pop('type', None)
-        if type and 'UDP-CONNECT' in type:
-            new_attrs['type'] = 'UDP_CONNECT'
         res = session.vlb.update_health_monitor(
             original.id,
             **new_attrs)

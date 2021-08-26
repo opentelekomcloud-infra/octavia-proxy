@@ -406,9 +406,9 @@ class TestElbv3HealthMonitorDriver(base.TestCase):
         )
 
     def test_health_monitor_get(self):
-        self.driver.health_monitor_get(self.sess, 'test', self.hm)
+        self.driver.health_monitor_get(self.sess, 'test', self.hm.id)
         self.sess.vlb.find_health_monitor.assert_called_with(
-            name_or_id=self.hm, ignore_missing=True)
+            name_or_id=self.hm.id, ignore_missing=True)
 
     def test_health_monitor_create(self):
         self.driver.health_monitor_create(self.sess, self.hm)
