@@ -11,18 +11,21 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 from oslo_config import cfg
 from oslo_log import log as logging
 from pecan import abort as pecan_abort
 from pecan import expose as pecan_expose
+from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.drivers import driver_factory
+from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import l7policy as l7policy_types
 from octavia_proxy.common import constants
-
+from octavia_proxy.common import exceptions
+from octavia_proxy.policies import l7rule
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -36,21 +39,94 @@ class L7PolicyController(base.BaseController):
 
     @wsme_pecan.wsexpose(l7policy_types.L7PolicyRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
-    def get(self, id, fields=None):
+    def get_one(self, id, fields=None):
         """Gets a single l7policy's details."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+
+        result = self.find_l7policy(context, id)
+
+        self._auth_validate_action(context, result.project_id,
+                                   constants.RBAC_GET_ONE)
+
+        if fields is not None:
+            result = self._filter_fields([result], fields)[0]
+        return l7policy_types.L7PolicyRootResponse(l7policy=result)
 
     @wsme_pecan.wsexpose(l7policy_types.L7PoliciesRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_all(self, project_id=None, fields=None):
         """Lists all l7policies of a listener."""
-        pecan_abort(501)
+        pcontext = pecan_request.context
+        context = pcontext.get('octavia_context')
+
+        query_filter = self._auth_get_all(context, project_id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        query_filter.update(query_params)
+
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        result = []
+        links = []
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                l7policies = driver_utils.call_provider(
+                    driver.name, driver.l7policies,
+                    context.session,
+                    context.project_id,
+                    query_filter
+                )
+                if l7policies:
+                    LOG.debug(
+                        'Received %s from %s' % (l7policies, driver.name)
+                    )
+                    result.extend(l7policies)
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if fields is not None:
+            result = self._filter_fields(result, fields)
+        return l7policy_types.L7PolicyRootResponse(
+            l7policies=result, l7policies_links=links
+        )
+
+    def _validate_create_l7policy(self):
+        """Validate creating l7 policy."""
+        pass
 
     @wsme_pecan.wsexpose(l7policy_types.L7PolicyRootResponse,
                          body=l7policy_types.L7PolicyRootPOST, status_code=201)
     def post(self, l7policy_):
         """Creates a l7policy on a listener."""
-        pecan_abort(501)
+        l7policy = l7policy_.l7policy
+        context = pecan_request.context.get('octavia_context')
+        listener = None
+
+        if not l7policy.project_id and context.project_id:
+            l7policy.project_id = context.project_id
+
+        self._auth_validate_action(
+            context, l7policy.project_id, constants.RBAC_POST
+        )
+
+        if l7policy.listener_id:
+            listener = self.find_listener(context, id=l7policy.listener_id)
+        else:
+            msg = "Must provide listener_id"
+            raise exceptions.ValidationException(detail=msg)
+
+        self._validate_create_l7policy()
+
+        driver = driver_factory.get_driver(listener.provider)
+        result = driver_utils.call_provider(
+            driver.name, driver.l7policy_create,
+            context.session,
+            l7policy
+        )
+        return l7policy_types.L7PolicyRootResponse(l7policy=result)
+
+    def _validate_update_l7policy(self):
+        pass
 
     @wsme_pecan.wsexpose(l7policy_types.L7PolicyRootResponse,
                          wtypes.text, body=l7policy_types.L7PolicyRootPUT,
@@ -71,4 +147,14 @@ class L7PolicyController(base.BaseController):
         Verifies that the l7policy passed in the url exists, and if so decides
         which controller, if any, should control be passed.
         """
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+        if l7policy_id and remainder and remainder[0] == 'rules':
+            remainder = remainder[1:]
+            l7policy = self.find_l7policy(context.session, l7policy_id)
+            if not l7policy:
+                LOG.info("L7Policy %s not found.", l7policy_id)
+                raise exceptions.NotFound(
+                    resource='L7Policy', id=l7policy_id)
+            return l7rule.L7RuleController(
+                l7policy_id=l7policy.id), remainder
+        return None

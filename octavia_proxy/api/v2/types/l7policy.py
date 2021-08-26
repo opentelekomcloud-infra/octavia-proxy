@@ -21,6 +21,7 @@ from octavia_proxy.common import constants
 
 
 class BaseL7PolicyType(types.BaseType):
+    _type_to_model_map = {}
     _child_map = {}
 
 

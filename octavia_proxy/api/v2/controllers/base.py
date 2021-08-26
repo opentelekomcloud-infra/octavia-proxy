@@ -164,6 +164,32 @@ class BaseController(pecan_rest.RestController):
 
         return hm
 
+    def find_l7policy(self, context, id):
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        # TODO: perhaps memcached
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                l7policy = driver_utils.call_provider(
+                    driver.name, driver.l7policy_get,
+                    context.session,
+                    context.project_id,
+                    id)
+                if l7policy:
+                    setattr(l7policy, 'provider', provider)
+                    break
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if not l7policy:
+            raise exceptions.NotFound(
+                resource='L7Policy',
+                id=id)
+
+        return l7policy
+
+
     @staticmethod
     def _validate_protocol(listener_protocol, pool_protocol):
         proto_map = constants.VALID_LISTENER_POOL_PROTOCOL_MAP
