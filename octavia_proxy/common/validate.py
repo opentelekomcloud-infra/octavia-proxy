@@ -56,9 +56,9 @@ def check_session_persistence(SP_dict):
 
 def port_exists(port_id, context=None):
     """Raises an exception when a port does not exist."""
-    network_driver = utils.get_network_driver()
+    session = context.session
     try:
-        port = network_driver.get_port(port_id, context=context)
+        port = session.network.get_port(port_id)
     except Exception as e:
         raise exceptions.InvalidSubresource(resource='Port', id=port_id) from e
     return port
@@ -75,26 +75,19 @@ def check_port_in_use(port):
 
 def subnet_exists(subnet_id, context=None):
     """Raises an exception when a subnet does not exist."""
-    network_driver = utils.get_network_driver()
+    session = context.session
     try:
-        subnet = network_driver.get_subnet(subnet_id, context=context)
+        subnet = session.network.get_subnet(subnet_id)
     except Exception as e:
         raise exceptions.InvalidSubresource(
             resource='Subnet', id=subnet_id) from e
     return subnet
 
 
-def qos_extension_enabled(network_driver):
-    if not network_driver.qos_enabled():
-        raise exceptions.ValidationException(detail=_(
-            "VIP QoS policy is not allowed in this deployment."))
-
-
-def qos_policy_exists(qos_policy_id):
-    network_driver = utils.get_network_driver()
-    qos_extension_enabled(network_driver)
+def qos_policy_exists(qos_policy_id, context=None):
+    session = context.session
     try:
-        qos_policy = network_driver.get_qos_policy(qos_policy_id)
+        qos_policy = session.network.get_qos_policy(qos_policy_id)
     except Exception as e:
         raise exceptions.InvalidSubresource(
             resource='qos_policy', id=qos_policy_id) from e
@@ -106,9 +99,9 @@ def network_exists_optionally_contains_subnet(network_id, subnet_id=None,
     """Raises an exception when a network does not exist.
     If a subnet is provided, also validate the network contains that subnet.
     """
-    network_driver = utils.get_network_driver()
+    session = context.session
     try:
-        network = network_driver.get_network(network_id, context=context)
+        network = session.network.get_network(network_id, context=context)
     except Exception as e:
         raise exceptions.InvalidSubresource(
             resource='Network', id=network_id) from e

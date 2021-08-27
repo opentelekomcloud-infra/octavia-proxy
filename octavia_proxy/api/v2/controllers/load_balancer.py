@@ -234,6 +234,7 @@ class LoadBalancersController(base.BaseController):
             allowed_network_objects.append('vip_network_id')
         if CONF.networking.allow_vip_subnet_id:
             allowed_network_objects.append('vip_subnet_id')
+
         msg = _("use of %(object)s is disallowed by this deployment's "
                 "configuration.")
         if (load_balancer.vip_port_id and
@@ -255,12 +256,14 @@ class LoadBalancersController(base.BaseController):
                 objects=', '.join(allowed_network_objects))
         # Validate the port id
         if load_balancer.vip_port_id:
-            self._validate_port_and_fill_or_validate_subnet(load_balancer,
-                                                            context=context)
+            self._validate_port_and_fill_or_validate_subnet(
+                load_balancer,
+                context=context)
         # If no port id, validate the network id (and subnet if provided)
         elif load_balancer.vip_network_id:
-            self._validate_network_and_fill_or_validate_subnet(load_balancer,
-                                                               context=context)
+            self._validate_network_and_fill_or_validate_subnet(
+                load_balancer,
+                context=context)
         # Validate just the subnet id
         elif load_balancer.vip_subnet_id:
             subnet = validate.subnet_exists(
@@ -268,7 +271,8 @@ class LoadBalancersController(base.BaseController):
             load_balancer.vip_network_id = subnet.network_id
         if load_balancer.vip_qos_policy_id:
             validate.qos_policy_exists(
-                qos_policy_id=load_balancer.vip_qos_policy_id)
+                qos_policy_id=load_balancer.vip_qos_policy_id,
+                context=context)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerFullRootResponse,
                          body=lb_types.LoadBalancerRootPOST, status_code=201)
