@@ -19,9 +19,10 @@ Defined here so these can also be used at deeper levels than the API.
 """
 import re
 
+import netaddr
 from oslo_config import cfg
 
-from octavia_proxy.common import constants, exceptions
+from octavia_proxy.common import constants, exceptions, utils
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
@@ -51,3 +52,74 @@ def check_session_persistence(SP_dict):
     except Exception as e:
         raise exceptions.ValidationException(detail=_(
             'Invalid session_persistence provided.')) from e
+
+
+def port_exists(port_id, context=None):
+    """Raises an exception when a port does not exist."""
+    network_driver = utils.get_network_driver()
+    try:
+        port = network_driver.get_port(port_id, context=context)
+    except Exception as e:
+        raise exceptions.InvalidSubresource(resource='Port', id=port_id) from e
+    return port
+
+
+def check_port_in_use(port):
+    """Raise an exception when a port is used."""
+    if port.device_id:
+        raise exceptions.ValidationException(detail=_(
+            "Port %(port_id)s is already used by device %(device_id)s "
+        ) % {'port_id': port.id, 'device_id': port.device_id})
+    return False
+
+
+def subnet_exists(subnet_id, context=None):
+    """Raises an exception when a subnet does not exist."""
+    network_driver = utils.get_network_driver()
+    try:
+        subnet = network_driver.get_subnet(subnet_id, context=context)
+    except Exception as e:
+        raise exceptions.InvalidSubresource(
+            resource='Subnet', id=subnet_id) from e
+    return subnet
+
+
+def qos_extension_enabled(network_driver):
+    if not network_driver.qos_enabled():
+        raise exceptions.ValidationException(detail=_(
+            "VIP QoS policy is not allowed in this deployment."))
+
+
+def qos_policy_exists(qos_policy_id):
+    network_driver = utils.get_network_driver()
+    qos_extension_enabled(network_driver)
+    try:
+        qos_policy = network_driver.get_qos_policy(qos_policy_id)
+    except Exception as e:
+        raise exceptions.InvalidSubresource(
+            resource='qos_policy', id=qos_policy_id) from e
+    return qos_policy
+
+
+def network_exists_optionally_contains_subnet(network_id, subnet_id=None,
+                                              context=None):
+    """Raises an exception when a network does not exist.
+    If a subnet is provided, also validate the network contains that subnet.
+    """
+    network_driver = utils.get_network_driver()
+    try:
+        network = network_driver.get_network(network_id, context=context)
+    except Exception as e:
+        raise exceptions.InvalidSubresource(
+            resource='Network', id=network_id) from e
+    if subnet_id:
+        if not network.subnets or subnet_id not in network.subnets:
+            raise exceptions.InvalidSubresource(resource='Subnet',
+                                                id=subnet_id)
+    return network
+
+
+def is_ip_member_of_cidr(address, cidr):
+    if netaddr.IPAddress(address) in netaddr.IPNetwork(cidr):
+        return True
+    return False

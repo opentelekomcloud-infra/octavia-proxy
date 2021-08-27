@@ -13,25 +13,25 @@
 #  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #  License for the specific language governing permissions and limitations
 #  under the License.
+import ipaddress
+
 from octavia_lib.api.drivers import data_models as driver_dm
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
+from pecan import abort as pecan_abort
 from pecan import expose as pecan_expose
 from pecan import request as pecan_request
-from pecan import abort as pecan_abort
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
-from octavia_proxy.common import constants
-from octavia_proxy.common import exceptions
-
-from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
-
-from octavia_proxy.api.v2.types import load_balancer as lb_types
+from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
-
+from octavia_proxy.api.v2.types import load_balancer as lb_types
+from octavia_proxy.common import constants, validate, utils
+from octavia_proxy.common import exceptions
+from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ class LoadBalancersController(base.BaseController):
             provider = CONF.api_settings.default_provider_driver
         # Both provider and flavor specified, they must match
         elif (not isinstance(load_balancer.provider, wtypes.UnsetType) and
-                provider):
+              provider):
             if provider != load_balancer.provider:
                 raise exceptions.ProviderFlavorMismatchError(
                     flav=load_balancer.flavor_id, prov=load_balancer.provider)
@@ -127,6 +127,148 @@ class LoadBalancersController(base.BaseController):
         # Otherwise, use the flavor provider we found above
 
         return provider
+
+    @staticmethod
+    def _validate_port_and_fill_or_validate_subnet(load_balancer,
+                                                   context=None):
+        port = validate.port_exists(port_id=load_balancer.vip_port_id,
+                                    context=context)
+        validate.check_port_in_use(port)
+        load_balancer.vip_network_id = port.network_id
+
+        port_qos_policy_id = port.qos_policy_id
+        if (port_qos_policy_id and
+                isinstance(load_balancer.vip_qos_policy_id, wtypes.UnsetType)):
+            load_balancer.vip_qos_policy_id = port_qos_policy_id
+        if load_balancer.vip_subnet_id:
+            validate.subnet_exists(subnet_id=load_balancer.vip_subnet_id,
+                                   context=context)
+            for port_fixed_ip in port.fixed_ips:
+                if port_fixed_ip.subnet_id == load_balancer.vip_subnet_id:
+                    load_balancer.vip_address = port_fixed_ip.ip_address
+                    break  # Just pick the first address found in the subnet
+            if not load_balancer.vip_address:
+                raise exceptions.ValidationException(detail=_(
+                    "No VIP address found on the specified VIP port within "
+                    "the specified subnet."))
+        elif load_balancer.vip_address:
+            normalized_lb_ip = ipaddress.ip_address(
+                load_balancer.vip_address).compressed
+            for port_fixed_ip in port.fixed_ips:
+                normalized_port_ip = ipaddress.ip_address(
+                    port_fixed_ip.ip_address).compressed
+                if normalized_port_ip == normalized_lb_ip:
+                    load_balancer.vip_subnet_id = port_fixed_ip.subnet_id
+                    break
+            if not load_balancer.vip_subnet_id:
+                raise exceptions.ValidationException(detail=_(
+                    "Specified VIP address not found on the "
+                    "specified VIP port."))
+        elif len(port.fixed_ips) == 1:
+            # User provided only a port, get the subnet and address from it
+            load_balancer.vip_subnet_id = port.fixed_ips[0].subnet_id
+            load_balancer.vip_address = port.fixed_ips[0].ip_address
+        else:
+            raise exceptions.ValidationException(detail=_(
+                "VIP port's subnet could not be determined. Please "
+                "specify either a VIP subnet or address."))
+
+    @staticmethod
+    def _validate_network_and_fill_or_validate_subnet(load_balancer,
+                                                      context=None):
+        network = validate.network_exists_optionally_contains_subnet(
+            network_id=load_balancer.vip_network_id,
+            subnet_id=load_balancer.vip_subnet_id,
+            context=context)
+        if not load_balancer.vip_subnet_id:
+            network_driver = utils.get_network_driver()
+            if load_balancer.vip_address:
+                for subnet_id in network.subnets:
+                    subnet = network_driver.get_subnet(subnet_id)
+                    if validate.is_ip_member_of_cidr(load_balancer.vip_address,
+                                                     subnet.cidr):
+                        load_balancer.vip_subnet_id = subnet_id
+                        break
+                if not load_balancer.vip_subnet_id:
+                    raise exceptions.ValidationException(detail=_(
+                        "Supplied network does not contain a subnet for "
+                        "VIP address specified."
+                    ))
+            else:
+                # If subnet and IP are not provided, pick the first subnet with
+                # enough available IPs, preferring ipv4
+                if not network.subnets:
+                    raise exceptions.ValidationException(detail=_(
+                        "Supplied network does not contain a subnet."
+                    ))
+                ip_avail = network_driver.get_network_ip_availability(
+                    network)
+                if (CONF.controller_worker.loadbalancer_topology ==
+                        constants.TOPOLOGY_SINGLE):
+                    num_req_ips = 2
+                if (CONF.controller_worker.loadbalancer_topology ==
+                        constants.TOPOLOGY_ACTIVE_STANDBY):
+                    num_req_ips = 3
+                subnets = [subnet_id for subnet_id in network.subnets if
+                           utils.subnet_ip_availability(ip_avail, subnet_id,
+                                                        num_req_ips)]
+                if not subnets:
+                    raise exceptions.ValidationException(detail=_(
+                        "Subnet(s) in the supplied network do not contain "
+                        "enough available IPs."
+                    ))
+                for subnet_id in subnets:
+                    # Use the first subnet, in case there are no ipv4 subnets
+                    if not load_balancer.vip_subnet_id:
+                        load_balancer.vip_subnet_id = subnet_id
+                    subnet = network_driver.get_subnet(subnet_id)
+                    if subnet.ip_version == 4:
+                        load_balancer.vip_subnet_id = subnet_id
+                        break
+
+    def _validate_vip_request_object(self, load_balancer, context=None):
+        allowed_network_objects = []
+        if CONF.networking.allow_vip_port_id:
+            allowed_network_objects.append('vip_port_id')
+        if CONF.networking.allow_vip_network_id:
+            allowed_network_objects.append('vip_network_id')
+        if CONF.networking.allow_vip_subnet_id:
+            allowed_network_objects.append('vip_subnet_id')
+        msg = _("use of %(object)s is disallowed by this deployment's "
+                "configuration.")
+        if (load_balancer.vip_port_id and
+                not CONF.networking.allow_vip_port_id):
+            raise exceptions.ValidationException(
+                detail=msg % {'object': 'vip_port_id'})
+        if (load_balancer.vip_network_id and
+                not CONF.networking.allow_vip_network_id):
+            raise exceptions.ValidationException(
+                detail=msg % {'object': 'vip_network_id'})
+        if (load_balancer.vip_subnet_id and
+                not CONF.networking.allow_vip_subnet_id):
+            raise exceptions.ValidationException(
+                detail=msg % {'object': 'vip_subnet_id'})
+        if not (load_balancer.vip_port_id or
+                load_balancer.vip_network_id or
+                load_balancer.vip_subnet_id):
+            raise exceptions.VIPValidationException(
+                objects=', '.join(allowed_network_objects))
+        # Validate the port id
+        if load_balancer.vip_port_id:
+            self._validate_port_and_fill_or_validate_subnet(load_balancer,
+                                                            context=context)
+        # If no port id, validate the network id (and subnet if provided)
+        elif load_balancer.vip_network_id:
+            self._validate_network_and_fill_or_validate_subnet(load_balancer,
+                                                               context=context)
+        # Validate just the subnet id
+        elif load_balancer.vip_subnet_id:
+            subnet = validate.subnet_exists(
+                subnet_id=load_balancer.vip_subnet_id, context=context)
+            load_balancer.vip_network_id = subnet.network_id
+        if load_balancer.vip_qos_policy_id:
+            validate.qos_policy_exists(
+                qos_policy_id=load_balancer.vip_qos_policy_id)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerFullRootResponse,
                          body=lb_types.LoadBalancerRootPOST, status_code=201)
@@ -150,7 +292,7 @@ class LoadBalancersController(base.BaseController):
 
         provider = self._get_provider(context.session, load_balancer)
 
-        # TODO(gtema): implement complex create
+        self._validate_vip_request_object(load_balancer, context=context)
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(provider)
@@ -226,11 +368,11 @@ class LoadBalancersController(base.BaseController):
         neutron-lbaas LBaaS v2 API.
         """
         is_children = (
-            id and remainder and (
+                id and remainder and (
                 remainder[0] == 'status' or remainder[0] == 'statuses' or (
-                    remainder[0] == 'stats' or remainder[0] == 'failover'
-                )
-            )
+                remainder[0] == 'stats' or remainder[0] == 'failover'
+        )
+        )
         )
         # NOTE(gtema): currently not exposing any sub stuff
         if is_children:
