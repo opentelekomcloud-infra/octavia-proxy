@@ -181,10 +181,9 @@ class LoadBalancersController(base.BaseController):
             subnet_id=load_balancer.vip_subnet_id,
             context=context)
         if not load_balancer.vip_subnet_id:
-            network_driver = utils.get_network_driver()
             if load_balancer.vip_address:
                 for subnet_id in network.subnets:
-                    subnet = network_driver.get_subnet(subnet_id)
+                    subnet = context.session.get_subnet(subnet_id)
                     if validate.is_ip_member_of_cidr(load_balancer.vip_address,
                                                      subnet.cidr):
                         load_balancer.vip_subnet_id = subnet_id
@@ -201,7 +200,7 @@ class LoadBalancersController(base.BaseController):
                     raise exceptions.ValidationException(detail=_(
                         "Supplied network does not contain a subnet."
                     ))
-                ip_avail = network_driver.get_network_ip_availability(
+                ip_avail = context.session.get_network_ip_availability(
                     network)
                 if (CONF.controller_worker.loadbalancer_topology ==
                         constants.TOPOLOGY_SINGLE):
@@ -221,7 +220,7 @@ class LoadBalancersController(base.BaseController):
                     # Use the first subnet, in case there are no ipv4 subnets
                     if not load_balancer.vip_subnet_id:
                         load_balancer.vip_subnet_id = subnet_id
-                    subnet = network_driver.get_subnet(subnet_id)
+                    subnet = context.session.get_subnet(subnet_id)
                     if subnet.ip_version == 4:
                         load_balancer.vip_subnet_id = subnet_id
                         break
@@ -373,11 +372,8 @@ class LoadBalancersController(base.BaseController):
         """
         is_children = (
                 id and remainder and (
-                remainder[0] == 'status' or remainder[0] == 'statuses' or (
-                remainder[0] == 'stats' or remainder[0] == 'failover'
-        )
-        )
-        )
+                remainder[0] == 'status' or remainder[0] == 'statuses' or
+                (remainder[0] == 'stats' or remainder[0] == 'failover')))
         # NOTE(gtema): currently not exposing any sub stuff
         if is_children:
             controller = remainder[0]

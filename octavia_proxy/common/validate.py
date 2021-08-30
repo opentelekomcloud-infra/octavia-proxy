@@ -22,7 +22,7 @@ import re
 import netaddr
 from oslo_config import cfg
 
-from octavia_proxy.common import constants, exceptions, utils
+from octavia_proxy.common import constants, exceptions
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
@@ -101,12 +101,12 @@ def network_exists_optionally_contains_subnet(network_id, subnet_id=None,
     """
     session = context.session
     try:
-        network = session.network.get_network(network_id, context=context)
+        network = session.network.get_network(network_id)
     except Exception as e:
         raise exceptions.InvalidSubresource(
             resource='Network', id=network_id) from e
     if subnet_id:
-        if not network.subnets or subnet_id not in network.subnets:
+        if not network.subnet_ids or subnet_id not in network.subnet_ids:
             raise exceptions.InvalidSubresource(resource='Subnet',
                                                 id=subnet_id)
     return network
