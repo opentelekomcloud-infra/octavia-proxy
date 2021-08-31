@@ -97,7 +97,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
 
-
         lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data

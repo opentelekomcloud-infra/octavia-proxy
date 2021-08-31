@@ -13,7 +13,6 @@
 #  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #  License for the specific language governing permissions and limitations
 #  under the License.
-import ipaddress
 
 from octavia_lib.api.drivers import data_models as driver_dm
 from oslo_config import cfg
@@ -312,9 +311,12 @@ class LoadBalancersController(base.BaseController):
         neutron-lbaas LBaaS v2 API.
         """
         is_children = (
-                id and remainder and (
-                remainder[0] == 'status' or remainder[0] == 'statuses' or
-                (remainder[0] == 'stats' or remainder[0] == 'failover')))
+            id and remainder and (
+                remainder[0] == 'status' or remainder[0] == 'statuses' or (
+                    remainder[0] == 'stats' or remainder[0] == 'failover'
+                )
+            )
+        )
         # NOTE(gtema): currently not exposing any sub stuff
         if is_children:
             controller = remainder[0]
