@@ -7,6 +7,7 @@ from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import member as _member
 from octavia_proxy.api.v2.types import pool as _pool
+from octavia_proxy.common.utils import elbv3_backmapping, elbv3_foremapping
 
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
@@ -59,9 +60,11 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_data = self.loadbalancer_get(
                 project_id=project_id, session=session,
                 lb_id=query_filter['id'])
+            lb_data = elbv3_backmapping(lb_data)
             result.append(lb_data)
         else:
             for lb in session.vlb.load_balancers(**query_filter):
+                lb = elbv3_backmapping(lb)
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                     self._normalize_lb(lb))
                 lb_data.provider = PROVIDER
@@ -75,6 +78,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb = session.vlb.find_load_balancer(
             name_or_id=lb_id, ignore_missing=True)
         if lb:
+            lb = elbv3_backmapping(lb)
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
                 self._normalize_lb(lb))
             lb_data.provider = PROVIDER
@@ -86,16 +90,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_attrs = loadbalancer.to_dict()
 
         lb_attrs.pop('loadbalancer_id', None)
-        if 'vip_subnet_id' in lb_attrs:
-            lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
-        if 'vip_network_id' in lb_attrs:
-            lb_attrs['elb_virsubnet_ids'] = [lb_attrs.pop('vip_network_id')]
-        lb_attrs['availability_zone_list'] = [
-            lb_attrs.pop('availability_zone', 'eu-nl-01')
-        ]
+        lb_attrs = elbv3_foremapping(lb_attrs)
 
         lb = session.vlb.create_load_balancer(**lb_attrs)
-
+        lb = elbv3_backmapping(lb)
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
 
@@ -110,7 +108,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb = session.vlb.update_load_balancer(
             original_load_balancer.id,
             **new_attrs)
-
+        lb = elbv3_backmapping(lb)
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             lb)
         lb_data.provider = PROVIDER

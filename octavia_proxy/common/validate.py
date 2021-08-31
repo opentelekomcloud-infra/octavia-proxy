@@ -19,6 +19,7 @@ Defined here so these can also be used at deeper levels than the API.
 """
 import re
 
+import netaddr
 from oslo_config import cfg
 
 from octavia_proxy.common import constants, exceptions
@@ -51,3 +52,38 @@ def check_session_persistence(SP_dict):
     except Exception as e:
         raise exceptions.ValidationException(detail=_(
             'Invalid session_persistence provided.')) from e
+
+
+def subnet_exists(subnet_id, context=None):
+    """Raises an exception when a subnet does not exist."""
+    session = context.session
+    try:
+        subnet = session.network.get_subnet(subnet_id)
+    except Exception as e:
+        raise exceptions.InvalidSubresource(
+            resource='Subnet', id=subnet_id) from e
+    return subnet
+
+
+def network_exists_optionally_contains_subnet(network_id, subnet_id=None,
+                                              context=None):
+    """Raises an exception when a network does not exist.
+    If a subnet is provided, also validate the network contains that subnet.
+    """
+    session = context.session
+    try:
+        network = session.network.get_network(network_id)
+    except Exception as e:
+        raise exceptions.InvalidSubresource(
+            resource='Network', id=network_id) from e
+    if subnet_id:
+        if not network.subnet_ids or subnet_id not in network.subnet_ids:
+            raise exceptions.InvalidSubresource(resource='Subnet',
+                                                id=subnet_id)
+    return network
+
+
+def is_ip_member_of_cidr(address, cidr):
+    if netaddr.IPAddress(address) in netaddr.IPNetwork(cidr):
+        return True
+    return False
