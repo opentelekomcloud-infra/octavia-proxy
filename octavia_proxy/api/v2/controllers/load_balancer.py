@@ -295,10 +295,12 @@ class LoadBalancersController(base.BaseController):
 
         provider = self._get_provider(context.session, load_balancer)
 
-        self._validate_vip_request_object(load_balancer, context=context)
-
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(provider)
+
+        self._validate_vip_request_object(load_balancer, context=context)
+        self._validate_flavor(driver, load_balancer, context=context)
+        self._validate_availability_zone(context.session, load_balancer)
 
         lb_dict = load_balancer.to_dict(render_unsets=False)
         lb_dict['id'] = None
@@ -385,3 +387,9 @@ class LoadBalancersController(base.BaseController):
             if controller == 'failover':
                 pecan_abort(501)
         return None
+
+    def _validate_flavor(self, driver, load_balancer, context):
+        pass
+
+    def _validate_availability_zone(self, session, load_balancer):
+        pass
