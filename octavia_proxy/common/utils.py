@@ -175,6 +175,7 @@ class exception_logger(object):
               any occurred
 
     """
+
     def __init__(self, logger=None):
         self.logger = logger
 
@@ -190,4 +191,28 @@ class exception_logger(object):
                 with excutils.save_and_reraise_exception():
                     self.logger(e)
             return None
+
         return call
+
+
+def elbv3_foremapping(attrs):
+    if 'vip_subnet_id' in attrs:
+        attrs['vip_subnet_cidr_id'] = attrs['vip_subnet_id']
+    if 'vip_network_id' in attrs:
+        attrs['elb_virsubnet_ids'] = [attrs.pop('vip_network_id')]
+    attrs['availability_zone_list'] = [
+        attrs.pop('availability_zone', 'eu-nl-01')
+    ]
+    return attrs
+
+
+def elbv3_backmapping(load_balancer):
+    if load_balancer.l4_flavor_id:
+        load_balancer.flavor_id = load_balancer.l4_flavor_id
+    if load_balancer.l7_flavor_id:
+        load_balancer.flavor_id = load_balancer.l7_flavor_id
+    if load_balancer.availability_zones:
+        load_balancer.availability_zone = ', '.join(
+            load_balancer.availability_zones
+        )
+    return load_balancer

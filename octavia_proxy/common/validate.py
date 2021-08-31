@@ -54,25 +54,6 @@ def check_session_persistence(SP_dict):
             'Invalid session_persistence provided.')) from e
 
 
-def port_exists(port_id, context=None):
-    """Raises an exception when a port does not exist."""
-    session = context.session
-    try:
-        port = session.network.get_port(port_id)
-    except Exception as e:
-        raise exceptions.InvalidSubresource(resource='Port', id=port_id) from e
-    return port
-
-
-def check_port_in_use(port):
-    """Raise an exception when a port is used."""
-    if port.device_id:
-        raise exceptions.ValidationException(detail=_(
-            "Port %(port_id)s is already used by device %(device_id)s "
-        ) % {'port_id': port.id, 'device_id': port.device_id})
-    return False
-
-
 def subnet_exists(subnet_id, context=None):
     """Raises an exception when a subnet does not exist."""
     session = context.session
@@ -82,16 +63,6 @@ def subnet_exists(subnet_id, context=None):
         raise exceptions.InvalidSubresource(
             resource='Subnet', id=subnet_id) from e
     return subnet
-
-
-def qos_policy_exists(qos_policy_id, context=None):
-    session = context.session
-    try:
-        qos_policy = session.network.get_qos_policy(qos_policy_id)
-    except Exception as e:
-        raise exceptions.InvalidSubresource(
-            resource='qos_policy', id=qos_policy_id) from e
-    return qos_policy
 
 
 def network_exists_optionally_contains_subnet(network_id, subnet_id=None,
