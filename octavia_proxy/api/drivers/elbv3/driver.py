@@ -114,6 +114,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data.provider = PROVIDER
         return lb_data
 
+    def loadbalancer_cascade_delete(self, session, loadbalancer):
+        pass
+
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
         """Delete a load balancer
 
@@ -123,8 +126,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         :returns: ``None``
         """
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
-
-        session.vlb.delete_load_balancer(loadbalancer.id)
+        if cascade:
+            self.loadbalancer_cascade_delete(session, loadbalancer)
+        else:
+            session.vlb.delete_load_balancer(loadbalancer.id)
 
     def listeners(self, session, project_id, query_filter=None):
         LOG.debug('Fetching listeners')
