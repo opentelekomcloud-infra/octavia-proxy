@@ -323,17 +323,23 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def l7policies(self, session, project_id, query_filter=None):
         LOG.debug('Fetching L7 policies')
-        LOG.debug("444444444444444444444444444444444411111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
         if not query_filter:
             query_filter = {}
 
         results = []
-        for l7_policy in session.elb.l7_policies(**query_filter):
-            l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
-                l7_policy
+        if 'id' in query_filter:
+            policy_data = self.l7policy_get(
+                project_id=project_id, session=session,
+                l7_policy=query_filter['id']
             )
-            l7policy_data.provider = PROVIDER
-            results.append(l7policy_data)
+            results.append(policy_data)
+        else:
+            for l7_policy in session.elb.l7_policies(**query_filter):
+                l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
+                    l7_policy
+                )
+                l7policy_data.provider = PROVIDER
+                results.append(l7policy_data)
         return results
 
     def l7policy_get(self, session, project_id, l7_policy):
@@ -347,7 +353,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         if l7policy:
             l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
-                l7_policy
+                l7policy
             )
             l7policy_data.provider = PROVIDER
             return l7policy_data
@@ -366,7 +372,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Updating L7 Policy')
 
         l7_policy = session.elb.update_l7_policy(
-            l7_policy=original_l7policy,
+            l7_policy=original_l7policy.id,
             **new_attrs
         )
 
@@ -378,6 +384,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Deleting L7 Policy %s' % l7policy.to_dict())
 
         session.elb.delete_l7_policy(
-            l7_policy=l7policy,
+            l7_policy=l7policy.id,
             ignore_missing=ignore_missing
         )

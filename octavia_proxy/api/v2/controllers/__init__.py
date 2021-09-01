@@ -24,7 +24,7 @@ class BaseV2Controller(base.BaseController):
         self.loadbalancers = load_balancer.LoadBalancersController()
         self.listeners = listener.ListenersController()
         self.pools = pool.PoolsController()
-        self.l7policies = l7policy.L7PolicyController()
+        self.l7policies = l7policy.L7PoliciesController()
         self.healthmonitors = health_monitor.HealthMonitorController()
 #        self.quotas = quotas.QuotasController()
         self.providers = provider.ProviderController()

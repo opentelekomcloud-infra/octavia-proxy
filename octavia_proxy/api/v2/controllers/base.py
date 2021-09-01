@@ -189,7 +189,6 @@ class BaseController(pecan_rest.RestController):
 
         return l7policy
 
-
     @staticmethod
     def _validate_protocol(listener_protocol, pool_protocol):
         proto_map = constants.VALID_LISTENER_POOL_PROTOCOL_MAP

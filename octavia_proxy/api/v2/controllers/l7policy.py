@@ -13,7 +13,6 @@
 #    under the License.
 from oslo_config import cfg
 from oslo_log import log as logging
-from pecan import abort as pecan_abort
 from pecan import expose as pecan_expose
 from pecan import request as pecan_request
 from wsme import types as wtypes
@@ -31,7 +30,7 @@ CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-class L7PolicyController(base.BaseController):
+class L7PoliciesController(base.BaseController):
 
     RBAC_TYPE = constants.RBAC_L7POLICY
 
@@ -59,7 +58,6 @@ class L7PolicyController(base.BaseController):
         """Lists all l7policies of a listener."""
         pcontext = pecan_request.context
         context = pcontext.get('octavia_context')
-        LOG.debug("1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
         query_filter = self._auth_get_all(context, project_id)
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
         query_filter.update(query_params)
@@ -71,8 +69,6 @@ class L7PolicyController(base.BaseController):
             driver = driver_factory.get_driver(provider)
 
             try:
-                LOG.debug(
-                    "2222222222222222222222222221111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
                 l7policies = driver_utils.call_provider(
                     driver.name, driver.l7policies,
                     context.session,
@@ -89,14 +85,10 @@ class L7PolicyController(base.BaseController):
 
         if fields is not None:
             result = self._filter_fields(result, fields)
-        LOG.debug("3333333333333333333333111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
+
         return l7policy_types.L7PoliciesRootResponse(
             l7policies=result, l7policies_links=links
         )
-
-    def _validate_create_l7policy(self):
-        """Validate creating l7 policy."""
-        pass
 
     @wsme_pecan.wsexpose(l7policy_types.L7PolicyRootResponse,
                          body=l7policy_types.L7PolicyRootPOST, status_code=201)
@@ -118,8 +110,6 @@ class L7PolicyController(base.BaseController):
         else:
             msg = "Must provide listener_id"
             raise exceptions.ValidationException(detail=msg)
-
-        self._validate_create_l7policy()
 
         driver = driver_factory.get_driver(listener.provider)
         result = driver_utils.call_provider(
@@ -174,7 +164,7 @@ class L7PolicyController(base.BaseController):
         driver = driver_factory.get_driver(l7policy.provider)
 
         driver_utils.call_provider(
-            driver.name, driver.listener_delete,
+            driver.name, driver.l7policy_delete,
             context.session,
             l7policy)
 
