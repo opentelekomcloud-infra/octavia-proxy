@@ -32,6 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 class L7PolicyController(base.BaseController):
+
     RBAC_TYPE = constants.RBAC_L7POLICY
 
     def __init__(self):
@@ -58,7 +59,7 @@ class L7PolicyController(base.BaseController):
         """Lists all l7policies of a listener."""
         pcontext = pecan_request.context
         context = pcontext.get('octavia_context')
-
+        LOG.debug("1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
         query_filter = self._auth_get_all(context, project_id)
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
         query_filter.update(query_params)
@@ -70,6 +71,8 @@ class L7PolicyController(base.BaseController):
             driver = driver_factory.get_driver(provider)
 
             try:
+                LOG.debug(
+                    "2222222222222222222222222221111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
                 l7policies = driver_utils.call_provider(
                     driver.name, driver.l7policies,
                     context.session,
@@ -86,7 +89,8 @@ class L7PolicyController(base.BaseController):
 
         if fields is not None:
             result = self._filter_fields(result, fields)
-        return l7policy_types.L7PolicyRootResponse(
+        LOG.debug("3333333333333333333333111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
+        return l7policy_types.L7PoliciesRootResponse(
             l7policies=result, l7policies_links=links
         )
 
@@ -133,12 +137,46 @@ class L7PolicyController(base.BaseController):
                          status_code=200)
     def put(self, id, l7policy_):
         """Updates a l7policy."""
-        pecan_abort(501)
+        l7policy = l7policy_.l7policy
+        context = pecan_request.context.get('octavia_context')
+
+        orig_l7policy = self.find_l7policy(context, id)
+
+        self._auth_validate_action(
+            context, orig_l7policy.project_id,
+            constants.RBAC_PUT)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(orig_l7policy.provider)
+
+        # Prepare the data for the driver data model
+        l7policy_dict = l7policy.to_dict(render_unsets=False)
+
+        result = driver_utils.call_provider(
+            driver.name, driver.l7policy_update,
+            context.session,
+            orig_l7policy, l7policy_dict)
+
+        return l7policy_types.L7PolicyRootResponse(l7policy=result)
 
     @wsme_pecan.wsexpose(None, wtypes.text, status_code=204)
     def delete(self, id):
         """Deletes a l7policy."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+
+        l7policy = self.find_l7policy(context, id)
+
+        self._auth_validate_action(
+            context, l7policy.project_id,
+            constants.RBAC_DELETE)
+
+        # Load the driver early as it also provides validation
+        driver = driver_factory.get_driver(l7policy.provider)
+
+        driver_utils.call_provider(
+            driver.name, driver.listener_delete,
+            context.session,
+            l7policy)
 
     @pecan_expose()
     def _lookup(self, l7policy_id, *remainder):
