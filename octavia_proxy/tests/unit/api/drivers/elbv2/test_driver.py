@@ -513,13 +513,13 @@ class TestElbv2L7Policy(base.TestCase):
         }
         self.driver.l7policy_update(self.sess, self.l7_policy, attrs)
         self.sess.elb.update_l7_policy.assert_called_with(
-            l7_policy=self.l7_policy, **attrs
+            l7_policy=self.l7_policy.id, **attrs
         )
 
     def test_l7policy_delete(self):
         self.driver.l7policy_delete(self.sess, self.l7_policy)
         self.sess.elb.delete_l7_policy.assert_called_with(
-            l7_policy=self.l7_policy,
+            l7_policy=self.l7_policy.id,
             ignore_missing=True
         )
 
