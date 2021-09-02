@@ -273,7 +273,7 @@ MIN_POLICY_POSITION = 1
 # here if you're using MySQL, as most probably are. This just needs
 # to be larger than any existing rule position numbers which will
 # definitely be the case with 2147483647
-MAX_POLICY_POSITION = 20
+MAX_POLICY_POSITION = 100
 MAX_POLICY_POSITION_V3 = 100
 
 # Testing showed haproxy config failed to parse after more than

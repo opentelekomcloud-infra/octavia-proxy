@@ -66,12 +66,15 @@ class L7PolicyResponse(BaseL7PolicyType):
             'action', 'description', 'listener_id', 'operating_status',
             'position', 'project_id', 'redirect_pool_id', 'redirect_url',
             'provisioning_status', 'redirect_prefix', 'redirect_http_code',
-            'tags', 'admin_state_up'
+            'tags'
         ]:
             if hasattr(sdk_entity, key):
                 v = getattr(sdk_entity, key)
                 if v:
                     setattr(l7_policy, key, v)
+
+        if sdk_entity.is_admin_state_up:
+            l7_policy.admin_state_up = sdk_entity.is_admin_state_up
 
         if sdk_entity.rules:
             l7_policy.rules = [

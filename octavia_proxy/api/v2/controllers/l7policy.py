@@ -119,9 +119,6 @@ class L7PoliciesController(base.BaseController):
         )
         return l7policy_types.L7PolicyRootResponse(l7policy=result)
 
-    def _validate_update_l7policy(self):
-        pass
-
     @wsme_pecan.wsexpose(l7policy_types.L7PolicyRootResponse,
                          wtypes.text, body=l7policy_types.L7PolicyRootPUT,
                          status_code=200)
