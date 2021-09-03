@@ -269,11 +269,7 @@ SUPPORTED_L7POLICY_REDIRECT_HTTP_CODES = [301, 302, 303, 307, 308]
 SUPPORTED_HTTP_VERSIONS = [1.0, 1.1]
 
 MIN_POLICY_POSITION = 1
-# Largest a 32-bit integer can be, which is a limitation
-# here if you're using MySQL, as most probably are. This just needs
-# to be larger than any existing rule position numbers which will
-# definitely be the case with 2147483647
-MAX_POLICY_POSITION = 2147483647
+MAX_POLICY_POSITION = 100
 MAX_POLICY_POSITION_V3 = 100
 
 # Testing showed haproxy config failed to parse after more than

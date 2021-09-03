@@ -7,6 +7,7 @@ from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import member as _member
 from octavia_proxy.api.v2.types import pool as _pool
+from octavia_proxy.api.v2.types import l7policy as _l7policy
 from octavia_proxy.common.utils import elbv3_backmapping, elbv3_foremapping
 
 LOG = logging.getLogger(__name__)
@@ -396,6 +397,73 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def health_monitor_delete(self, session, healthmonitor):
         LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
         session.vlb.delete_health_monitor(healthmonitor.id)
+
+    def l7policies(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching L7 policies')
+        if not query_filter:
+            query_filter = {}
+
+        results = []
+        if 'id' in query_filter:
+            policy_data = self.l7policy_get(
+                project_id=project_id, session=session,
+                l7_policy=query_filter['id']
+            )
+            results.append(policy_data)
+        else:
+            for l7_policy in session.vlb.l7_policies(**query_filter):
+                l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
+                    l7_policy
+                )
+                l7policy_data.provider = PROVIDER
+                results.append(l7policy_data)
+        return results
+
+    def l7policy_get(self, session, project_id, l7_policy):
+        LOG.debug('Searching for L7 Policy')
+
+        l7policy = session.vlb.find_l7_policy(
+            name_or_id=l7_policy,
+            ignore_missing=True
+        )
+        LOG.debug('l7policy is %s' % l7policy)
+
+        if l7policy:
+            l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
+                l7policy
+            )
+            l7policy_data.provider = PROVIDER
+            return l7policy_data
+
+    def l7policy_create(self, session, policy_l7):
+        l7policy_attrs = policy_l7.to_dict()
+        LOG.debug('Creating L7 Policy %s' % l7policy_attrs)
+
+        l7_policy = session.vlb.create_l7_policy(**l7policy_attrs)
+        l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+        l7_policy_data.provider = PROVIDER
+        LOG.debug('Created L7 Policy according to API is %s' % l7_policy_data)
+        return l7_policy_data
+
+    def l7policy_update(self, session, original_l7policy, new_attrs):
+        LOG.debug('Updating L7 Policy')
+
+        l7_policy = session.vlb.update_l7_policy(
+            l7_policy=original_l7policy.id,
+            **new_attrs
+        )
+
+        l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
+        l7_policy_data.provider = PROVIDER
+        return l7_policy_data
+
+    def l7policy_delete(self, session, l7policy, ignore_missing=True):
+        LOG.debug('Deleting L7 Policy %s' % l7policy.to_dict())
+
+        session.vlb.delete_l7_policy(
+            l7_policy=l7policy.id,
+            ignore_missing=ignore_missing
+        )
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
