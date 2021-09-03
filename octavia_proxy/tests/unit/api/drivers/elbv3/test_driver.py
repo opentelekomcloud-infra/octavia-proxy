@@ -16,7 +16,8 @@ from unittest import mock
 import requests
 from keystoneauth1 import adapter
 from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
-                                      member, health_monitor)
+                                      member, health_monitor,
+                                      l7_policy)
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.tests.unit import base
@@ -431,6 +432,106 @@ class TestElbv3HealthMonitorDriver(base.TestCase):
         self.driver.health_monitor_delete(self.sess, self.hm)
         self.sess.vlb.delete_health_monitor.assert_called_with(self.hm.id)
 
+
+class TestElbv3L7Policy(base.TestCase):
+    attrs = {
+        "action": "REDIRECT_TO_POOL",
+        "admin_state_up": True,
+        "created_at": "2021-08-20T12:14:57",
+        "description": "test_description",
+        "id": "8a1412f0-4c32-4257-8b07-af4770b604fd",
+        "listener_id": "07f0a424-cdb9-4584-b9c0-6a38fbacdc3a",
+        "name": "test_l7_policy",
+        "operating_status": "ONLINE",
+        "position": 1,
+        "project_id": "e3cd678b11784734bc366148aa37580e",
+        "provisioning_status": "ACTIVE",
+        "redirect_pool_id": "6460f13a-76de-43c7-b776-4fefc06a676e",
+        "redirect_prefix": None,
+        "redirect_url": "http://www.example.com",
+        "rules": [{
+            "id": "742600d9-2a14-4808-af69-336883dbb590"
+        }],
+        "updated_at": "2021-08-20T12:15:57"
+    }
+    fakeCallCreate = {
+        'listener_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'description': 'test_description',
+        'action': 'REDIRECT_TO_POOL',
+        'fixed_response_config': None,
+        'id': '8a1412f0-4c32-4257-8b07-af4770b604fd',
+        'is_admin_state_up': True,
+        'location': None,
+        'name': 'test_l7_policy',
+        'position': 1,
+        'priority': None,
+        'project_id': 'e3cd678b11784734bc366148aa37580e',
+        'provisioning_status': 'ACTIVE',
+        'redirect_listener_id': None,
+        'redirect_pool_id': '6460f13a-76de-43c7-b776-4fefc06a676e',
+        'redirect_url': 'http://www.example.com',
+        'redirect_url_config': None,
+        'rules': [{
+            'id': '742600d9-2a14-4808-af69-336883dbb590'
+        }]
+
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.sess.vlb = mock.MagicMock()
+        self.l7_policy = l7_policy.L7Policy(**self.attrs)
+        self.sess.vlb.create_l7_policy = mock.MagicMock(
+            return_value=self.l7_policy
+        )
+        self.sess.vlb.find_l7_policy = mock.MagicMock(
+            return_value=self.l7_policy
+        )
+        self.sess.vlb.update_l7_policy = mock.MagicMock(
+            return_value=self.l7_policy
+        )
+
+    def test_l7policies_no_qp(self):
+        self.driver.l7policies(self.sess, 'l7')
+        self.sess.vlb.l7_policies.assert_called_with()
+
+    def test_l7policies_qp(self):
+        self.driver.l7policies(
+            self.sess, 'l7',
+            query_filter={'a': 'b'}
+        )
+        self.sess.vlb.l7_policies.assert_called_with(
+            a='b'
+        )
+
+    def test_l7policy_get(self):
+        self.driver.l7policy_get(self.sess, 'test', self.l7_policy.id)
+        self.sess.vlb.find_l7_policy.assert_called_with(
+            name_or_id=self.l7_policy.id, ignore_missing=True)
+
+    def test_l7policy_create(self):
+        self.driver.l7policy_create(self.sess, self.l7_policy)
+        self.sess.vlb.create_l7_policy.assert_called_with(
+            **self.fakeCallCreate
+        )
+
+    def test_l7policy_update(self):
+        attrs = {
+            'description': 'New Description',
+        }
+        self.driver.l7policy_update(self.sess, self.l7_policy, attrs)
+        self.sess.vlb.update_l7_policy.assert_called_with(
+            l7_policy=self.l7_policy.id, **attrs
+        )
+
+    def test_l7policy_delete(self):
+        self.driver.l7policy_delete(self.sess, self.l7_policy)
+        self.sess.vlb.delete_l7_policy.assert_called_with(
+            l7_policy=self.l7_policy.id,
+            ignore_missing=True
+        )
 
 class TestElbv3DriverRequests(base.TestCase):
 
