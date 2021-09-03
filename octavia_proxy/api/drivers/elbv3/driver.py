@@ -60,7 +60,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_data = self.loadbalancer_get(
                 project_id=project_id, session=session,
                 lb_id=query_filter['id'])
-            lb_data = elbv3_backmapping(lb_data)
             result.append(lb_data)
         else:
             for lb in session.vlb.load_balancers(**query_filter):
@@ -115,7 +114,32 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return lb_data
 
     def loadbalancer_cascade_delete(self, session, loadbalancer):
-        pass
+        listeners = []
+        pools = []
+        members = []
+        healthmonitors = []
+        l7policies = []
+        l7rules = []
+        lb = session.vlb.find_load_balancer(
+            name_or_id=loadbalancer.id, ignore_missing=True)
+        if lb:
+            if lb.listeners:
+                listeners = [ls['id'] for ls in lb.listeners]
+            # for ls in listeners:
+            #     l = session.vlb.find_listener(
+            #         name_or_id=ls, ignore_missing=True)
+            #     if l:
+            #         l7policies.append(l.l7policies)
+            if lb.pools:
+                pools = [pl['id'] for pl in lb.pools]
+            for pool in pools:
+                pl = session.vlb.find_pool(
+                    name_or_id=pool, ignore_missing=True)
+                if pl and pl.healthmonitor_id:
+                    healthmonitors.append(pl.healthmonitor_id)
+                if pl and pl.members:
+                    members.append([mem['id'] for mem in pl.members])
+
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
         """Delete a load balancer
