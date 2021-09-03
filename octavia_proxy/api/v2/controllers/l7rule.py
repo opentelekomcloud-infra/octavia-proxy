@@ -11,9 +11,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+from oslo_config import cfg
 from oslo_log import log as logging
 from pecan import abort as pecan_abort
+from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
@@ -21,6 +22,7 @@ from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import l7rule as l7rule_types
 from octavia_proxy.common import constants
 
+CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -36,13 +38,52 @@ class L7RuleController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get(self, id, fields=None):
         """Gets a single l7rule's details."""
-        pecan_abort(501)
+        context = pecan_request.context.get('octavia_context')
+        l7rule = self.find_l7rule(context, self.l7policy_id, id)
+
+        self._auth_validate_action(context, l7rule.project_id,
+                                   constants.RBAC_GET_ONE)
+
+        if fields is not None:
+            l7rule = self._filter_fields([l7rule], fields)[0]
+        return l7rule_types.L7RuleRootResponse(l7rule=l7rule)
 
     @wsme_pecan.wsexpose(l7rule_types.L7RulesRootResponse, [wtypes.text],
                          ignore_extra_args=True)
-    def get_all(self, fields=None):
+    def get_all(self, project_id, fields=None):
         """Lists all l7rules of a l7policy."""
-        pecan_abort(501)
+        pcontext = pecan_request.context
+        context = pcontext.get('octavia_context')
+
+        query_filter = self._auth_get_all(context, project_id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+
+        query_filter.update(query_params)
+
+        enabled_providers = CONF.api_settings.enabled_provider_drivers
+        result = []
+        links = []
+
+        for provider in enabled_providers:
+            driver = driver_factory.get_driver(provider)
+
+            try:
+                members = driver_utils.call_provider(
+                    driver.name, driver.members,
+                    context.session,
+                    context.project_id,
+                    self.pool_id,
+                    query_filter)
+                if members:
+                    LOG.debug('Received %s from %s' % (members, driver.name))
+                    result.extend(members)
+            except exceptions.ProviderNotImplementedError:
+                LOG.exception('Driver %s is not supporting this')
+
+        if fields is not None:
+            result = self._filter_fields(result, fields)
+        return member_types.MembersRootResponse(
+            members=result, members_links=links)
 
     @wsme_pecan.wsexpose(l7rule_types.L7RuleRootResponse,
                          body=l7rule_types.L7RuleRootPOST, status_code=201)
