@@ -116,7 +116,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data.provider = PROVIDER
         return lb_data
 
-
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
         """Delete a load balancer
 
