@@ -236,7 +236,12 @@ def collect_load_balancer_resources(loadbalancer, session):
             resources['l7policies'].append(pol.id)
             if pol.rules:
                 for rule in pol.rules:
-                    resources['l7rules'].append(rule['id'])
+                    resources['l7rules'].append(
+                        {
+                            'rule': rule['id'],
+                            'policy': pol.id
+                        }
+                    )
     if loadbalancer.pools:
         resources['pools'] = [pl['id'] for pl in loadbalancer.pools]
     for pool in resources['pools']:
@@ -246,5 +251,36 @@ def collect_load_balancer_resources(loadbalancer, session):
             resources['healthmonitors'].append(pl.healthmonitor_id)
         if pl and pl.members:
             for mem in pl.members:
-                resources['members'].append(mem['id'])
+                resources['members'].append(
+                    {
+                        'member': mem['id'],
+                        'pool': pl.id
+                    }
+                )
     return resources
+
+
+def loadbalancer_cascade_delete(session, loadbalancer):
+    lb = session.vlb.find_load_balancer(
+        name_or_id=loadbalancer.id, ignore_missing=True)
+    if lb:
+        resources = collect_load_balancer_resources(lb, session)
+    for rule in resources['l7rules']:
+        session.vlb.delete_l7_rule(
+            l7rule=rule['rule'],
+            l7_policy=rule['policy']
+        )
+    for policy in resources['l7policies']:
+        session.vlb.delete_l7_policy(policy)
+    for healthmonitor in resources['healthmonitors']:
+        session.vlb.delete_health_monitor(healthmonitor)
+    for member in resources['members']:
+        session.vlb.delete_member(
+            member=member['member'],
+            pool=member['pool']
+        )
+    for pool in resources['pools']:
+        session.vlb.delete_pool(pool)
+    for listener in resources['listeners']:
+        session.vlb.delete_listener(listener)
+    session.vlb.delete_load_balancer(loadbalancer.id)

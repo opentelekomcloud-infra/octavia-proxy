@@ -8,7 +8,9 @@ from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import member as _member
 from octavia_proxy.api.v2.types import pool as _pool
-from octavia_proxy.common.utils import elbv3_backmapping, elbv3_foremapping, collect_load_balancer_resources
+from octavia_proxy.common.utils import (
+    elbv3_backmapping, elbv3_foremapping, loadbalancer_cascade_delete
+)
 
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
@@ -114,11 +116,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data.provider = PROVIDER
         return lb_data
 
-    def loadbalancer_cascade_delete(self, session, loadbalancer):
-        lb = session.vlb.find_load_balancer(
-            name_or_id=loadbalancer.id, ignore_missing=True)
-        if lb:
-            resources = collect_load_balancer_resources(lb, session)
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
         """Delete a load balancer
@@ -130,7 +127,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         """
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
         if cascade:
-            self.loadbalancer_cascade_delete(session, loadbalancer)
+            loadbalancer_cascade_delete(session, loadbalancer)
         else:
             session.vlb.delete_load_balancer(loadbalancer.id)
 
