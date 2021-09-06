@@ -3,12 +3,12 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import health_monitor as _hm
+from octavia_proxy.api.v2.types import l7policy as _l7policy
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import member as _member
 from octavia_proxy.api.v2.types import pool as _pool
-from octavia_proxy.api.v2.types import l7policy as _l7policy
-from octavia_proxy.common.utils import elbv3_backmapping, elbv3_foremapping
+from octavia_proxy.common.utils import elbv3_backmapping, elbv3_foremapping, collect_load_balancer_resources
 
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
@@ -115,32 +115,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return lb_data
 
     def loadbalancer_cascade_delete(self, session, loadbalancer):
-        listeners = []
-        pools = []
-        members = []
-        healthmonitors = []
-        l7policies = []
-        l7rules = []
         lb = session.vlb.find_load_balancer(
             name_or_id=loadbalancer.id, ignore_missing=True)
         if lb:
-            if lb.listeners:
-                listeners = [ls['id'] for ls in lb.listeners]
-            # for ls in listeners:
-            #     l = session.vlb.find_listener(
-            #         name_or_id=ls, ignore_missing=True)
-            #     if l:
-            #         l7policies.append(l.l7policies)
-            if lb.pools:
-                pools = [pl['id'] for pl in lb.pools]
-            for pool in pools:
-                pl = session.vlb.find_pool(
-                    name_or_id=pool, ignore_missing=True)
-                if pl and pl.healthmonitor_id:
-                    healthmonitors.append(pl.healthmonitor_id)
-                if pl and pl.members:
-                    members.append([mem['id'] for mem in pl.members])
-
+            resources = collect_load_balancer_resources(lb, session)
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
         """Delete a load balancer

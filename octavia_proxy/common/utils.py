@@ -216,3 +216,35 @@ def elbv3_backmapping(load_balancer):
             load_balancer.availability_zones
         )
     return load_balancer
+
+
+def collect_load_balancer_resources(loadbalancer, session):
+    resources = {
+        'listeners': [],
+        'pools': [],
+        'members': [],
+        'healthmonitors': [],
+        'l7policies': [],
+        'l7rules': []
+    }
+    if loadbalancer.listeners:
+        resources['listeners'] = [ls['id'] for ls in loadbalancer.listeners]
+    for ls in loadbalancer.listeners:
+        policies = session.vlb.l7_policies(
+            listener_id=ls['id'])
+        for pol in policies:
+            resources['l7policies'].append(pol.id)
+            if pol.rules:
+                for rule in pol.rules:
+                    resources['l7rules'].append(rule['id'])
+    if loadbalancer.pools:
+        resources['pools'] = [pl['id'] for pl in loadbalancer.pools]
+    for pool in resources['pools']:
+        pl = session.vlb.find_pool(
+            name_or_id=pool, ignore_missing=True)
+        if pl and pl.healthmonitor_id:
+            resources['healthmonitors'].append(pl.healthmonitor_id)
+        if pl and pl.members:
+            for mem in pl.members:
+                resources['members'].append(mem['id'])
+    return resources
