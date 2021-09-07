@@ -178,7 +178,8 @@ class TestElbv3Driver(base.TestCase):
         self.driver.loadbalancer_delete(self.sess, self.lb, cascade=True)
         self.sess.vlb.delete_health_monitor.assert_called()
         self.sess.vlb.delete_pool.assert_called_with(self.lb.pools[0]['id'])
-        self.sess.vlb.delete_listener.assert_called_with(self.lb.listeners[0]['id'])
+        self.sess.vlb.delete_listener.assert_called_with(
+            self.lb.listeners[0]['id'])
         self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
 
     def test_flavors_qp(self):
