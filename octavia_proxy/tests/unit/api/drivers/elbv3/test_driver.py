@@ -48,11 +48,78 @@ class FakeResponse:
 
 
 class TestElbv3Driver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'name': 'test',
+        'availability_zone': 'eu-nl-01',
+        'admin_state_up': True,
+        'tags': [],
+        'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'network_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'description': 'Test',
+        'guaranteed': True,
+        'l7policies': [],
+        'listeners': [],
+        'pools': [],
+        'location': None,
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'provider': 'elbv3',
+        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
+    }
+    fakeCallCreate = {
+        'availability_zone_list': ['eu-nl-01'],
+        'availability_zones': None,
+        'billing_info': None,
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'description': 'Test',
+        'eips': None,
+        'elb_virsubnet_ids': [None],
+        'flavor_id': None,
+        'floating_ip': None,
+        'floating_ips': None,
+        'guaranteed': True,
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'ip_target_enable': None,
+        'ipv6_vip_address': None,
+        'ipv6_vip_port_id': None,
+        'ipv6_vip_subnet_id': None,
+        'is_admin_state_up': True,
+        'l4_flavor_id': None,
+        'l4_scale_flavor_id': None,
+        'l7_flavor_id': None,
+        'l7_scale_flavor_id': None,
+        'l7policies': [],
+        'listeners': [],
+        'pools': [],
+        'location': None,
+        'name': 'test',
+        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
+        'operating_status': None,
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'provider': 'elbv3',
+        'provisioning_status': None,
+        'tags': [],
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'vip_address': None,
+        'vip_port_id': None,
+        'vip_qos_policy_id': None,
+        'vip_subnet_cidr_id': None,
+        'vip_subnet_id': None,
+        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'
+    }
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv3Driver()
+        self.lb = load_balancer.LoadBalancer(**self.attrs)
         self.sess = mock.MagicMock()
         self.sess.vlb = mock.MagicMock()
+        self.sess.vlb.create_load_balancer = mock.MagicMock(return_value=self.lb)
+        self.sess.vlb.find_load_balancer = mock.MagicMock(return_value=self.lb)
+        self.sess.vlb.update_load_balancer = mock.MagicMock(return_value=self.lb)
 
     def test_get_supported_flavor_metadata(self):
         resp = self.driver.get_supported_flavor_metadata()
@@ -80,6 +147,35 @@ class TestElbv3Driver(base.TestCase):
         self.sess.vlb.load_balancers.assert_called_with(
             a='b'
         )
+
+    def test_loadbalancer_get(self):
+        self.driver.loadbalancer_get(self.sess, 'test', self.lb)
+        self.sess.vlb.find_load_balancer.assert_called_with(
+            name_or_id=self.lb, ignore_missing=True)
+
+    def test_loadbalancer_create(self):
+        self.driver.loadbalancer_create(self.sess, self.lb)
+        self.sess.vlb.create_load_balancer.assert_called_with(**self.fakeCallCreate)
+
+    def test_loadbalancer_update(self):
+        attrs = {
+            'description': 'New Description',
+            'operating_status': 'ACTIVE',
+        }
+        self.driver.loadbalancer_update(self.sess, self.lb, attrs)
+        self.sess.vlb.update_load_balancer.assert_called_with(self.lb.id, **attrs)
+
+    def test_loadbalancer_delete(self):
+        self.driver.loadbalancer_delete(self.sess, self.lb)
+        self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
+
+    def test_loadbalancer_delete_cascade(self):
+        self.driver.loadbalancer_delete(self.sess, self.lb, cascade=True)
+        self.sess.vlb.find_load_balancer.assert_called_with(
+            ignore_missing=True,
+            name_or_id=self.lb.id
+        )
+        self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
 
     def test_flavors_qp(self):
         self.driver.flavors(
