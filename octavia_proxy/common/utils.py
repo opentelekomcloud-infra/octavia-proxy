@@ -230,7 +230,7 @@ def collect_load_balancer_resources(loadbalancer, session):
     if loadbalancer.listeners:
         resources['listeners'] = [ls['id'] for ls in loadbalancer.listeners]
     for ls in loadbalancer.listeners:
-        policies = session.vlb.l7_policies(
+        policies = session.l7_policies(
             listener_id=ls['id'])
         for pol in policies:
             resources['l7policies'].append(pol.id)
@@ -245,7 +245,7 @@ def collect_load_balancer_resources(loadbalancer, session):
     if loadbalancer.pools:
         resources['pools'] = [pl['id'] for pl in loadbalancer.pools]
     for pool in resources['pools']:
-        pl = session.vlb.find_pool(
+        pl = session.find_pool(
             name_or_id=pool, ignore_missing=True)
         if pl and pl.healthmonitor_id:
             resources['healthmonitors'].append(pl.healthmonitor_id)
@@ -260,27 +260,30 @@ def collect_load_balancer_resources(loadbalancer, session):
     return resources
 
 
-def loadbalancer_cascade_delete(session, loadbalancer):
-    lb = session.vlb.find_load_balancer(
+def loadbalancer_cascade_delete(session, loadbalancer, provider='elbv3'):
+    sess = session.vlb
+    if provider is not 'elbv3':
+        sess = session.elb
+    lb = sess.find_load_balancer(
         name_or_id=loadbalancer.id, ignore_missing=True)
     if lb:
-        resources = collect_load_balancer_resources(lb, session)
+        resources = collect_load_balancer_resources(lb, sess)
     for rule in resources['l7rules']:
-        session.vlb.delete_l7_rule(
+        sess.delete_l7_rule(
             l7rule=rule['rule'],
             l7_policy=rule['policy']
         )
     for policy in resources['l7policies']:
-        session.vlb.delete_l7_policy(policy)
+        sess.delete_l7_policy(policy)
     for healthmonitor in resources['healthmonitors']:
-        session.vlb.delete_health_monitor(healthmonitor)
+        sess.delete_health_monitor(healthmonitor)
     for member in resources['members']:
         session.vlb.delete_member(
             member=member['member'],
             pool=member['pool']
         )
     for pool in resources['pools']:
-        session.vlb.delete_pool(pool)
+        sess.delete_pool(pool)
     for listener in resources['listeners']:
-        session.vlb.delete_listener(listener)
-    session.vlb.delete_load_balancer(loadbalancer.id)
+        sess.delete_listener(listener)
+    sess.delete_load_balancer(loadbalancer.id)
