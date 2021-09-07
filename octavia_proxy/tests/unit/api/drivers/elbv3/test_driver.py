@@ -117,9 +117,12 @@ class TestElbv3Driver(base.TestCase):
         self.lb = load_balancer.LoadBalancer(**self.attrs)
         self.sess = mock.MagicMock()
         self.sess.vlb = mock.MagicMock()
-        self.sess.vlb.create_load_balancer = mock.MagicMock(return_value=self.lb)
-        self.sess.vlb.find_load_balancer = mock.MagicMock(return_value=self.lb)
-        self.sess.vlb.update_load_balancer = mock.MagicMock(return_value=self.lb)
+        self.sess.vlb.create_load_balancer = mock.MagicMock(
+            return_value=self.lb)
+        self.sess.vlb.find_load_balancer = mock.MagicMock(
+            return_value=self.lb)
+        self.sess.vlb.update_load_balancer = mock.MagicMock(
+            return_value=self.lb)
 
     def test_get_supported_flavor_metadata(self):
         resp = self.driver.get_supported_flavor_metadata()
@@ -155,7 +158,8 @@ class TestElbv3Driver(base.TestCase):
 
     def test_loadbalancer_create(self):
         self.driver.loadbalancer_create(self.sess, self.lb)
-        self.sess.vlb.create_load_balancer.assert_called_with(**self.fakeCallCreate)
+        self.sess.vlb.create_load_balancer.assert_called_with(
+            **self.fakeCallCreate)
 
     def test_loadbalancer_update(self):
         attrs = {
@@ -163,7 +167,8 @@ class TestElbv3Driver(base.TestCase):
             'operating_status': 'ACTIVE',
         }
         self.driver.loadbalancer_update(self.sess, self.lb, attrs)
-        self.sess.vlb.update_load_balancer.assert_called_with(self.lb.id, **attrs)
+        self.sess.vlb.update_load_balancer.assert_called_with(
+            self.lb.id, **attrs)
 
     def test_loadbalancer_delete(self):
         self.driver.loadbalancer_delete(self.sess, self.lb)
