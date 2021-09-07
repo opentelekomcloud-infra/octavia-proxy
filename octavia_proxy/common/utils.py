@@ -262,7 +262,7 @@ def collect_load_balancer_resources(loadbalancer, session):
 
 def loadbalancer_cascade_delete(session, loadbalancer, provider='elbv3'):
     sess = session.vlb
-    if provider is not 'elbv3':
+    if provider != 'elbv3':
         sess = session.elb
     lb = sess.find_load_balancer(
         name_or_id=loadbalancer.id, ignore_missing=True)

@@ -60,9 +60,9 @@ class TestElbv3Driver(base.TestCase):
         'updated_at': '2021-08-10T09:39:24+00:00',
         'description': 'Test',
         'guaranteed': True,
-        'l7policies': [],
-        'listeners': [],
-        'pools': [],
+        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
         'location': None,
         'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'provider': 'elbv3',
@@ -91,9 +91,9 @@ class TestElbv3Driver(base.TestCase):
         'l4_scale_flavor_id': None,
         'l7_flavor_id': None,
         'l7_scale_flavor_id': None,
-        'l7policies': [],
-        'listeners': [],
-        'pools': [],
+        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
         'location': None,
         'name': 'test',
         'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
@@ -176,10 +176,9 @@ class TestElbv3Driver(base.TestCase):
 
     def test_loadbalancer_delete_cascade(self):
         self.driver.loadbalancer_delete(self.sess, self.lb, cascade=True)
-        self.sess.vlb.find_load_balancer.assert_called_with(
-            ignore_missing=True,
-            name_or_id=self.lb.id
-        )
+        self.sess.vlb.delete_health_monitor.assert_called()
+        self.sess.vlb.delete_pool.assert_called_with(self.lb.pools[0]['id'])
+        self.sess.vlb.delete_listener.assert_called_with(self.lb.listeners[0]['id'])
         self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
 
     def test_flavors_qp(self):
