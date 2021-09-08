@@ -126,7 +126,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         """
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
         if cascade:
-            loadbalancer_cascade_delete(session, loadbalancer)
+            loadbalancer_cascade_delete(session.vlb, loadbalancer)
         else:
             session.vlb.delete_load_balancer(loadbalancer.id)
 

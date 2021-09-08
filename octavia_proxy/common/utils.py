@@ -218,72 +218,108 @@ def elbv3_backmapping(load_balancer):
     return load_balancer
 
 
-def collect_load_balancer_resources(loadbalancer, session):
-    resources = {
-        'listeners': [],
-        'pools': [],
-        'members': [],
-        'healthmonitors': [],
-        'l7policies': [],
-        'l7rules': []
-    }
-    if loadbalancer.listeners:
-        resources['listeners'] = [ls['id'] for ls in loadbalancer.listeners]
-    for ls in loadbalancer.listeners:
-        policies = session.l7_policies(
-            listener_id=ls['id'])
-        for pol in policies:
-            resources['l7policies'].append(pol.id)
-            if pol.rules:
-                for rule in pol.rules:
-                    resources['l7rules'].append(
+RESOURCES = {
+    'listeners': [],
+    'pools': [],
+    'members': [],
+    'healthmonitors': [],
+    'l7policies': [],
+    'l7rules': []
+}
+
+
+def load_balancer_status_tree(loadbalancer_id, proxy):
+    """
+    To remove when status tree will implements into elb v2
+    """
+    lb = proxy.find_load_balancer(
+        name_or_id=loadbalancer_id, ignore_missing=True)
+    if lb:
+        if lb.listeners:
+            RESOURCES['listeners'] = [ls['id'] for ls in lb.listeners]
+        for ls in lb.listeners:
+            policies = proxy.l7_policies(
+                listener_id=ls['id'])
+            for pol in policies:
+                RESOURCES['l7policies'].append(pol.id)
+                if pol.rules:
+                    for rule in pol.rules:
+                        RESOURCES['l7rules'].append(
+                            {
+                                'rule_id': rule['id'],
+                                'policy_id': pol.id
+                            }
+                        )
+        if lb.pools:
+            RESOURCES['pools'] = [pl['id'] for pl in lb.pools]
+        for pool in RESOURCES['pools']:
+            pl = proxy.find_pool(
+                name_or_id=pool, ignore_missing=True)
+            if pl and pl.healthmonitor_id:
+                RESOURCES['healthmonitors'].append(pl.healthmonitor_id)
+            if pl and pl.members:
+                for mem in pl.members:
+                    RESOURCES['members'].append(
                         {
-                            'rule': rule['id'],
-                            'policy': pol.id
+                            'member_id': mem['id'],
+                            'pool_id': pl.id
                         }
                     )
-    if loadbalancer.pools:
-        resources['pools'] = [pl['id'] for pl in loadbalancer.pools]
-    for pool in resources['pools']:
-        pl = session.find_pool(
-            name_or_id=pool, ignore_missing=True)
-        if pl and pl.healthmonitor_id:
-            resources['healthmonitors'].append(pl.healthmonitor_id)
-        if pl and pl.members:
-            for mem in pl.members:
-                resources['members'].append(
-                    {
-                        'member': mem['id'],
-                        'pool': pl.id
-                    }
-                )
-    return resources
 
 
-def loadbalancer_cascade_delete(session, loadbalancer, provider='elbv3'):
-    sess = session.vlb
-    if provider != 'elbv3':
-        sess = session.elb
-    lb = sess.find_load_balancer(
-        name_or_id=loadbalancer.id, ignore_missing=True)
-    if lb:
-        resources = collect_load_balancer_resources(lb, sess)
-    for rule in resources['l7rules']:
-        sess.delete_l7_rule(
-            l7rule=rule['rule'],
-            l7_policy=rule['policy']
+def process_resources(data):
+    for listener in data['loadbalancer']['listeners']:
+        RESOURCES['listeners'].append(listener['id'])
+        for policy in listener['l7policies']:
+            RESOURCES['l7policies'].append(policy['id'])
+            if policy['rules']:
+                for rule in policy['rules']:
+                    RESOURCES['l7rules'].append(
+                        {
+                            'rule_id': rule['id'],
+                            'policy_id': policy['id']
+                        }
+                    )
+    for pool in data['loadbalancer']['pools']:
+        RESOURCES['pools'].append(pool['id'])
+        if pool['healthmonitor']:
+            RESOURCES['healthmonitors'].append(
+                pool['healthmonitor']['id'])
+        for member in pool['members']:
+            RESOURCES['members'].append(
+                {
+                    'member_id': member['id'],
+                    'pool_id': pool['id']
+                }
+            )
+
+
+def loadbalancer_cascade_delete(proxy, loadbalancer):
+    data = None
+    try:
+        data = proxy.get_load_balancer_statuses(
+            loadbalancer.id
+        ).statuses
+    except AttributeError:
+        load_balancer_status_tree(loadbalancer.id, proxy)
+    if data:
+        process_resources(data)
+    for rule in RESOURCES['l7rules']:
+        proxy.delete_l7_rule(
+            l7rule=rule['rule_id'],
+            l7_policy=rule['policy_id']
         )
-    for policy in resources['l7policies']:
-        sess.delete_l7_policy(policy)
-    for healthmonitor in resources['healthmonitors']:
-        sess.delete_health_monitor(healthmonitor)
-    for member in resources['members']:
-        session.vlb.delete_member(
-            member=member['member'],
-            pool=member['pool']
+    for policy in RESOURCES['l7policies']:
+        proxy.delete_l7_policy(policy)
+    for healthmonitor in RESOURCES['healthmonitors']:
+        proxy.delete_health_monitor(healthmonitor)
+    for member in RESOURCES['members']:
+        proxy.delete_member(
+            member=member['member_id'],
+            pool=member['pool_id']
         )
-    for pool in resources['pools']:
-        sess.delete_pool(pool)
-    for listener in resources['listeners']:
-        sess.delete_listener(listener)
-    sess.delete_load_balancer(loadbalancer.id)
+    for pool in RESOURCES['pools']:
+        proxy.delete_pool(pool)
+    for listener in RESOURCES['listeners']:
+        proxy.delete_listener(listener)
+    proxy.delete_load_balancer(loadbalancer.id)
