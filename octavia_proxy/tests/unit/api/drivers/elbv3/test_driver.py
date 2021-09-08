@@ -300,7 +300,9 @@ class TestElbv3ListenerDriver(base.TestCase):
 
     def test_listener_create(self):
         self.driver.listener_create(self.sess, self.lsnr)
-        self.sess.vlb.create_listener.assert_called_with(**self.fake_call_create)
+        self.sess.vlb.create_listener.assert_called_with(
+            **self.fake_call_create
+        )
 
     def test_listener_update(self):
         attrs = {
