@@ -15,11 +15,11 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
+from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
+                                        load_balancer, health_monitor)
 
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
-from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
-                                        load_balancer, health_monitor)
 
 
 class FakeResponse:
@@ -41,11 +41,63 @@ class FakeResponse:
 
 
 class TestElbv2Driver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'name': 'test',
+        'availability_zone': 'eu-nl-01',
+        'admin_state_up': True,
+        'tags': [],
+        'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'network_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'description': 'Test',
+        'guaranteed': True,
+        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'location': None,
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'provider': 'elbv2',
+        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
+    }
+    fake_call_create = {
+        'availability_zone': 'eu-nl-01',
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'description': 'Test',
+        'flavor_id': None,
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'is_admin_state_up': True,
+        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'location': None,
+        'name': 'test',
+        'provider': 'elbv2',
+        'operating_status': None,
+        'provisioning_status': None,
+        'vip_address': None,
+        'vip_network_id': None,
+        'vip_port_id': None,
+        'vip_qos_policy_id': None,
+        'vip_subnet_id': None,
+        'tags': [],
+    }
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv2Driver()
         self.sess = mock.MagicMock()
         self.sess.elb = mock.MagicMock()
+        self.lb = load_balancer.LoadBalancer(**self.attrs)
+        self.sess.elb.create_load_balancer = mock.MagicMock(
+            return_value=self.lb)
+        self.sess.elb.find_load_balancer = mock.MagicMock(
+            return_value=self.lb)
+        self.sess.elb.update_load_balancer = mock.MagicMock(
+            return_value=self.lb)
 
     def test_get_supported_flavor_metadata(self):
         resp = self.driver.get_supported_flavor_metadata()
@@ -74,6 +126,39 @@ class TestElbv2Driver(base.TestCase):
             a='b'
         )
 
+    def test_loadbalancer_get(self):
+        self.driver.loadbalancer_get(self.sess, 'test', self.lb)
+        self.sess.elb.find_load_balancer.assert_called_with(
+            name_or_id=self.lb, ignore_missing=True)
+
+    def test_loadbalancer_create(self):
+        self.driver.loadbalancer_create(self.sess, self.lb)
+        self.sess.elb.create_load_balancer.assert_called_with(
+            **self.fake_call_create)
+
+    def test_loadbalancer_update(self):
+        attrs = {
+            'description': 'New Description',
+            'operating_status': 'ACTIVE',
+        }
+        self.driver.loadbalancer_update(self.sess, self.lb, attrs)
+        self.sess.elb.update_load_balancer.assert_called_with(
+            self.lb.id, **attrs)
+
+    def test_loadbalancer_delete(self):
+        self.driver.loadbalancer_delete(self.sess, self.lb)
+        self.sess.elb.delete_load_balancer.assert_called_with(
+            self.lb.id,
+            cascade=False
+        )
+
+    def test_loadbalancer_delete_cascade(self):
+        self.driver.loadbalancer_delete(self.sess, self.lb, cascade=True)
+        self.sess.elb.delete_load_balancer.assert_called_with(
+            self.lb.id,
+            cascade=True
+        )
+
 
 class TestElbv2ListenerDriver(base.TestCase):
     attrs = {
@@ -93,7 +178,7 @@ class TestElbv2ListenerDriver(base.TestCase):
         'updated_at': '2021-08-10T09:39:24+00:00',
         'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}]
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'allowed_cidrs': None,
         'alpn_protocols': None,
         'connection_limit': None,
@@ -155,7 +240,7 @@ class TestElbv2ListenerDriver(base.TestCase):
     def test_listener_create(self):
         self.driver.listener_create(self.sess, self.lsnr)
         self.sess.elb.create_listener.assert_called_with(
-            **self.fakeCallCreate)
+            **self.fake_call_create)
 
     def test_listener_delete(self):
         self.driver.listener_delete(self.sess, self.lsnr)
@@ -189,7 +274,7 @@ class TestElbv2PoolDriver(base.TestCase):
         'slow_start': None,
         'admin_state_up': True,
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'alpn_protocols': None,
         'created_at': None,
         'description': 'desc',
@@ -243,7 +328,7 @@ class TestElbv2PoolDriver(base.TestCase):
 
     def test_pool_create(self):
         self.driver.pool_create(self.sess, self.pool)
-        self.sess.elb.create_pool.assert_called_with(**self.fakeCallCreate)
+        self.sess.elb.create_pool.assert_called_with(**self.fake_call_create)
 
     def test_pool_update(self):
         attrs = {
@@ -273,7 +358,7 @@ class TestElbv2MemberDriver(base.TestCase):
         'weight': 10,
 
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'address': None,
         'created_at': None,
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
@@ -322,7 +407,7 @@ class TestElbv2MemberDriver(base.TestCase):
         self.driver.member_create(self.sess, 'pid', self.member)
         self.sess.elb.create_member.assert_called_with(
             'pid',
-            **self.fakeCallCreate
+            **self.fake_call_create
         )
 
     def test_member_update(self):
@@ -352,7 +437,7 @@ class TestElbv2HealthMonitorDriver(base.TestCase):
         'monitor_port': 3333,
 
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'created_at': None,
         'delay': 3,
         'expected_codes': None,
@@ -408,7 +493,7 @@ class TestElbv2HealthMonitorDriver(base.TestCase):
     def test_health_monitor_create(self):
         self.driver.health_monitor_create(self.sess, self.healthmonitor)
         self.sess.elb.create_health_monitor.assert_called_with(
-            **self.fakeCallCreate)
+            **self.fake_call_create)
 
     def test_health_monitor_update(self):
         attrs = {'delay': 5, 'name': 'hm'}
@@ -443,7 +528,7 @@ class TestElbv2L7Policy(base.TestCase):
         }],
         "updated_at": "2021-08-20T12:15:57"
     }
-    fakeCallCreate = {
+    fake_call_create = {
         "listener_id": "07f0a424-cdb9-4584-b9c0-6a38fbacdc3a",
         "description": "test_description",
         "is_admin_state_up": True,
@@ -504,7 +589,7 @@ class TestElbv2L7Policy(base.TestCase):
     def test_l7policy_create(self):
         self.driver.l7policy_create(self.sess, self.l7_policy)
         self.sess.elb.create_l7_policy.assert_called_with(
-            **self.fakeCallCreate
+            **self.fake_call_create
         )
 
     def test_l7policy_update(self):

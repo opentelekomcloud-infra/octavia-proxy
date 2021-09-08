@@ -3,12 +3,14 @@ from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import flavors as _flavors
 from octavia_proxy.api.v2.types import health_monitor as _hm
+from octavia_proxy.api.v2.types import l7policy as _l7policy
 from octavia_proxy.api.v2.types import listener as _listener
 from octavia_proxy.api.v2.types import load_balancer
 from octavia_proxy.api.v2.types import member as _member
 from octavia_proxy.api.v2.types import pool as _pool
-from octavia_proxy.api.v2.types import l7policy as _l7policy
-from octavia_proxy.common.utils import elbv3_backmapping, elbv3_foremapping
+from octavia_proxy.common.utils import (
+    elbv3_backmapping, elbv3_foremapping, loadbalancer_cascade_delete
+)
 
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
@@ -61,7 +63,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_data = self.loadbalancer_get(
                 project_id=project_id, session=session,
                 lb_id=query_filter['id'])
-            lb_data = elbv3_backmapping(lb_data)
             result.append(lb_data)
         else:
             for lb in session.vlb.load_balancers(**query_filter):
@@ -124,8 +125,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         :returns: ``None``
         """
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
-
-        session.vlb.delete_load_balancer(loadbalancer.id)
+        if cascade:
+            loadbalancer_cascade_delete(session.vlb, loadbalancer)
+        else:
+            session.vlb.delete_load_balancer(loadbalancer.id)
 
     def listeners(self, session, project_id, query_filter=None):
         LOG.debug('Fetching listeners')

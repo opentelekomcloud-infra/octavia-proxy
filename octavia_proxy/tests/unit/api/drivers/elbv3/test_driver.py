@@ -21,6 +21,7 @@ from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.tests.unit import base
+from octavia_proxy.tests.unit.api.drivers.common import Statuses, statuses
 
 EXAMPLE_LB = {
     "name": "lb-unit-test",
@@ -48,11 +49,84 @@ class FakeResponse:
 
 
 class TestElbv3Driver(base.TestCase):
+    attrs = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'name': 'test',
+        'availability_zone': 'eu-nl-01',
+        'admin_state_up': True,
+        'tags': [],
+        'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'network_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'description': 'Test',
+        'guaranteed': True,
+        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'location': None,
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'provider': 'elbv3',
+        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
+    }
+    fake_call_create = {
+        'availability_zone_list': ['eu-nl-01'],
+        'availability_zones': None,
+        'billing_info': None,
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'description': 'Test',
+        'eips': None,
+        'elb_virsubnet_ids': [None],
+        'flavor_id': None,
+        'floating_ip': None,
+        'floating_ips': None,
+        'guaranteed': True,
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'ip_target_enable': None,
+        'ipv6_vip_address': None,
+        'ipv6_vip_port_id': None,
+        'ipv6_vip_subnet_id': None,
+        'is_admin_state_up': True,
+        'l4_flavor_id': None,
+        'l4_scale_flavor_id': None,
+        'l7_flavor_id': None,
+        'l7_scale_flavor_id': None,
+        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'location': None,
+        'name': 'test',
+        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
+        'operating_status': None,
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'provider': 'elbv3',
+        'provisioning_status': None,
+        'tags': [],
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'vip_address': None,
+        'vip_port_id': None,
+        'vip_qos_policy_id': None,
+        'vip_subnet_cidr_id': None,
+        'vip_subnet_id': None,
+        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'
+    }
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv3Driver()
+        self.lb = load_balancer.LoadBalancer(**self.attrs)
         self.sess = mock.MagicMock()
         self.sess.vlb = mock.MagicMock()
+        self.sess.vlb.create_load_balancer = mock.MagicMock(
+            return_value=self.lb)
+        self.sess.vlb.find_load_balancer = mock.MagicMock(
+            return_value=self.lb)
+        self.sess.vlb.update_load_balancer = mock.MagicMock(
+            return_value=self.lb)
+        self.sess.vlb.get_load_balancer_statuses = mock.MagicMock(
+            return_value=Statuses(**statuses)
+        )
 
     def test_get_supported_flavor_metadata(self):
         resp = self.driver.get_supported_flavor_metadata()
@@ -80,6 +154,55 @@ class TestElbv3Driver(base.TestCase):
         self.sess.vlb.load_balancers.assert_called_with(
             a='b'
         )
+
+    def test_loadbalancer_get(self):
+        self.driver.loadbalancer_get(self.sess, 'test', self.lb)
+        self.sess.vlb.find_load_balancer.assert_called_with(
+            name_or_id=self.lb, ignore_missing=True)
+
+    def test_loadbalancer_create(self):
+        self.driver.loadbalancer_create(self.sess, self.lb)
+        self.sess.vlb.create_load_balancer.assert_called_with(
+            **self.fake_call_create
+        )
+
+    def test_loadbalancer_update(self):
+        attrs = {
+            'description': 'New Description',
+            'operating_status': 'ACTIVE',
+        }
+        self.driver.loadbalancer_update(self.sess, self.lb, attrs)
+        self.sess.vlb.update_load_balancer.assert_called_with(
+            self.lb.id, **attrs)
+
+    def test_loadbalancer_delete(self):
+        self.driver.loadbalancer_delete(self.sess, self.lb)
+        self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
+
+    def test_loadbalancer_delete_cascade(self):
+        self.driver.loadbalancer_delete(self.sess, self.lb, cascade=True)
+        self.sess.vlb.get_load_balancer_statuses.assert_called_with(self.lb.id)
+        res = statuses['loadbalancer']
+        self.sess.vlb.delete_l7_rule.assert_called_with(
+            l7_policy=res['listeners'][0]['l7policies'][0]['id'],
+            l7rule=res['listeners'][0]['l7policies'][0]['rules'][0]['id'])
+        self.sess.vlb.delete_l7_policy.assert_called_with(
+            res['listeners'][0]['l7policies'][0]['id']
+        )
+        self.sess.vlb.delete_health_monitor.assert_called_with(
+            res['pools'][0]['healthmonitor']['id']
+        )
+        self.sess.vlb.delete_member.assert_called_with(
+            member=res['pools'][0]['members'][0]['id'],
+            pool=res['pools'][0]['id']
+        )
+        self.sess.vlb.delete_pool.assert_called_with(
+            res['pools'][0]['id']
+        )
+        self.sess.vlb.delete_listener.assert_called_with(
+            res['listeners'][0]['id']
+        )
+        self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
 
     def test_flavors_qp(self):
         self.driver.flavors(
@@ -112,7 +235,7 @@ class TestElbv3ListenerDriver(base.TestCase):
         'updated_at': '2021-08-10T09:39:24+00:00',
         'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}]
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'allowed_cidrs': None,
         'client_ca_tls_container_ref': None,
         'client_timeout': 10,
@@ -177,7 +300,9 @@ class TestElbv3ListenerDriver(base.TestCase):
 
     def test_listener_create(self):
         self.driver.listener_create(self.sess, self.lsnr)
-        self.sess.vlb.create_listener.assert_called_with(**self.fakeCallCreate)
+        self.sess.vlb.create_listener.assert_called_with(
+            **self.fake_call_create
+        )
 
     def test_listener_update(self):
         attrs = {
@@ -210,7 +335,7 @@ class TestElbv3PoolDriver(base.TestCase):
         'slow_start': None,
         'admin_state_up': True,
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'description': 'desc',
         'healthmonitor_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
@@ -258,7 +383,7 @@ class TestElbv3PoolDriver(base.TestCase):
 
     def test_pool_create(self):
         self.driver.pool_create(self.sess, self.pool)
-        self.sess.vlb.create_pool.assert_called_with(**self.fakeCallCreate)
+        self.sess.vlb.create_pool.assert_called_with(**self.fake_call_create)
 
     def test_pool_update(self):
         attrs = {
@@ -288,7 +413,7 @@ class TestElbv3MemberDriver(base.TestCase):
         'weight': 10,
 
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'address': None,
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'ip_version': 4,
@@ -333,7 +458,7 @@ class TestElbv3MemberDriver(base.TestCase):
         self.driver.member_create(self.sess, 'pid', self.member)
         self.sess.vlb.create_member.assert_called_with(
             'pid',
-            **self.fakeCallCreate
+            **self.fake_call_create
         )
 
     def test_member_update(self):
@@ -362,7 +487,7 @@ class TestElbv3HealthMonitorDriver(base.TestCase):
         'monitor_port': 3333,
 
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'delay': 3,
         'domain_name': None,
         'expected_codes': None,
@@ -414,7 +539,7 @@ class TestElbv3HealthMonitorDriver(base.TestCase):
     def test_health_monitor_create(self):
         self.driver.health_monitor_create(self.sess, self.hm)
         self.sess.vlb.create_health_monitor.assert_called_with(
-            **self.fakeCallCreate
+            **self.fake_call_create
         )
 
     def test_health_monitor_update(self):
@@ -454,7 +579,7 @@ class TestElbv3L7Policy(base.TestCase):
         }],
         "updated_at": "2021-08-20T12:15:57"
     }
-    fakeCallCreate = {
+    fake_call_create = {
         'listener_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'description': 'test_description',
         'action': 'REDIRECT_TO_POOL',
@@ -514,7 +639,7 @@ class TestElbv3L7Policy(base.TestCase):
     def test_l7policy_create(self):
         self.driver.l7policy_create(self.sess, self.l7_policy)
         self.sess.vlb.create_l7_policy.assert_called_with(
-            **self.fakeCallCreate
+            **self.fake_call_create
         )
 
     def test_l7policy_update(self):
