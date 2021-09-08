@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from dateutil import parser
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
@@ -44,6 +45,26 @@ class L7RuleResponse(BaseL7Type):
         rule = super(L7RuleResponse, cls).from_data_model(
             data_model, children=children)
         return rule
+
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        l7rule = cls()
+        for key in [
+            'id', 'name', 'rules_links', 'compare_type',
+            'invert', 'key', 'operating_status', 'project_id',
+            'provisioning_status', 'type',
+            'tags', 'value'
+        ]:
+            v = sdk_entity.get(key)
+            if v:
+                setattr(l7rule, key, v)
+
+        l7rule.admin_state_up = sdk_entity.is_admin_state_up
+        for attr in ['created_at', 'updated_at']:
+            v = sdk_entity.get(attr)
+            if v:
+                setattr(l7rule, attr, parser.parse(v) or None)
+        return l7rule
 
 
 class L7RuleFullResponse(L7RuleResponse):

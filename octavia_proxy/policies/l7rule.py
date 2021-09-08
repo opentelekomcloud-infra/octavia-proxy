@@ -26,6 +26,14 @@ rules = [
     ),
     policy.DocumentedRuleDefault(
         '{rbac_obj}{action}'.format(rbac_obj=constants.RBAC_L7RULE,
+                                    action=constants.RBAC_GET_ALL_GLOBAL),
+        constants.RULE_API_READ,
+        "List L7 Rules including owned by others",
+        [{'method': 'GET',
+          'path': '/v2/lbaas/l7policies/{l7policy_id}/rules'}]
+    ),
+    policy.DocumentedRuleDefault(
+        '{rbac_obj}{action}'.format(rbac_obj=constants.RBAC_L7RULE,
                                     action=constants.RBAC_POST),
         constants.RULE_API_WRITE,
         "Create a L7 Rule",
