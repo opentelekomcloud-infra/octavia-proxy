@@ -93,8 +93,8 @@ class MemberController(base.BaseController):
                          body=member_types.MemberRootPOST, status_code=201)
     def post(self, member_):
         """Creates a pool member on a pool."""
-        loadbalancer = None
 
+        provider = None
         member = member_.member
         context = pecan_request.context.get('octavia_context')
         pool = self.find_pool(context, id=self.pool_id)
@@ -106,14 +106,14 @@ class MemberController(base.BaseController):
                                    constants.RBAC_POST)
 
         if pool.loadbalancers:
-            loadbalancer = self.find_load_balancer(
-                context, pool.loadbalancers[0].id)
+            provider = self.find_load_balancer(
+                context, pool.loadbalancers[0].id).provider
         elif pool.listeners:
-            loadbalancer = self.find_load_balancer(
-                context, pool.listeners[0].id)
+            provider = self.find_load_balancer(
+                context, pool.listeners[0].id).provider
 
         # Load the driver early as it also provides validation
-        driver = driver_factory.get_driver(loadbalancer.provider)
+        driver = driver_factory.get_driver(provider)
 
         result = driver_utils.call_provider(
             driver.name, driver.member_create,
@@ -129,7 +129,7 @@ class MemberController(base.BaseController):
                          status_code=200)
     def put(self, id, member_):
         """Updates a pool member."""
-        loadbalancer = None
+        provider = None
         member = member_.member
         context = pecan_request.context.get('octavia_context')
 
@@ -137,17 +137,17 @@ class MemberController(base.BaseController):
         orig_member = self.find_member(context, self.pool_id, id)
 
         if pool.loadbalancers:
-            loadbalancer = self.find_load_balancer(
-                context, pool.loadbalancers[0].id)
+            provider = self.find_load_balancer(
+                context, pool.loadbalancers[0].id).provider
         elif pool.listeners:
-            loadbalancer = self.find_load_balancer(
-                context, pool.listeners[0].id)
+            provider = self.find_listener(
+                context, pool.listeners[0].id).provider
 
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_PUT)
 
         # Load the driver early as it also provides validation
-        driver = driver_factory.get_driver(loadbalancer.provider)
+        driver = driver_factory.get_driver(provider)
 
         member_dict = member.to_dict(render_unsets=False)
 

@@ -15,11 +15,12 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
-                                        load_balancer, health_monitor)
 
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
+from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
+                                        load_balancer, health_monitor,
+                                        l7_rule)
 
 
 class FakeResponse:
@@ -717,3 +718,88 @@ class TestElbv2Loadbalancers(base.TestCase):
             },
             params={},
         )
+
+
+class TestElbv2L7RuleDriver(base.TestCase):
+
+    attrs = {
+        "compare_type": "EQUAL_TO",
+        "key": None,
+        "id": "6abba291-db52-4fe7-b568-a96bed73c643",
+        "project_id": "5dd3c0b24cdc4d31952c49589182a89d",
+        "provisioning_status": "ACTIVE",
+        "tenant_id": "5dd3c0b24cdc4d31952c49589182a89d",
+        "value": "/bbb.html",
+        "invert": False,
+        "admin_state_up": True,
+        "type": "PATH"
+
+    }
+    fake_call_create = {
+        'compare_type': 'EQUAL_TO',
+        'created_at': None,
+        'id': '6abba291-db52-4fe7-b568-a96bed73c643',
+        'invert': False,
+        'is_admin_state_up': True,
+        'key': None,
+        'location': None,
+        'name': None,
+        'operating_status': None,
+        'project_id': '5dd3c0b24cdc4d31952c49589182a89d',
+        'provisioning_status': 'ACTIVE',
+        'rule_value': '/bbb.html',
+        'tags': [],
+        'type': 'PATH',
+        'updated_at': None
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.l7rule = l7_rule.L7Rule(**self.attrs)
+        self.sess.elb.create_l7_rule = mock.MagicMock(return_value=self.l7rule)
+        self.sess.elb.find_l7_rule = mock.MagicMock(return_value=self.l7rule)
+        self.sess.elb.update_l7_rule = mock.MagicMock(return_value=self.l7rule)
+        self.sess.elb.delete_l7_rule = mock.MagicMock(
+            return_value=FakeResponse({}, status_code=204))
+
+    def test_l7rules_no_qp(self):
+        self.driver.l7rules(self.sess, 'l1', 'pid')
+        self.sess.elb.l7_rules.assert_called_with('pid')
+
+    def test_l7rules_qp(self):
+        self.driver.l7rules(
+            self.sess, 'l1', 'pid',
+            query_filter={'a': 'b'})
+        self.sess.elb.l7_rules.assert_called_with(
+            'pid',
+            a='b'
+        )
+
+    def test_l7rule_get(self):
+        self.driver.l7rule_get(self.sess, 'test', 'pid', 'mid')
+        self.sess.elb.find_l7_rule.assert_called_with(
+            name_or_id='mid', l7_policy='pid', ignore_missing=True)
+
+    def test_l7rule_create(self):
+        self.driver.l7rule_create(self.sess, l7policy_id='pid',
+                                  l7rule=self.l7rule)
+        self.sess.elb.create_l7_rule.assert_called_with(
+            l7_policy='pid',
+            **self.fake_call_create
+        )
+
+    def test_l7rule_update(self):
+        attrs = {
+            'name': 'New Fake',
+            'weight': 5,
+        }
+        self.driver.l7rule_update(self.sess, 'pid', self.l7rule, attrs)
+        self.sess.elb.update_l7_rule.assert_called_with(
+            self.l7rule.id, 'pid', **attrs)
+
+    def test_l7_rule_delete(self):
+        self.driver.l7rule_delete(self.sess, l7policy_id='pid',
+                                  l7rule=self.l7rule)
+        self.sess.elb.delete_l7_rule.assert_called_with(self.l7rule.id, 'pid')
