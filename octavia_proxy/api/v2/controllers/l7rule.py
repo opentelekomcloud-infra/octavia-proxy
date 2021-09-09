@@ -37,7 +37,7 @@ class L7RuleController(base.BaseController):
 
     @wsme_pecan.wsexpose(l7rule_types.L7RuleRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
-    def get(self, id, fields=None):
+    def get_one(self, id, fields=None):
         """Gets a single l7rule's details."""
         context = pecan_request.context.get('octavia_context')
         l7rule = self.find_l7rule(context, self.l7policy_id, id)
