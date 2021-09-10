@@ -685,7 +685,7 @@ class TestElbv2L7RuleDriver(base.TestCase):
         'name': None,
         'project_id': '5dd3c0b24cdc4d31952c49589182a89d',
         'provisioning_status': 'ACTIVE',
-        'value': '/bbb.html',
+        'rule_value': '/bbb.html',
         'type': 'PATH'
     }
 
