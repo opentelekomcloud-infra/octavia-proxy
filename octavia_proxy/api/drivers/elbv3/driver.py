@@ -1,13 +1,16 @@
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 
-from octavia_proxy.api.v2.types import flavors as _flavors
-from octavia_proxy.api.v2.types import health_monitor as _hm
-from octavia_proxy.api.v2.types import l7policy as _l7policy
-from octavia_proxy.api.v2.types import listener as _listener
-from octavia_proxy.api.v2.types import load_balancer
-from octavia_proxy.api.v2.types import member as _member
-from octavia_proxy.api.v2.types import pool as _pool
+from octavia_proxy.api.v2.types import (
+    flavors as _flavors,
+    health_monitor as _hm,
+    l7policy as _l7policy,
+    l7rule as _l7rule,
+    listener as _listener,
+    load_balancer,
+    member as _member,
+    pool as _pool
+)
 from octavia_proxy.common.utils import (
     elbv3_backmapping, elbv3_foremapping, loadbalancer_cascade_delete
 )
@@ -438,6 +441,63 @@ class ELBv3Driver(driver_base.ProviderDriver):
             l7_policy=l7policy.id,
             ignore_missing=ignore_missing
         )
+
+    def l7rules(self, session, project_id, l7policy_id, query_filter=None):
+        LOG.debug('Fetching l7 rules')
+        result = []
+        if not query_filter:
+            query_filter = {}
+        query_filter.pop('project_id', None)
+
+        if 'id' in query_filter:
+            l7rule_data = self.l7rule_get(
+                project_id=project_id, session=session,
+                l7policy_id=l7policy_id,
+                l7rule_id=query_filter['id']
+            )
+            result.append(l7rule_data)
+        else:
+            for l7rule in session.vlb.l7_rules(l7policy_id, **query_filter):
+                l7rule_data = _l7rule.L7RuleResponse.from_sdk_object(l7rule)
+                l7rule_data.provider = PROVIDER
+                result.append(l7rule_data)
+
+        return result
+
+    def l7rule_get(self, session, project_id, l7policy_id, l7rule_id):
+        LOG.debug('Searching l7 rule')
+
+        l7rule = session.vlb.find_l7_rule(
+            name_or_id=l7rule_id, l7_policy=l7policy_id, ignore_missing=True)
+        if l7rule:
+            l7rule_data = _l7rule.L7RuleResponse.from_sdk_object(l7rule)
+            l7rule_data.provider = PROVIDER
+            return l7rule_data
+
+    def l7rule_create(self, session, l7policy_id, l7rule):
+        LOG.debug('Creating l7 rule %s' % l7rule.to_dict())
+        attrs = l7rule.to_dict()
+
+        res = session.vlb.create_l7_rule(l7_policy=l7policy_id, **attrs)
+        result_data = _l7rule.L7RuleResponse.from_sdk_object(res)
+        setattr(result_data, 'provider', PROVIDER)
+        return result_data
+
+    def l7rule_update(self, session, l7policy_id, original, new_attrs):
+        LOG.debug('Updating l7 rule')
+
+        res = session.vlb.update_l7_rule(
+            original.id,
+            l7policy_id,
+            **new_attrs)
+        result_data = _l7rule.L7RuleResponse.from_sdk_object(
+            res)
+        result_data.provider = PROVIDER
+        return result_data
+
+    def l7rule_delete(self, session, l7policy_id, l7rule):
+        LOG.debug('Deleting l7 rule %s' % l7rule.to_dict())
+        session.vlb.delete_l7_rule(l7rule.id, l7policy_id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')

@@ -17,7 +17,7 @@ import requests
 from keystoneauth1 import adapter
 from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
                                       member, health_monitor,
-                                      l7_policy)
+                                      l7_policy, l7_rule)
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.tests.unit import base
@@ -657,6 +657,88 @@ class TestElbv3L7Policy(base.TestCase):
             l7_policy=self.l7_policy.id,
             ignore_missing=True
         )
+
+
+class TestElbv2L7RuleDriver(base.TestCase):
+
+    attrs = {
+        "compare_type": "EQUAL_TO",
+        "key": None,
+        "id": "6abba291-db52-4fe7-b568-a96bed73c643",
+        "project_id": "5dd3c0b24cdc4d31952c49589182a89d",
+        "provisioning_status": "ACTIVE",
+        "tenant_id": "5dd3c0b24cdc4d31952c49589182a89d",
+        "value": "/bbb.html",
+        "invert": False,
+        "admin_state_up": True,
+        "type": "PATH"
+
+    }
+    fake_call_create = {
+        'compare_type': 'EQUAL_TO',
+        'conditions': None,
+        'id': '6abba291-db52-4fe7-b568-a96bed73c643',
+        'invert': False,
+        'is_admin_state_up': True,
+        'key': None,
+        'location': None,
+        'name': None,
+        'project_id': '5dd3c0b24cdc4d31952c49589182a89d',
+        'provisioning_status': 'ACTIVE',
+        'rule_value': '/bbb.html',
+        'type': 'PATH'
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.l7rule = l7_rule.L7Rule(**self.attrs)
+        self.sess.vlb.create_l7_rule = mock.MagicMock(return_value=self.l7rule)
+        self.sess.vlb.find_l7_rule = mock.MagicMock(return_value=self.l7rule)
+        self.sess.vlb.update_l7_rule = mock.MagicMock(return_value=self.l7rule)
+        self.sess.vlb.delete_l7_rule = mock.MagicMock(
+            return_value=FakeResponse({}, status_code=204))
+
+    def test_l7rules_no_qp(self):
+        self.driver.l7rules(self.sess, 'l1', 'pid')
+        self.sess.vlb.l7_rules.assert_called_with('pid')
+
+    def test_l7rules_qp(self):
+        self.driver.l7rules(
+            self.sess, 'l1', 'pid',
+            query_filter={'a': 'b'})
+        self.sess.vlb.l7_rules.assert_called_with(
+            'pid',
+            a='b'
+        )
+
+    def test_l7rule_get(self):
+        self.driver.l7rule_get(self.sess, 'test', 'pid', 'mid')
+        self.sess.vlb.find_l7_rule.assert_called_with(
+            name_or_id='mid', l7_policy='pid', ignore_missing=True)
+
+    def test_l7rule_create(self):
+        self.driver.l7rule_create(self.sess, l7policy_id='pid',
+                                  l7rule=self.l7rule)
+        self.sess.vlb.create_l7_rule.assert_called_with(
+            l7_policy='pid',
+            **self.fake_call_create
+        )
+
+    def test_l7rule_update(self):
+        attrs = {
+            'name': 'New Fake',
+            'weight': 5,
+        }
+        self.driver.l7rule_update(self.sess, 'pid', self.l7rule, attrs)
+        self.sess.vlb.update_l7_rule.assert_called_with(
+            self.l7rule.id, 'pid', **attrs)
+
+    def test_l7_rule_delete(self):
+        self.driver.l7rule_delete(self.sess, l7policy_id='pid',
+                                  l7rule=self.l7rule)
+        self.sess.vlb.delete_l7_rule.assert_called_with(self.l7rule.id, 'pid')
 
 
 class TestElbv3DriverRequests(base.TestCase):
