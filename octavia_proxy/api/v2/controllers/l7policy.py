@@ -20,11 +20,10 @@ from wsmeext import pecan as wsme_pecan
 
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.v2.controllers import base
+from octavia_proxy.api.v2.controllers import base, l7rule
 from octavia_proxy.api.v2.types import l7policy as l7policy_types
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
-from octavia_proxy.policies import l7rule
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -175,7 +174,7 @@ class L7PoliciesController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         if l7policy_id and remainder and remainder[0] == 'rules':
             remainder = remainder[1:]
-            l7policy = self.find_l7policy(context.session, l7policy_id)
+            l7policy = self.find_l7policy(context, l7policy_id)
             if not l7policy:
                 LOG.info("L7Policy %s not found.", l7policy_id)
                 raise exceptions.NotFound(
