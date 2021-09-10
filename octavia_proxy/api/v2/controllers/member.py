@@ -94,7 +94,7 @@ class MemberController(base.BaseController):
     def post(self, member_):
         """Creates a pool member on a pool."""
 
-        provider = None
+        pool_provider = None
         member = member_.member
         context = pecan_request.context.get('octavia_context')
         pool = self.find_pool(context, id=self.pool_id)
@@ -106,12 +106,13 @@ class MemberController(base.BaseController):
                                    constants.RBAC_POST)
 
         if pool.loadbalancers:
-            provider = self.find_load_balancer(
-                context, pool.loadbalancers[0].id).provider
+            pool_provider = self.find_load_balancer(
+            context, pool.loadbalancers[0].id)
         elif pool.listeners:
-            provider = self.find_load_balancer(
-                context, pool.listeners[0].id).provider
+            pool_provider = self.find_listener(
+               context, pool.listeners[0].id)
 
+        provider = pool_provider.provider
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(provider)
 
