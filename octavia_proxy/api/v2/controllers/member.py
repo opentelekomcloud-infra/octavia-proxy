@@ -107,10 +107,10 @@ class MemberController(base.BaseController):
 
         if pool.loadbalancers:
             pool_provider = self.find_load_balancer(
-            context, pool.loadbalancers[0].id)
+                context, pool.loadbalancers[0].id)
         elif pool.listeners:
             pool_provider = self.find_listener(
-               context, pool.listeners[0].id)
+                context, pool.listeners[0].id)
 
         provider = pool_provider.provider
         # Load the driver early as it also provides validation

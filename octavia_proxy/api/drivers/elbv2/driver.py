@@ -161,7 +161,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         query_filter.pop('project_id', None)
 
         if 'id' in query_filter:
-            hm_data = self.healthmonitor_get(
+            hm_data = self.health_monitor_get(
                 project_id=project_id, session=session,
                 healthmonitor_id=query_filter['id'])
             results.append(hm_data)
