@@ -137,7 +137,7 @@ class HealthMonitorController(base.BaseController):
         """Creates a health monitor on a pool."""
         hm = health_monitor_.healthmonitor
         context = pecan_request.context.get('octavia_context')
-        loadbalancer = None
+        pool_provider = None
 
         if not hm.project_id and context.project_id:
             hm.project_id = context.project_id
@@ -148,11 +148,13 @@ class HealthMonitorController(base.BaseController):
         pool = self.find_pool(context, id=hm.pool_id)
 
         if pool.loadbalancers:
-            loadbalancer = self.find_load_balancer(
+            pool_provider = self.find_load_balancer(
                 context, pool.loadbalancers[0].id)
         elif pool.listeners:
-            loadbalancer = self.find_load_balancer(
+            pool_provider = self.find_load_balancer(
                 context, pool.listeners[0].id)
+
+        provider = pool_provider.provider
 
         if (not CONF.api_settings.allow_ping_health_monitors and
                 hm.type == const.HEALTH_MONITOR_PING):
@@ -172,7 +174,7 @@ class HealthMonitorController(base.BaseController):
 
         self._validate_create_hm(hm.to_dict(render_unsets=True))
 
-        driver = driver_factory.get_driver(loadbalancer.provider)
+        driver = driver_factory.get_driver(provider)
         result = driver_utils.call_provider(
             driver.name, driver.health_monitor_create,
             context.session,
