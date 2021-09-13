@@ -16,7 +16,6 @@
 import copy
 
 from octavia_lib.api.drivers import exceptions as lib_exceptions
-from openstack import exceptions as openstack_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -65,14 +64,6 @@ def call_provider(provider, driver_method, *args, **kwargs):
                  "%s", provider, e.operator_fault_string)
         raise exceptions.ProviderUnsupportedOptionError(
             prov=provider, user_msg=e.user_fault_string)
-    except openstack_exceptions.ResourceNotFound as e:
-        LOG.info("Provider '%s' raised ResourceNotFound error: "
-                 "%s", provider, e.message)
-        raise exceptions.ResourceNotFound(detail=e.message)
-    except openstack_exceptions.BadRequestException as e:
-        LOG.info("Provider '%s' raised BadRequestException error: "
-                 "%s", provider, e.message)
-        raise exceptions.ValidationException(detail=e.message)
     except Exception as e:
         LOG.exception("Provider '%s' raised an unknown error: %s",
                       provider, str(e))
