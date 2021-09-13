@@ -80,7 +80,6 @@ class TestElbv2Driver(base.TestCase):
         'operating_status': None,
         'provisioning_status': None,
         'vip_address': None,
-        'vip_network_id': None,
         'vip_port_id': None,
         'vip_qos_policy_id': None,
         'vip_subnet_id': None,
