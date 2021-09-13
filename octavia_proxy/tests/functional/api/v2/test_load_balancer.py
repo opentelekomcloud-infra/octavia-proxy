@@ -85,7 +85,8 @@ class TestLoadBalancer(base.BaseAPITest):
                    'project_id': self.project_id}
         body = self._build_body(lb_json)
         response = self.post(self.LBS_PATH, body, status=400)
-        err_msg = ('Failed to parse request')
+        err_msg = ('Validation failure: VIP must contain one of: '
+                   'vip_network_id, vip_subnet_id.')
         self.assertIn(err_msg, response.json.get('faultstring'))
 
     def test_create_with_empty_vip(self):
@@ -102,8 +103,8 @@ class TestLoadBalancer(base.BaseAPITest):
         lb_json = {'vip_subnet_id': subnet_id,
                    'project_id': self.project_id}
         body = self._build_body(lb_json)
-        response = self.post(self.LBS_PATH, body, status=404)
-        err_msg = 'Subnet {} could not be found.'.format(subnet_id)
+        response = self.post(self.LBS_PATH, body, status=400)
+        err_msg = 'Subnet {} not found.'.format(subnet_id)
         self.assertIn(err_msg, response.json.get('faultstring'))
 
     def test_create_with_long_name(self):
