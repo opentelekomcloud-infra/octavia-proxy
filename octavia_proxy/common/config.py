@@ -91,7 +91,44 @@ api_opts = [
     cfg.StrOpt('region', default='eu-de',
                help=_('Service region (used to select driver endpoint).')),
 ]
-
+networking_opts = [
+    cfg.IntOpt('max_retries', default=15,
+               help=_('The maximum attempts to retry an action with the '
+                      'networking service.')),
+    cfg.IntOpt('retry_interval', default=1,
+               help=_('Seconds to wait before retrying an action with the '
+                      'networking service.')),
+    cfg.IntOpt('retry_backoff', default=1,
+               help=_('The seconds to backoff retry attempts.')),
+    cfg.IntOpt('retry_max', default=10,
+               help=_('The maximum interval in seconds between retry '
+                      'attempts.')),
+    cfg.IntOpt('port_detach_timeout', default=300,
+               help=_('Seconds to wait for a port to detach from an '
+                      'amphora.')),
+    cfg.BoolOpt('allow_vip_network_id', default=True,
+                help=_('Can users supply a network_id for their VIP?')),
+    cfg.BoolOpt('allow_vip_subnet_id', default=True,
+                help=_('Can users supply a subnet_id for their VIP?')),
+    cfg.BoolOpt('allow_vip_port_id', default=True,
+                help=_('Can users supply a port_id for their VIP?')),
+    cfg.ListOpt('valid_vip_networks',
+                help=_('List of network_ids that are valid for VIP '
+                       'creation. If this field is empty, no validation '
+                       'is performed.')),
+    cfg.ListOpt('reserved_ips',
+                default=['169.254.169.254'],
+                item_type=cfg.types.IPAddress(),
+                help=_('List of IP addresses reserved from being used for '
+                       'member addresses. IPv6 addresses should be in '
+                       'expanded, uppercase form.')),
+    cfg.BoolOpt('allow_invisible_resource_usage', default=False,
+                help=_("When True, users can use network resources they "
+                       "cannot normally see as VIP or member subnets. Making "
+                       "this True may allow users to access resources on "
+                       "subnets they do not normally have access to via "
+                       "neutron RBAC policies.")),
+]
 
 core_cli_opts = []
 
@@ -99,6 +136,7 @@ core_cli_opts = []
 cfg.CONF.register_opts(core_opts)
 cfg.CONF.register_opts(api_opts, group='api_settings')
 cfg.CONF.register_opts(validatetoken_opts, group='validatetoken')
+cfg.CONF.register_opts(networking_opts, group='networking')
 
 
 def register_cli_opts():

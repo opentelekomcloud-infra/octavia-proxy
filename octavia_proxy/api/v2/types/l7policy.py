@@ -11,7 +11,6 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
@@ -21,7 +20,7 @@ from octavia_proxy.common import constants
 
 
 class BaseL7PolicyType(types.BaseType):
-    _type_to_model_map = {'admin_state_up': 'enabled'}
+    _type_to_model_map = {}
     _child_map = {}
 
 
@@ -58,6 +57,30 @@ class L7PolicyResponse(BaseL7PolicyType):
         policy.rules = [
             rule_model.from_data_model(i) for i in data_model.l7rules]
         return policy
+
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        l7_policy = cls()
+        for key in [
+            'id', 'name',
+            'action', 'description', 'listener_id', 'operating_status',
+            'position', 'project_id', 'redirect_pool_id', 'redirect_url',
+            'provisioning_status', 'redirect_prefix', 'redirect_http_code',
+            'tags'
+        ]:
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(l7_policy, key, v)
+
+        if sdk_entity.is_admin_state_up:
+            l7_policy.admin_state_up = sdk_entity.is_admin_state_up
+
+        if sdk_entity.rules:
+            l7_policy.rules = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.rules
+            ]
+        return l7_policy
 
 
 class L7PolicyFullResponse(L7PolicyResponse):

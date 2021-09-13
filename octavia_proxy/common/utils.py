@@ -175,6 +175,7 @@ class exception_logger(object):
               any occurred
 
     """
+
     def __init__(self, logger=None):
         self.logger = logger
 
@@ -190,4 +191,135 @@ class exception_logger(object):
                 with excutils.save_and_reraise_exception():
                     self.logger(e)
             return None
+
         return call
+
+
+def elbv3_foremapping(attrs):
+    if 'vip_subnet_id' in attrs:
+        attrs['vip_subnet_cidr_id'] = attrs['vip_subnet_id']
+    if 'vip_network_id' in attrs:
+        attrs['elb_virsubnet_ids'] = [attrs.pop('vip_network_id')]
+    attrs['availability_zone_list'] = [
+        attrs.pop('availability_zone', 'eu-nl-01')
+    ]
+    return attrs
+
+
+def elbv3_backmapping(load_balancer):
+    if load_balancer.l4_flavor_id:
+        load_balancer.flavor_id = load_balancer.l4_flavor_id
+    if load_balancer.l7_flavor_id:
+        load_balancer.flavor_id = load_balancer.l7_flavor_id
+    if load_balancer.availability_zones:
+        load_balancer.availability_zone = ', '.join(
+            load_balancer.availability_zones
+        )
+    return load_balancer
+
+
+RESOURCES = {
+    'listeners': [],
+    'pools': [],
+    'members': [],
+    'healthmonitors': [],
+    'l7policies': [],
+    'l7rules': []
+}
+
+
+def load_balancer_status_tree(loadbalancer_id, proxy):
+    """
+    To remove when status tree will implements into elb v2
+    """
+    lb = proxy.find_load_balancer(
+        name_or_id=loadbalancer_id, ignore_missing=True)
+    if lb:
+        if lb.listeners:
+            RESOURCES['listeners'] = [ls['id'] for ls in lb.listeners]
+        for ls in lb.listeners:
+            policies = proxy.l7_policies(
+                listener_id=ls['id'])
+            for pol in policies:
+                RESOURCES['l7policies'].append(pol.id)
+                if pol.rules:
+                    for rule in pol.rules:
+                        RESOURCES['l7rules'].append(
+                            {
+                                'rule_id': rule['id'],
+                                'policy_id': pol.id
+                            }
+                        )
+        if lb.pools:
+            RESOURCES['pools'] = [pl['id'] for pl in lb.pools]
+        for pool in RESOURCES['pools']:
+            pl = proxy.find_pool(
+                name_or_id=pool, ignore_missing=True)
+            if pl and pl.healthmonitor_id:
+                RESOURCES['healthmonitors'].append(pl.healthmonitor_id)
+            if pl and pl.members:
+                for mem in pl.members:
+                    RESOURCES['members'].append(
+                        {
+                            'member_id': mem['id'],
+                            'pool_id': pl.id
+                        }
+                    )
+
+
+def process_resources(data):
+    for listener in data['loadbalancer']['listeners']:
+        RESOURCES['listeners'].append(listener['id'])
+        for policy in listener['l7policies']:
+            RESOURCES['l7policies'].append(policy['id'])
+            if policy['rules']:
+                for rule in policy['rules']:
+                    RESOURCES['l7rules'].append(
+                        {
+                            'rule_id': rule['id'],
+                            'policy_id': policy['id']
+                        }
+                    )
+    for pool in data['loadbalancer']['pools']:
+        RESOURCES['pools'].append(pool['id'])
+        if pool['healthmonitor']:
+            RESOURCES['healthmonitors'].append(
+                pool['healthmonitor']['id'])
+        for member in pool['members']:
+            RESOURCES['members'].append(
+                {
+                    'member_id': member['id'],
+                    'pool_id': pool['id']
+                }
+            )
+
+
+def loadbalancer_cascade_delete(proxy, loadbalancer):
+    data = None
+    try:
+        data = proxy.get_load_balancer_statuses(
+            loadbalancer.id
+        ).statuses
+    except AttributeError:
+        load_balancer_status_tree(loadbalancer.id, proxy)
+    if data:
+        process_resources(data)
+    for rule in RESOURCES['l7rules']:
+        proxy.delete_l7_rule(
+            l7rule=rule['rule_id'],
+            l7_policy=rule['policy_id']
+        )
+    for policy in RESOURCES['l7policies']:
+        proxy.delete_l7_policy(policy)
+    for healthmonitor in RESOURCES['healthmonitors']:
+        proxy.delete_health_monitor(healthmonitor)
+    for member in RESOURCES['members']:
+        proxy.delete_member(
+            member=member['member_id'],
+            pool=member['pool_id']
+        )
+    for pool in RESOURCES['pools']:
+        proxy.delete_pool(pool)
+    for listener in RESOURCES['listeners']:
+        proxy.delete_listener(listener)
+    proxy.delete_load_balancer(loadbalancer.id)

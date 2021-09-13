@@ -11,7 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+from dateutil import parser
 from wsme import types as wtypes
 
 from octavia_proxy.api.common import types
@@ -19,9 +19,7 @@ from octavia_proxy.common import constants
 
 
 class BaseHealthMonitorType(types.BaseType):
-    _type_to_model_map = {'admin_state_up': 'enabled',
-                          'max_retries': 'rise_threshold',
-                          'max_retries_down': 'fall_threshold'}
+    _type_to_model_map = {}
     _child_map = {}
 
 
@@ -47,6 +45,32 @@ class HealthMonitorResponse(BaseHealthMonitorType):
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType()))
     http_version = wtypes.wsattr(float)
     domain_name = wtypes.wsattr(wtypes.StringType())
+
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        monitor = cls()
+        for key in [
+            'id', 'name',
+            'type', 'delay', 'timeout', 'max_retries', 'max_retries_down',
+            'http_method', 'url_path', 'expected_codes', 'project_id',
+            'provisioning_status', 'operating_status',
+            'tags',
+            'http_version', 'domain_name',
+        ]:
+            v = sdk_entity.get(key)
+            if v:
+                setattr(monitor, key, v)
+
+        monitor.admin_state_up = sdk_entity.is_admin_state_up
+        for attr in ['created_at', 'updated_at']:
+            v = sdk_entity.get(attr)
+            if v:
+                setattr(monitor, attr, parser.parse(v) or None)
+        if sdk_entity.pools:
+            monitor.pools = [
+                types.IdOnlyType(id=i['id']) for i in sdk_entity.pools
+            ]
+        return monitor
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
