@@ -20,31 +20,21 @@ class TestProvider(base.BaseAPITest):
     def setUp(self):
         super().setUp()
 
-    # listener get fails with both elbv2 and elbv3 in eu-de in config.py
-    # self.get(self.LISTENERS_PATH).json.get(self.root_tag_list)
-    # Bad response: 500 Internal Server Error (not 200)
-    # b'{"faultcode": "Server", "faultstring":
-    # "Provider \'elbv3\' reports error: \'project_id\'", "debuginfo": null}'
     def test_get_all_providers(self):
         elbv2_dict = {u'description': u'The ELBv2 driver.',
                       u'name': u'elbv2'}
-        # elbv3_dict = {u'description': u'The ELBv3 driver.',
-        #               u'name': u'elbv3'}
+        elbv3_dict = {u'description': u'The ELBv3 driver.',
+                      u'name': u'elbv3'}
         providers = self.get(self.PROVIDERS_PATH).json.get(self.root_tag_list)
-        self.assertEqual(1, len(providers))
+        self.assertEqual(2, len(providers))
         self.assertIn(elbv2_dict, providers)
-        # self.assertIn(elbv3_dict, providers)
+        self.assertIn(elbv3_dict, providers)
 
-    # listener get fails with both elbv2 and elbv3 in eu-de in config.py
-    # self.get(self.LISTENERS_PATH).json.get(self.root_tag_list)
-    # Bad response: 500 Internal Server Error (not 200)
-    # b'{"faultcode": "Server", "faultstring":
-    # "Provider \'elbv3\' reports error: \'project_id\'", "debuginfo": null}'
     def test_get_all_providers_fields(self):
         elbv2_dict = {u'name': u'elbv2'}
-        # elbv3_dict = {u'name': u'elbv3'}
+        elbv3_dict = {u'name': u'elbv3'}
         providers = self.get(self.PROVIDERS_PATH, params={'fields': ['name']})
         providers_list = providers.json.get(self.root_tag_list)
-        self.assertEqual(1, len(providers_list))
+        self.assertEqual(2, len(providers_list))
         self.assertIn(elbv2_dict, providers_list)
-        # self.assertIn(elbv3_dict, providers_list)
+        self.assertIn(elbv3_dict, providers_list)

@@ -50,11 +50,6 @@ class TestLoadBalancer(base.BaseAPITest):
         for key, value in optionals.items():
             self.assertEqual(value, req.get(key))
 
-    # def test_empty_list(self):
-    #     response = self.get(self.LBS_PATH)
-    #     api_list = response.json.get(self.root_tag_list)
-    #     self.assertEqual([], api_list)
-
     def test_create(self, **optionals):
         lb_json = {'name': 'test1',
                    'vip_subnet_id': self._network['subnet_id'],

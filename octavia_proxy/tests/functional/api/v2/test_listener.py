@@ -36,33 +36,6 @@ class TestListener(base.BaseAPITest):
     def tearDownClass(cls):
         pass
 
-    # def test_get_all_admin(self):
-    #     project_id = self.project_id
-    #     listener1 = self.create_listener(
-    #         constants.PROTOCOL_HTTP, 80, self.lb_id,
-    #         tags=['test_tag1']).get(self.root_tag)
-    #     listener2 = self.create_listener(
-    #         constants.PROTOCOL_HTTP, 81, self.lb_id,
-    #         tags=['test_tag2']).get(self.root_tag)
-    #     listener3 = self.create_listener(
-    #         constants.PROTOCOL_HTTP, 82, self.lb_id,
-    #         tags=['test_tag3']).get(self.root_tag)
-    #     listeners = self.get(self.LISTENERS_PATH).json.get(
-    #                          self.root_tag_list)
-    #     self.assertEqual(3, len(listeners))
-    #     listener_id_ports = [(li.get('id'), li.get('protocol_port'),
-    #                           li.get('tags'))
-    #                          for li in listeners]
-    #     self.assertIn((listener1.get('id'), listener1.get('protocol_port'),
-    #                    listener1.get('tags')),
-    #                   listener_id_ports)
-    #     self.assertIn((listener2.get('id'), listener2.get('protocol_port'),
-    #                    listener2.get('tags')),
-    #                   listener_id_ports)
-    #     self.assertIn((listener3.get('id'), listener3.get('protocol_port'),
-    #                    listener3.get('tags')),
-    #                   listener_id_ports)
-
     def test_get_all_admin(self):
         listener1 = self.create_listener(
             constants.PROTOCOL_HTTP, 80, self.lb_id

@@ -75,17 +75,8 @@ api_opts = [
                        'amphora:The Octavia Amphora driver.,'
                        'octavia:Deprecated alias of the Octavia '
                        'Amphora driver.'),
-                # listener get fails with both elbv2 and elbv3
-                # in eu-de in config.py
-                # self.get(self.LISTENERS_PATH).json.get(self.root_tag_list)
-                # Bad response: 500 Internal Server Error (not 200)
-                #   b'{"faultcode": "Server", "faultstring":
-                #   "Provider \'elbv3\' reports error:
-                #   \'project_id\'", "debuginfo": null}'
-                # default={'elbv2': 'The ELBv2 driver.',
-                #          'elbv3': 'The ELBv3 driver.'
-                #         }),
-                default={'elbv2': 'The ELBv2 driver.'}),
+                default={'elbv2': 'The ELBv2 driver.',
+                         'elbv3': 'The ELBv3 driver.'}),
     cfg.StrOpt('default_provider_driver', default='elbv2',
                help=_('Default provider driver.')),
     cfg.StrOpt('region', default='eu-de',
