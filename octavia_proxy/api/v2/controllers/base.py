@@ -3,6 +3,7 @@ from oslo_log import log as logging
 from pecan import rest as pecan_rest
 from wsme import types as wtypes
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.common import constants
@@ -39,22 +40,10 @@ class BaseController(pecan_rest.RestController):
             converted = _convert(sdk_entity)
         return converted
 
-    def find_load_balancer(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                load_balancer = driver_utils.call_provider(
-                    driver.name, driver.loadbalancer_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if load_balancer:
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_load_balancer(self, context, id, is_parallel=False):
+        load_balancer = driver_invocation(
+            context, 'loadbalancer_get', id, is_parallel
+        )
 
         if not load_balancer:
             raise exceptions.NotFound(

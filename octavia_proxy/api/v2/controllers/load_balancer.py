@@ -24,6 +24,7 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
@@ -46,16 +47,19 @@ class LoadBalancersController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single load balancer's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', False)
 
-        result = self.find_load_balancer(context, id)
+        result = self.find_load_balancer(context, id, is_parallel)
 
-        self._auth_validate_action(context, result.project_id,
+        self._auth_validate_action(context, result[0].project_id,
                                    constants.RBAC_GET_ONE)
 
         if fields is not None:
-            result = self._filter_fields([result], fields)[0]
-        return lb_types.LoadBalancerRootResponse(loadbalancer=result)
+            result = self._filter_fields([result[0]], fields)[0]
+        return lb_types.LoadBalancerRootResponse(loadbalancer=result[0])
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancersRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
@@ -73,24 +77,12 @@ class LoadBalancersController(base.BaseController):
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
         query_filter.update(query_params)
+        is_parallel = query_filter.pop('is_parallel', False)
 
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
         links = []
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                lbs = driver_utils.call_provider(
-                    driver.name, driver.loadbalancers,
-                    context.session,
-                    context.project_id,
-                    query_filter)
-                if lbs:
-                    LOG.debug('Received %s from %s' % (lbs, driver.name))
-                    result.extend(lbs)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        result = driver_invocation(
+            context, 'loadbalancers', query_filter, is_parallel
+        )
 
         # TODO: pagination
         if fields is not None:
