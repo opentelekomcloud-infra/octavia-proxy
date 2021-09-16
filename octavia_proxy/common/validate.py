@@ -21,12 +21,13 @@ import re
 
 import netaddr
 from oslo_config import cfg
+from oslo_log import log as logging
 
 from octavia_proxy.common import constants, exceptions
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
-
+LOG = logging.getLogger(__name__)
 
 def check_session_persistence(SP_dict):
     try:
@@ -58,7 +59,7 @@ def subnet_exists(subnet_id, context=None):
     """Raises an exception when a subnet does not exist."""
     session = context.session
     try:
-        subnet = session.network.get_subnet(subnet_id)
+        subnet = session.network.find_subnet(name_or_id=subnet_id)
     except Exception as e:
         raise exceptions.InvalidSubresource(
             resource='Subnet', id=subnet_id) from e
@@ -72,7 +73,7 @@ def network_exists_optionally_contains_subnet(network_id, subnet_id=None,
     """
     session = context.session
     try:
-        network = session.network.get_network(network_id)
+        network = session.network.find_network(name_or_id=network_id)
     except Exception as e:
         raise exceptions.InvalidSubresource(
             resource='Network', id=network_id) from e

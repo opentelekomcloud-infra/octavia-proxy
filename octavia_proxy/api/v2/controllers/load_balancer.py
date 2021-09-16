@@ -14,7 +14,6 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
-from octavia_lib.api.drivers import data_models as driver_dm
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
@@ -52,14 +51,14 @@ class LoadBalancersController(base.BaseController):
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
         is_parallel = query_params.pop('is_parallel', False)
 
-        result = self.find_load_balancer(context, id, is_parallel)
+        result = self.find_load_balancer(context, id, is_parallel)[0]
 
-        self._auth_validate_action(context, result[0].project_id,
+        self._auth_validate_action(context, result.project_id,
                                    constants.RBAC_GET_ONE)
 
         if fields is not None:
-            result = self._filter_fields([result[0]], fields)[0]
-        return lb_types.LoadBalancerRootResponse(loadbalancer=result[0])
+            result = self._filter_fields([result], fields)[0]
+        return lb_types.LoadBalancerRootResponse(loadbalancer=result)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancersRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
@@ -208,7 +207,6 @@ class LoadBalancersController(base.BaseController):
     def post(self, load_balancer):
         """Creates a load balancer."""
         load_balancer = load_balancer.loadbalancer
-        print(load_balancer.to_dict())
         context = pecan_request.context.get('octavia_context')
 
         if not load_balancer.project_id and context.project_id:
@@ -224,7 +222,6 @@ class LoadBalancersController(base.BaseController):
                                    constants.RBAC_POST)
 
         provider = self._get_provider(context.session, load_balancer)
-
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(provider)
 
@@ -232,16 +229,11 @@ class LoadBalancersController(base.BaseController):
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
 
-        lb_dict = load_balancer.to_dict(render_unsets=False)
-        lb_dict['id'] = None
-        driver_lb_dict = driver_utils.lb_dict_to_provider_dict(
-            lb_dict, None)
-
         # Dispatch to the driver
         result = driver_utils.call_provider(
             driver.name, driver.loadbalancer_create,
             context.session,
-            driver_dm.LoadBalancer.from_dict(driver_lb_dict))
+            load_balancer)
 
         return lb_types.LoadBalancerRootResponse(loadbalancer=result)
 
@@ -253,7 +245,7 @@ class LoadBalancersController(base.BaseController):
         load_balancer = load_balancer.loadbalancer
         context = pecan_request.context.get('octavia_context')
 
-        orig_balancer = self.find_load_balancer(context, id)
+        orig_balancer = self.find_load_balancer(context, id)[0]
 
         self._auth_validate_action(
             context, orig_balancer.project_id,
@@ -278,7 +270,7 @@ class LoadBalancersController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         cascade = strutils.bool_from_string(cascade)
 
-        load_balancer = self.find_load_balancer(context, id)
+        load_balancer = self.find_load_balancer(context, id)[0]
 
         self._auth_validate_action(
             context, load_balancer.project_id,

@@ -93,7 +93,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
-
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs = elbv3_foremapping(lb_attrs)
 
