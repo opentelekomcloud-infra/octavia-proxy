@@ -93,8 +93,6 @@ class TestElbv3Driver(base.TestCase):
         'l7_flavor_id': None,
         'l7_scale_flavor_id': None,
         'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
         'location': None,
         'name': 'test',
         'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],

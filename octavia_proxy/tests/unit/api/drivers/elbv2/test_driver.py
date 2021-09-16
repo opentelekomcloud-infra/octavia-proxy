@@ -72,8 +72,6 @@ class TestElbv2Driver(base.TestCase):
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'is_admin_state_up': True,
-        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
         'location': None,
         'name': 'test',
         'provider': 'elbv2',
