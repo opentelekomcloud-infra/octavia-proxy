@@ -15,8 +15,11 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-
+from wsme import types as wtypes
 from octavia_proxy.api.drivers.elbv2 import driver
+from octavia_proxy.api.v2.controllers import BaseV2Controller
+from octavia_proxy.api.v2.types import (load_balancer as lb_types,
+                                        listener as listener_types)
 from octavia_proxy.tests.unit import base
 from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
                                         load_balancer, health_monitor,
@@ -37,11 +40,15 @@ class FakeResponse:
         # for the sake of "list" response faking
         self.links = []
 
-    def json(self):
-        return self.body
-
 
 class TestElbv2Driver(base.TestCase):
+
+    EXAMPLE_LB = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
+                  'name': 'ex_name', 'project_id': '7823987',
+                  'vip_address': '192.168.0.10',
+                  'provisioning_status': 'ACTIVE',
+                  'operating_status': 'ACTIVE', 'provider': 'elbv2'}
+
     attrs = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'name': 'test',
@@ -85,6 +92,17 @@ class TestElbv2Driver(base.TestCase):
         'tags': [],
     }
 
+    LB_RESPONSE_TYPE_PROPERTIES = ['id', 'name', 'description',
+                                   'provisioning_status', 'operating_status',
+                                   'admin_state_up', 'project_id',
+                                   'created_at',
+                                   'updated_at', 'vip_address', 'vip_port_id',
+                                   'vip_subnet_id', 'vip_network_id',
+                                   'listeners',
+                                   'pools', 'provider', 'flavor_id',
+                                   'vip_qos_policy_id', 'tags',
+                                   'availability_zone']
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv2Driver()
@@ -97,6 +115,15 @@ class TestElbv2Driver(base.TestCase):
             return_value=self.lb)
         self.sess.elb.update_load_balancer = mock.MagicMock(
             return_value=self.lb)
+        self.lb_response1 = lb_types.LoadBalancerResponse(**self.EXAMPLE_LB)
+        self.lb_response2 = lb_types.LoadBalancerResponse(**self.EXAMPLE_LB)
+
+    def _assert_only_filtered_fields_present(self, list_objects, fields):
+        for object in list_objects:
+            for property in self.LB_RESPONSE_TYPE_PROPERTIES:
+                if property not in fields:
+                    self.assertIsInstance(getattr(object, property),
+                                          wtypes.UnsetType)
 
     def test_get_supported_flavor_metadata(self):
         resp = self.driver.get_supported_flavor_metadata()
@@ -158,8 +185,25 @@ class TestElbv2Driver(base.TestCase):
             cascade=True
         )
 
+    def test_filter_fields_loadbalancer(self):
+        lb_objects = []
+        fields = ['id', 'name']
+        lb_objects.append(self.lb_response1)
+        lb_objects.append(self.lb_response2)
+        controller = BaseV2Controller()
+        self.driver.loadbalancers = mock.MagicMock(return_value=lb_objects)
+        result = controller._filter_fields(lb_objects, fields)
+        self._assert_only_filtered_fields_present(lb_objects, fields)
+
 
 class TestElbv2ListenerDriver(base.TestCase):
+
+    EXAMPLE_LISTENER = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
+                        'name': 'ex_name', 'project_id': '7823987',
+                        'vip_address': '192.168.0.10',
+                        'provisioning_status': 'ACTIVE',
+                        'operating_status': 'ACTIVE', 'provider': 'elbv2'}
+
     attrs = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
@@ -210,6 +254,27 @@ class TestElbv2ListenerDriver(base.TestCase):
         'updated_at': '2021-08-10T09:39:24+00:00'
     }
 
+    LISTENER_RESPONSE_TYPE_PROPERTIES = ['id', 'name', 'description',
+                                         'provisioning_status',
+                                         'operating_status','admin_state_up',
+                                         'protocol', 'protocol_port',
+                                         'connection_limit',
+                                         'default_tls_container_ref',
+                                         'sni_container_refs', 'project_id',
+                                         'default_pool_id', 'l7policies',
+                                         'insert_headers', 'created_at',
+                                         'updated_at', 'loadbalancers',
+                                         'timeout_client_data',
+                                         'timeout_member_connect',
+                                         'timeout_member_data',
+                                         'timeout_tcp_inspect',
+                                         'client_ca_tls_container_ref',
+                                         'client_authentication',
+                                         'client_crl_container_ref',
+                                         'allowed_cidrs',
+                                         'tls_ciphers', 'tls_versions',
+                                         'alpn_protocols', 'tags']
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv2Driver()
@@ -218,6 +283,17 @@ class TestElbv2ListenerDriver(base.TestCase):
         self.sess.elb.create_listener = mock.MagicMock(return_value=self.lsnr)
         self.sess.elb.find_listener = mock.MagicMock(return_value=self.lsnr)
         self.sess.elb.update_listener = mock.MagicMock(return_value=self.lsnr)
+        self.lsnr_response1 = listener_types.ListenerResponse(
+            **self.EXAMPLE_LISTENER)
+        self.lsnr_response2 = listener_types.ListenerResponse(
+            **self.EXAMPLE_LISTENER)
+
+    def _assert_only_filtered_fields_present(self, list_objects, fields):
+        for object in list_objects:
+            for property in self.LISTENER_RESPONSE_TYPE_PROPERTIES:
+                if property not in fields:
+                    self.assertIsInstance(getattr(object, property),
+                                          wtypes.UnsetType)
 
     def test_listeners_no_qp(self):
         self.driver.listeners(self.sess, 'l1')
@@ -252,6 +328,16 @@ class TestElbv2ListenerDriver(base.TestCase):
         }
         self.driver.listener_update(self.sess, self.lsnr, attrs)
         self.sess.elb.update_listener.assert_called_with(self.lsnr.id, **attrs)
+
+    def test_filter_fields_listener(self):
+        lstn_objects = []
+        fields = ['id', 'name']
+        lstn_objects.append(self.lsnr_response1)
+        lstn_objects.append(self.lsnr_response2)
+        controller = BaseV2Controller()
+        self.driver.listeners = mock.MagicMock(return_value=lstn_objects)
+        result = controller._filter_fields(lstn_objects, fields)
+        self._assert_only_filtered_fields_present(result, fields)
 
 
 class TestElbv2PoolDriver(base.TestCase):
