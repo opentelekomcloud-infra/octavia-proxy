@@ -14,7 +14,6 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
-from octavia_lib.api.drivers import data_models as driver_dm
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
@@ -240,16 +239,11 @@ class LoadBalancersController(base.BaseController):
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
 
-        lb_dict = load_balancer.to_dict(render_unsets=False)
-        lb_dict['id'] = None
-        driver_lb_dict = driver_utils.lb_dict_to_provider_dict(
-            lb_dict, None)
-
         # Dispatch to the driver
         result = driver_utils.call_provider(
             driver.name, driver.loadbalancer_create,
             context.session,
-            driver_dm.LoadBalancer.from_dict(driver_lb_dict))
+            load_balancer)
 
         return lb_types.LoadBalancerRootResponse(loadbalancer=result)
 

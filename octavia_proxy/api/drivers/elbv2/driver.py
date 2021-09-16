@@ -67,6 +67,10 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
+        if 'pools' in lb_attrs:
+            lb_attrs.pop('pools')
+        if 'listeners' in lb_attrs:
+            lb_attrs.pop('listeners')
         lb_attrs.pop('loadbalancer_id', None)
 
         lb = session.elb.create_load_balancer(**lb_attrs)
