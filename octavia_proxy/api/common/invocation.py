@@ -10,17 +10,20 @@ LOG = logging.getLogger(__name__)
 ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
 
 
-def process_result(resource):
-    result = []
-    try:
-        result.extend(resource)
-    except TypeError:
-        result.append(resource)
-    return result
+def process_result(resource, out):
+    if resource:
+        try:
+            out.extend(resource)
+        except TypeError:
+            out.append(resource)
+    LOG.debug(f'##################################### process_result: {out}#####################################')
+    return out
 
 
 def driver_invocation(context=None, function=None, params=None, is_parallel=False):
     result = []
+    LOG.debug(f'##################################### BEFORE REQUEST: {result}#####################################')
+    LOG.debug(f'##################################### PARAMS: {params}#####################################')
     if is_parallel:
         pass
     for provider in ENABLED_PROVIDERS:
@@ -35,7 +38,8 @@ def driver_invocation(context=None, function=None, params=None, is_parallel=Fals
                 params)
             if resource:
                 LOG.debug('Received %s from %s' % (resource, driver.name))
-                result = process_result(resource)
+                result = process_result(resource, result)
         except exceptions.ProviderNotImplementedError:
             LOG.exception('Driver %s is not supporting this')
+        LOG.debug(f'##################################### AFTER REQUESTS: {result}#####################################')
     return result

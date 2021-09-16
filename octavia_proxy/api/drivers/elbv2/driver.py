@@ -72,6 +72,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if 'listeners' in lb_attrs:
             lb_attrs.pop('listeners')
         lb_attrs.pop('loadbalancer_id', None)
+        lb_attrs.pop('vip_network_id', None)
 
         lb = session.elb.create_load_balancer(**lb_attrs)
 

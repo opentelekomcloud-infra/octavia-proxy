@@ -269,7 +269,7 @@ class LoadBalancersController(base.BaseController):
         """Deletes a load balancer."""
         context = pecan_request.context.get('octavia_context')
         cascade = strutils.bool_from_string(cascade)
-
+        LOG.debug(f'##################################### DELETE: {id}#####################################')
         load_balancer = self.find_load_balancer(context, id)[0]
 
         self._auth_validate_action(
