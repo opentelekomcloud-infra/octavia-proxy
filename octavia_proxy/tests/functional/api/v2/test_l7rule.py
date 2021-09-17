@@ -45,7 +45,7 @@ class TestL7Rule(base.BaseAPITest):
     def tearDownClass(cls):
         pass
 
-    def test_get(self):
+    def test_create_get_delete(self):
         l7rule = self.create_l7rule(
             self.l7policy_id, constants.L7RULE_TYPE_PATH,
             constants.L7RULE_COMPARE_TYPE_STARTS_WITH,
