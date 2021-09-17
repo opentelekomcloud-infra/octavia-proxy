@@ -53,8 +53,7 @@ class TestLoadBalancer(base.BaseAPITest):
     def test_create(self, **optionals):
         lb_json = {'name': 'test1',
                    'vip_subnet_id': self._network['subnet_id'],
-                   'project_id': self.project_id,
-                   'tags': ['test_tag1', 'test_tag2']
+                   'project_id': self.project_id
                    }
         lb_json.update(optionals)
         body = self._build_body(lb_json)
