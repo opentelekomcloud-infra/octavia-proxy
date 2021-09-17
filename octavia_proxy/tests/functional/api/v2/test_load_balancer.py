@@ -61,7 +61,7 @@ class TestLoadBalancer(base.BaseAPITest):
         response = self.post(self.LBS_PATH, body)
         self.api_lb = response.json.get(self.root_tag)
         self._assert_request_matches_response(lb_json, self.api_lb)
-        self._cleanup_lb()
+        self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
     def test_create_v2_0(self, **optionals):
         lb_json = {'name': 'test2',
@@ -73,7 +73,7 @@ class TestLoadBalancer(base.BaseAPITest):
         response = self.post(self.LBS_PATH, body, use_v2_0=True)
         self.api_lb = response.json.get(self.root_tag)
         self._assert_request_matches_response(lb_json, self.api_lb)
-        self._cleanup_lb()
+        self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
     def test_create_without_vip(self):
         lb_json = {'name': 'test1',

@@ -25,9 +25,21 @@ _lb = None
 
 def _destroy_lb(_lb: dict):
     if _lb.get('provider') == 'elbv2':
+        for pool in _sdk.elb.pools(loadbalancer_id=_lb.get('id')):
+            for member in _sdk.elb.members(pool):
+                _sdk.elb.delete_member(member, pool)
+            for hm in _sdk.elb.health_monitors():
+                if any(pl['id'] == pool.get('id') for pl in hm.pools):
+                    _sdk.elb.delete_health_monitor(hm)
+            _sdk.elb.delete_pool(pool)
+        for listener in _sdk.elb.listeners():
+            if any(lb['id'] == _lb.get('id')
+                   for lb in listener.load_balancers):
+                _sdk.elb.delete_listener(listener)
         _sdk.elb.delete_load_balancer(_lb.get('id'))
     else:
-        _sdk.vlb.delete_load_balancer(_lb.get('id'))
+        # TODO implement cleanup for elbv3 _sdk.vlb.delete_
+        pass
 
 
 class BaseAPITest(base.TestCase):
@@ -184,12 +196,6 @@ class BaseAPITest(base.TestCase):
             _lb = response.json.get('loadbalancer')
         return _lb
 
-    def _cleanup_lb(self):
-        try:
-            self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
-        except Exception:
-            pass
-
     def _make_app(self):
         # Note: we need to set argv=() to stop the wsgi setup_app from
         # pulling in the testing tool sys.argv
@@ -258,6 +264,15 @@ class BaseAPITest(base.TestCase):
                                       expect_errors=expect_errors)
         return response
 
+    def create_load_balancer(self, vip_subnet_id,
+                             **optionals):
+        req_dict = {'vip_subnet_id': vip_subnet_id,
+                    'project_id': self.project_id}
+        req_dict.update(optionals)
+        body = {'loadbalancer': req_dict}
+        response = self.post(self.LBS_PATH, body)
+        return response.json
+
     def delete(self, path, headers=None, params=None, status=204,
                expect_errors=False, authorized=True):
         headers = headers or {}
@@ -297,6 +312,32 @@ class BaseAPITest(base.TestCase):
         req_dict.update(optionals)
         body = {'pool': req_dict}
         path = self.POOLS_PATH
+        status = {'status': status} if status else {}
+        response = self.post(path, body, **status)
+        return response.json
+
+    def create_member(self, pool_id, address, protocol_port,
+                      status=None, **optionals):
+        req_dict = {'address': address, 'protocol_port': protocol_port}
+        req_dict.update(optionals)
+        body = {'member': req_dict}
+        path = self.MEMBERS_PATH.format(pool_id=pool_id)
+        status = {'status': status} if status else {}
+        response = self.post(path, body, **status)
+        return response.json
+
+    def create_health_monitor(self, pool_id, type, delay, timeout,
+                              max_retries_down, max_retries,
+                              status=None, **optionals):
+        req_dict = {'pool_id': pool_id,
+                    'type': type,
+                    'delay': delay,
+                    'timeout': timeout,
+                    'max_retries_down': max_retries_down,
+                    'max_retries': max_retries}
+        req_dict.update(optionals)
+        body = {'healthmonitor': req_dict}
+        path = self.HMS_PATH
         status = {'status': status} if status else {}
         response = self.post(path, body, **status)
         return response.json

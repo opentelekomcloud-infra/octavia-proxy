@@ -311,6 +311,11 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Creating member %s' % member.to_dict())
         attrs = member.to_dict()
 
+        if 'subnet_id' not in attrs:
+            lb_id = session.elb.get_pool(pool_id)['loadbalancers'][0]['id']
+            attrs['subnet_id'] = session.elb.get_load_balancer(
+                lb_id)['vip_subnet_id']
+
         attrs['address'] = attrs.pop('ip_address', None)
         attrs.pop('backup', None)
         attrs.pop('monitor_port', None)

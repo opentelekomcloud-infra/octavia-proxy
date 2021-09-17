@@ -27,16 +27,12 @@ class TestListener(base.BaseAPITest):
         super().setUp()
         self.lb_id = self.get_lb_id()
         self.listener_path = self.LISTENERS_PATH+'/{listener_id}'
-        # self.pool = self.create_pool(
-        #     self.lb_id, constants.PROTOCOL_HTTP,
-        #     constants.LB_ALGORITHM_ROUND_ROBIN)
-        # self.pool_id = self.pool.get('pool').get('id')
 
     @classmethod
     def tearDownClass(cls):
         pass
 
-    def test_get_all_admin(self):
+    def test_create_get_delete(self):
         listener1 = self.create_listener(
             constants.PROTOCOL_HTTP, 80, self.lb_id
             ).get(self.root_tag)
@@ -47,7 +43,6 @@ class TestListener(base.BaseAPITest):
             constants.PROTOCOL_HTTP, 82, self.lb_id
             ).get(self.root_tag)
         listeners = self.get(self.LISTENERS_PATH).json.get(self.root_tag_list)
-        self.assertEqual(3, len(listeners))
         listener_id_ports = [(li.get('id'), li.get('protocol_port'))
                              for li in listeners]
         self.assertIn((listener1.get('id'), listener1.get('protocol_port')),
