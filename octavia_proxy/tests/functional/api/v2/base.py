@@ -25,6 +25,13 @@ _lb = None
 
 def _destroy_lb(_lb: dict):
     if _lb.get('provider') == 'elbv2':
+        for listener in _sdk.elb.listeners():
+            if any(lb['id'] == _lb.get('id')
+                   for lb in listener.load_balancers):
+                for l7policy in _sdk.elb.l7_policies():
+                    if l7policy.get('listener_id') == listener.get('id'):
+                        _sdk.elb.delete_l7_policy(l7policy)
+                _sdk.elb.delete_listener(listener)
         for pool in _sdk.elb.pools(loadbalancer_id=_lb.get('id')):
             for member in _sdk.elb.members(pool):
                 _sdk.elb.delete_member(member, pool)
@@ -32,10 +39,6 @@ def _destroy_lb(_lb: dict):
                 if any(pl['id'] == pool.get('id') for pl in hm.pools):
                     _sdk.elb.delete_health_monitor(hm)
             _sdk.elb.delete_pool(pool)
-        for listener in _sdk.elb.listeners():
-            if any(lb['id'] == _lb.get('id')
-                   for lb in listener.load_balancers):
-                _sdk.elb.delete_listener(listener)
         _sdk.elb.delete_load_balancer(_lb.get('id'))
     else:
         # TODO implement cleanup for elbv3 _sdk.vlb.delete_
@@ -338,6 +341,25 @@ class BaseAPITest(base.TestCase):
         req_dict.update(optionals)
         body = {'healthmonitor': req_dict}
         path = self.HMS_PATH
+        status = {'status': status} if status else {}
+        response = self.post(path, body, **status)
+        return response.json
+
+    def create_l7policy(self, listener_id, action, status=None, **optionals):
+        req_dict = {'listener_id': listener_id, 'action': action}
+        req_dict.update(optionals)
+        body = {'l7policy': req_dict}
+        path = self.L7POLICIES_PATH
+        status = {'status': status} if status else {}
+        response = self.post(path, body, **status)
+        return response.json
+
+    def create_l7rule(self, l7policy_id, type, compare_type,
+                      value, status=None, **optionals):
+        req_dict = {'type': type, 'compare_type': compare_type, 'value': value}
+        req_dict.update(optionals)
+        body = {'rule': req_dict}
+        path = self.L7RULES_PATH.format(l7policy_id=l7policy_id)
         status = {'status': status} if status else {}
         response = self.post(path, body, **status)
         return response.json
