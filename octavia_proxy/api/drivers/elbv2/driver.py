@@ -72,6 +72,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if 'listeners' in lb_attrs:
             lb_attrs.pop('listeners')
         lb_attrs.pop('loadbalancer_id', None)
+        lb_attrs.pop('vip_network_id', None)
 
         lb = session.elb.create_load_balancer(**lb_attrs)
 
@@ -313,6 +314,11 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def member_create(self, session, pool_id, member):
         LOG.debug('Creating member %s' % member.to_dict())
         attrs = member.to_dict()
+
+        if 'subnet_id' not in attrs:
+            lb_id = session.elb.get_pool(pool_id)['loadbalancers'][0]['id']
+            attrs['subnet_id'] = session.elb.get_load_balancer(
+                lb_id)['vip_subnet_id']
 
         attrs['address'] = attrs.pop('ip_address', None)
         attrs.pop('backup', None)

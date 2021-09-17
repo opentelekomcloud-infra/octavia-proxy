@@ -6,6 +6,7 @@
 *.swo
 *.swp
 *~
+AUTHORS
 octavia_proxy-*/
 .coverage
 .idea
