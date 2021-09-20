@@ -15,6 +15,7 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
+
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
 from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
@@ -36,9 +37,11 @@ class FakeResponse:
         # for the sake of "list" response faking
         self.links = []
 
+    def json(self):
+        return self.body
+
 
 class TestElbv2Driver(base.TestCase):
-
     attrs = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'name': 'test',
@@ -156,7 +159,6 @@ class TestElbv2Driver(base.TestCase):
 
 
 class TestElbv2ListenerDriver(base.TestCase):
-
     attrs = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
