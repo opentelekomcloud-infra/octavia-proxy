@@ -1,7 +1,8 @@
 from wsme import types as wtypes
 from octavia_proxy.api.v2.controllers import BaseV2Controller
 from octavia_proxy.api.v2.types import (load_balancer as lb_types,
-                                        listener as listener_types)
+                                        listener as listener_types,
+                                        pool as pool_types)
 from octavia_proxy.tests.unit import base
 
 
@@ -14,6 +15,10 @@ class TestElbv2Controler(base.TestCase):
                   'operating_status': 'ACTIVE', 'provider': 'elbv2'}
 
     EXAMPLE_LSNR = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
+                    'name': 'ex_name', 'project_id': '7823987',
+                    'provisioning_status': 'ACTIVE'}
+
+    EXAMPLE_POOL = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
                     'name': 'ex_name', 'project_id': '7823987',
                     'provisioning_status': 'ACTIVE'}
 
@@ -36,7 +41,7 @@ class TestElbv2Controler(base.TestCase):
                                      'default_tls_container_ref',
                                      'sni_container_refs', 'default_pool_id',
                                      'l7policies', 'insert_headers',
-                                     'created_at','updated_at',
+                                     'created_at', 'updated_at',
                                      'loadbalancers',
                                      'timeout_client_data',
                                      'timeout_member_connect',
@@ -48,12 +53,28 @@ class TestElbv2Controler(base.TestCase):
                                      'allowed_cidrs', 'tls_ciphers',
                                      'tls_versions', 'tags', 'alpn_protocols']
 
+    POOL_RESPONSE_TYPE_PROPERTIES = ['id', 'name', 'description',
+                                     'provisioning_status',
+                                     'operating_status',
+                                     'admin_state_up', 'protocol',
+                                     'lb_algorithm', 'session_persistence',
+                                     'project_id', 'loadbalancers',
+                                     'listeners', 'created_at', 'updated_at',
+                                     'healthmonitor_id', 'members', 'tags',
+                                     'tls_container_ref',
+                                     'ca_tls_container_ref',
+                                     'crl_container_ref',
+                                     'tls_enabled', 'tls_ciphers',
+                                     'tls_versions', 'alpn_protocols']
+
     def setUp(self):
         super().setUp()
         self.controller = BaseV2Controller()
         self.lb_response = lb_types.LoadBalancerResponse(**self.EXAMPLE_LB)
         self.lsnr_response = listener_types.ListenerResponse(
             **self.EXAMPLE_LSNR)
+        self.pool_response = pool_types.PoolResponse(
+            **self.EXAMPLE_POOL)
 
     def _assert_only_filtered_fields_present(self, list_objects, fields,
                                              type_properties):
@@ -76,3 +97,10 @@ class TestElbv2Controler(base.TestCase):
         result = self.controller._filter_fields(lsnr_objects, fields)
         self._assert_only_filtered_fields_present(
             result, fields, self.LSNR_RESPONSE_TYPE_PROPERTIES)
+
+    def test_filter_fields_pool(self):
+        pool_objects = [self.pool_response]
+        fields = ['id', 'name', 'provisioning_status']
+        result = self.controller._filter_fields(pool_objects, fields)
+        self._assert_only_filtered_fields_present(
+            result, fields, self.POOL_RESPONSE_TYPE_PROPERTIES)
