@@ -3,29 +3,18 @@ from octavia_proxy.api.v2.controllers import BaseV2Controller
 from octavia_proxy.api.v2.types import (load_balancer as lb_types,
                                         listener as listener_types,
                                         pool as pool_types,
-                                        member as member_types)
+                                        member as member_types,
+                                        health_monitor as hm_types,
+                                        l7policy as l7policy_types,
+                                        l7rule as l7rule_types)
 from octavia_proxy.tests.unit import base
 
 
 class TestElbv2Controler(base.TestCase):
 
-    EXAMPLE_LB = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
-                  'name': 'ex_name', 'project_id': '7823987',
-                  'vip_address': '192.168.0.10',
-                  'provisioning_status': 'ACTIVE',
-                  'operating_status': 'ACTIVE', 'provider': 'elbv2'}
-
-    EXAMPLE_LSNR = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
-                    'name': 'ex_name', 'project_id': '7823987',
-                    'provisioning_status': 'ACTIVE'}
-
-    EXAMPLE_POOL = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
-                    'name': 'ex_name', 'project_id': '7823987',
-                    'provisioning_status': 'ACTIVE'}
-
-    EXAMPLE_MEMBER = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
-                      'name': 'ex_name', 'project_id': '7823987',
-                      'provisioning_status': 'ACTIVE'}
+    EXAMPLE = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
+               'project_id': '7823987',
+               'provisioning_status': 'ACTIVE'}
 
     LB_RESPONSE_TYPE_PROPERTIES = ['id', 'name', 'description',
                                    'provisioning_status', 'operating_status',
@@ -80,16 +69,48 @@ class TestElbv2Controler(base.TestCase):
                                        'monitor_address', 'monitor_port',
                                        'tags']
 
+    HM_RESPONSE_TYPE_PROPERTIES = ['id', 'name', 'type', 'delay', 'timeout',
+                                   'max_retries', 'max_retries_down',
+                                   'http_method', 'url_path', 'expected_codes',
+                                   'admin_state_up', 'project_id', 'pools',
+                                   'provisioning_status', 'operating_status',
+                                   'created_at', 'updated_at', 'tags',
+                                   'http_version', 'domain_name']
+
+    L7POLICY_RESPONSE_TYPE_PROPERTIES = ['id', 'name', 'description',
+                                         'provisioning_status',
+                                         'operating_status',
+                                         'admin_state_up',
+                                         'project_id', 'action', 'listener_id',
+                                         'redirect_pool_id', 'redirect_url',
+                                         'redirect_prefix', 'position',
+                                         'rules', 'created_at', 'updated_at',
+                                         'tags', 'redirect_http_code']
+
+    L7RULE_RESPONSE_TYPE_PROPERTIES = ['id', 'type', 'compare_type', 'key',
+                                       'value', 'invert',
+                                       'provisioning_status',
+                                       'operating_status', 'created_at',
+                                       'updated_at', 'project_id',
+                                       'admin_state_up', 'tags']
+
     def setUp(self):
         super().setUp()
         self.controller = BaseV2Controller()
-        self.lb_response = lb_types.LoadBalancerResponse(**self.EXAMPLE_LB)
+        self.lb_response = lb_types.LoadBalancerResponse(**self.EXAMPLE)
+        self.fields = ['id', 'name']
         self.lsnr_response = listener_types.ListenerResponse(
-            **self.EXAMPLE_LSNR)
+            **self.EXAMPLE)
         self.pool_response = pool_types.PoolResponse(
-            **self.EXAMPLE_POOL)
+            **self.EXAMPLE)
         self.member_response = member_types.MemberResponse(
-            **self.EXAMPLE_MEMBER)
+            **self.EXAMPLE)
+        self.hm_response = hm_types.HealthMonitorResponse(
+            **self.EXAMPLE)
+        self.l7policy_response = l7policy_types.L7PolicyResponse(
+            **self.EXAMPLE)
+        self.l7rule_response = l7rule_types.L7RuleResponse(
+            **self.EXAMPLE)
 
     def _assert_only_filtered_fields_present(self, list_objects, fields,
                                              type_properties):
@@ -108,21 +129,31 @@ class TestElbv2Controler(base.TestCase):
 
     def test_filter_fields_listener(self):
         lsnr_objects = [self.lsnr_response]
-        fields = ['id', 'name']
-        result = self.controller._filter_fields(lsnr_objects, fields)
+        result = self.controller._filter_fields(lsnr_objects, self.fields)
         self._assert_only_filtered_fields_present(
-            result, fields, self.LSNR_RESPONSE_TYPE_PROPERTIES)
+            result, self.fields, self.LSNR_RESPONSE_TYPE_PROPERTIES)
 
     def test_filter_fields_pool(self):
         pool_objects = [self.pool_response]
-        fields = ['id', 'name']
-        result = self.controller._filter_fields(pool_objects, fields)
+        result = self.controller._filter_fields(pool_objects, self.fields)
         self._assert_only_filtered_fields_present(
-            result, fields, self.POOL_RESPONSE_TYPE_PROPERTIES)
+            result, self.fields, self.POOL_RESPONSE_TYPE_PROPERTIES)
 
     def test_filter_fields_member(self):
         member_objects = [self.member_response]
-        fields = ['id', 'name']
-        result = self.controller._filter_fields(member_objects, fields)
+        self.fields = ['id', 'name']
+        result = self.controller._filter_fields(member_objects, self.fields)
         self._assert_only_filtered_fields_present(
-            result, fields, self.MEMBER_RESPONSE_TYPE_PROPERTIES)
+            result, self.fields, self.MEMBER_RESPONSE_TYPE_PROPERTIES)
+
+    def test_filter_fields_hm(self):
+        hm_objects = [self.hm_response]
+        result = self.controller._filter_fields(hm_objects, self.fields)
+        self._assert_only_filtered_fields_present(
+            result, self.fields, self.HM_RESPONSE_TYPE_PROPERTIES)
+
+    def test_filter_fields_l7policy(self):
+        l7policy_objects = [self.l7policy_response]
+        result = self.controller._filter_fields(l7policy_objects, self.fields)
+        self._assert_only_filtered_fields_present(
+            result, self.fields, self.L7POLICY_RESPONSE_TYPE_PROPERTIES)
