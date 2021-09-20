@@ -1,1 +1,59 @@
-#    Copyright 2014 Rackspace##    Licensed under the Apache License, Version 2.0 (the "License"); you may#    not use this file except in compliance with the License. You may obtain#    a copy of the License at##         http://www.apache.org/licenses/LICENSE-2.0##    Unless required by applicable law or agreed to in writing, software#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the#    License for the specific language governing permissions and limitations#    under the License.from oslo_utils import uuidutilsfrom octavia_proxy.common import constantsfrom octavia_proxy.tests.functional.api.v2 import baseclass TestListener(base.BaseAPITest):    root_tag = 'listener'    root_tag_list = 'listeners'    root_tag_links = 'listeners_links'    api_lb = None    lb_id = None    def setUp(self):        super().setUp()        self._create_lb()    def tearDownUp(self):        self._cleanup_lb()        super().tearDown()    def _create_lb(self, **optionals):        lb_json = {'name': 'test1',                   'vip_subnet_id': self._network['subnet_id'],                   'project_id': self.project_id,                   'tags': ['test_tag1', 'test_tag2']                   }        lb_json.update(optionals)        body = self._build_body(lb_json)        response = self.post(self.LBS_PATH, body)        self.api_lb = response.json.get(self.root_tag)        self._lb_id = self.api_lb.get('id')    def _assert_request_matches_response(self, req, resp, **optionals):        self.assertTrue(uuidutils.is_uuid_like(resp.get('id')))        req_name = req.get('name')        req_description = req.get('description')        if not req_name:            self.assertEqual('', resp.get('name'))        else:            self.assertEqual(req.get('name'), resp.get('name'))        if not req_description:            self.assertEqual(None, resp.get('description'))        else:            self.assertEqual(req.get('description'), resp.get('description'))        self.assertEqual(constants.ACTIVE,                         resp.get('provisioning_status'))        self.assertEqual(constants.ONLINE, resp.get('operating_status'))        self.assertEqual(req.get('admin_state_up', True),                         resp.get('admin_state_up'))        self.assertIsNotNone(resp.get('created_at'))        self.assertIsNotNone(resp.get('updated_at'))        for key, value in optionals.items():            self.assertEqual(value, req.get(key))    # def test_empty_list(self):    #     response = self.get(self.LBS_PATH)    #     api_list = response.json.get(self.root_tag_list)    #     self.assertEqual([], api_list)    def test_create(self, **optionals):        listener_json = {'name': 'test1-lstnr',                   'protocol': 'TCP', 'protocol_port': '80',                   'loadbalancer_id': self._lb_id,                   'project_id': self.project_id                   }        listener_json.update(optionals)        body = self._build_body(listener_json)        response = self.post(self.LISTENERS_PATH, body)        self.api_listener = response.json.get(self.root_tag)        self._assert_request_matches_response(listener_json, self.api_listener)        self._cleanup()    def test_create_v2_0(self, **optionals):        listener_json = {'name': 'test2-lstnr',                   'protocol': 'TCP', 'protocol_port': '80',                   'loadbalancer_id': self._lb_id,                   'project_id': self.project_id                   }        listener_json.update(optionals)        body = self._build_body(listener_json)        response = self.post(self.LBS_PATH, body, use_v2_0=True)        self.api_listener = response.json.get(self.root_tag)        self._assert_request_matches_response(listener_json, self.api_listener)        self._cleanup()
+#    Copyright 2014 Rackspace
+#    Copyright 2016 Blue Box, an IBM Company
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+from octavia_proxy.common import constants
+from octavia_proxy.tests.functional.api.v2 import base
+
+
+class TestListener(base.BaseAPITest):
+
+    root_tag = 'listener'
+    root_tag_list = 'listeners'
+    root_tag_links = 'listeners_links'
+
+    def setUp(self):
+        super().setUp()
+        self.lb_id = self.get_lb_id()
+        self.listener_path = self.LISTENERS_PATH+'/{listener_id}'
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
+
+    def test_create_get_delete(self):
+        listener1 = self.create_listener(
+            constants.PROTOCOL_HTTP, 80, self.lb_id
+            ).get(self.root_tag)
+        listener2 = self.create_listener(
+            constants.PROTOCOL_HTTP, 81, self.lb_id
+            ).get(self.root_tag)
+        listener3 = self.create_listener(
+            constants.PROTOCOL_HTTP, 82, self.lb_id
+            ).get(self.root_tag)
+        listeners = self.get(self.LISTENERS_PATH).json.get(self.root_tag_list)
+        listener_id_ports = [(li.get('id'), li.get('protocol_port'))
+                             for li in listeners]
+        self.assertIn((listener1.get('id'), listener1.get('protocol_port')),
+                      listener_id_ports)
+        self.assertIn((listener2.get('id'), listener2.get('protocol_port')),
+                      listener_id_ports)
+        self.assertIn((listener3.get('id'), listener3.get('protocol_port')),
+                      listener_id_ports)
+        self.delete(self.LISTENER_PATH.format(
+            listener_id=listener1.get('id')))
+        self.delete(self.LISTENER_PATH.format(
+            listener_id=listener2.get('id')))
+        self.delete(self.LISTENER_PATH.format(
+            listener_id=listener3.get('id')))

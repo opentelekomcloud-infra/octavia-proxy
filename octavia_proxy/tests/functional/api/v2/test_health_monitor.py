@@ -1,3 +1,4 @@
+
 #    Copyright 2014 Rackspace
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -12,16 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 from octavia_proxy.common import constants
 from octavia_proxy.tests.functional.api.v2 import base
 
 
-class TestPool(base.BaseAPITest):
+class TestHealthMonitor(base.BaseAPITest):
 
-    root_tag = 'pool'
-    root_tag_list = 'pools'
-    root_tag_links = 'pools_links'
+    root_tag = 'healthmonitor'
+    root_tag_list = 'healthmonitors'
+    root_tag_links = 'healthmonitors_links'
 
     def setUp(self):
         super().setUp()
@@ -30,19 +30,23 @@ class TestPool(base.BaseAPITest):
             constants.PROTOCOL_HTTP, 80,
             self.lb_id).get('listener')
         self.listener_id = self.listener.get('id')
+        self.pool_with_listener = self.create_pool(
+            self.lb_id, constants.PROTOCOL_HTTP,
+            constants.LB_ALGORITHM_ROUND_ROBIN, listener_id=self.listener_id)
+        self.pool_with_listener_id = (
+            self.pool_with_listener.get('pool').get('id'))
 
     @classmethod
     def tearDownClass(cls):
         pass
 
     def test_create_get_delete(self):
-        api_pool = self.create_pool(
-            self.lb_id,
-            constants.PROTOCOL_HTTP,
-            constants.LB_ALGORITHM_ROUND_ROBIN,
-            listener_id=self.listener_id).get(self.root_tag)
-        response = self.get(self.POOL_PATH.format(
-            pool_id=api_pool.get('id'))).json.get(self.root_tag)
-        self.assertEqual(api_pool, response)
-        self.delete(self.POOL_PATH.format(pool_id=api_pool.get('id')))
+        api_hm = self.create_health_monitor(
+            self.pool_with_listener_id, constants.HEALTH_MONITOR_HTTP,
+            1, 1, 1, 1).get(self.root_tag)
+        response = self.get(self.HM_PATH.format(
+            healthmonitor_id=api_hm.get('id'))).json.get(self.root_tag)
+        self.assertEqual(api_hm, response)
+        self.delete(self.HM_PATH.format(healthmonitor_id=api_hm.get('id')))
+        self.delete(self.POOL_PATH.format(pool_id=self.pool_with_listener_id))
         self.delete(self.LISTENER_PATH.format(listener_id=self.listener_id))

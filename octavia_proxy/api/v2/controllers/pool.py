@@ -137,7 +137,7 @@ class PoolsController(base.BaseController):
         pool_dict = pool.to_dict(render_unsets=False)
         pool_dict['id'] = None
 
-        if listener.default_pool_id:
+        if listener and listener.default_pool_id:
             raise exceptions.DuplicatePoolEntry()
 
         result = driver_utils.call_provider(
