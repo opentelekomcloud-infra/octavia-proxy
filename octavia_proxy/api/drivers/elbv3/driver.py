@@ -66,7 +66,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_data = self.loadbalancer_get(
                 project_id=project_id, session=session,
                 lb_id=query_filter['id'])
-            result.append(lb_data)
+            if lb_data:
+                result.append(lb_data)
         else:
             for lb in session.vlb.load_balancers(**query_filter):
                 lb = elbv3_backmapping(lb)

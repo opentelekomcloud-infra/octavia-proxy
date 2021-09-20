@@ -244,13 +244,10 @@ class LoadBalancersController(base.BaseController):
         """Updates a load balancer."""
         load_balancer = load_balancer.loadbalancer
         context = pecan_request.context.get('octavia_context')
-
         orig_balancer = self.find_load_balancer(context, id)[0]
-
         self._auth_validate_action(
             context, orig_balancer.project_id,
             constants.RBAC_PUT)
-
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(orig_balancer.provider)
 
@@ -269,7 +266,6 @@ class LoadBalancersController(base.BaseController):
         """Deletes a load balancer."""
         context = pecan_request.context.get('octavia_context')
         cascade = strutils.bool_from_string(cascade)
-        LOG.debug(f'##################################### DELETE: {id}#####################################')
         load_balancer = self.find_load_balancer(context, id)[0]
 
         self._auth_validate_action(
