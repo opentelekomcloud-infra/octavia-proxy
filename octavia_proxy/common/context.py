@@ -25,6 +25,7 @@ class Context(common_context.RequestContext):
 
         :param dict token_info: Token structure
         """
+        self.project_id = token_info['token']['project']['id']
         self.token_info = token_info
 
         self.token_auth = token.Token(auth_url=CONF.validatetoken.auth_url)
