@@ -50,10 +50,9 @@ class TestLoadBalancer(base.BaseAPITest):
         for key, value in optionals.items():
             self.assertEqual(value, req.get(key))
 
-    def test_create(self, **optionals):
+    def test_create_without_project_id(self, **optionals):
         lb_json = {'name': 'test1',
-                   'vip_subnet_id': self._network['subnet_id'],
-                   'project_id': self.project_id
+                   'vip_subnet_id': self._network['subnet_id']
                    }
         lb_json.update(optionals)
         body = self._build_body(lb_json)
@@ -62,7 +61,7 @@ class TestLoadBalancer(base.BaseAPITest):
         self._assert_request_matches_response(lb_json, self.api_lb)
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
-    def test_create_v2_0(self, **optionals):
+    def test_create_v2_0_with_project_id(self, **optionals):
         lb_json = {'name': 'test2',
                    'vip_subnet_id': self._network['subnet_id'],
                    'project_id': self.project_id
@@ -126,3 +125,5 @@ class TestLoadBalancer(base.BaseAPITest):
                              status=400)
         self.assertIn('Invalid input for field/attribute vip_subnet_id',
                       response.json.get('faultstring'))
+
+
