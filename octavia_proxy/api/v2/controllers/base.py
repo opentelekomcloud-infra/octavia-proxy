@@ -64,23 +64,10 @@ class BaseController(pecan_rest.RestController):
 
         return listener
 
-    def find_pool(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pool = driver_utils.call_provider(
-                    driver.name, driver.pool_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if pool:
-                    setattr(pool, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_pool(self, context, id, is_parallel=False):
+        pool = driver_invocation(
+            context, 'pool_get', id, is_parallel
+        )
 
         if not pool:
             raise exceptions.NotFound(

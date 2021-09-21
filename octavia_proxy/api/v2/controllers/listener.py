@@ -44,9 +44,12 @@ class ListenersController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single listener's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', False)
 
-        result = self.find_listener(context, id)[0]
+        result = self.find_listener(context, id, is_parallel)[0]
 
         self._auth_validate_action(context, result.project_id,
                                    constants.RBAC_GET_ONE)

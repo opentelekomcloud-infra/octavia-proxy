@@ -232,6 +232,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 pool_id=query_filter['id'])
             if pool_data:
+                pool_data.provider = PROVIDER
                 result.append(pool_data)
         else:
             for pool in session.vlb.pools(**query_filter):

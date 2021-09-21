@@ -245,6 +245,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 pool_id=query_filter['id'])
             if pool_data:
+                pool_data.provider = PROVIDER
                 result.append(pool_data)
         else:
             for pl in session.elb.pools(**query_filter):
@@ -256,11 +257,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def pool_get(self, session, project_id, pool_id):
         LOG.debug('Searching pool')
 
-        pl = session.elb.find_pool(
+        pool = session.elb.find_pool(
             name_or_id=pool_id, ignore_missing=True)
-
-        if pl:
-            return _pool.PoolResponse.from_sdk_object(pl)
+        if pool:
+            pool_data = _pool.PoolResponse.from_sdk_object(pool)
+            pool_data.provider = PROVIDER
+            return pool_data
 
     def pool_create(self, session, pool):
         LOG.debug('Creating pool %s' % pool.to_dict())
