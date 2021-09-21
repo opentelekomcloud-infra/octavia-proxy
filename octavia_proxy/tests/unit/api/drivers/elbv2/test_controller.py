@@ -12,9 +12,57 @@ from octavia_proxy.tests.unit import base
 
 class TestElbv2Controler(base.TestCase):
 
-    EXAMPLE = {'id': '70d638f5-29ba-443a-ba76-4277eb420292',
-               'project_id': '7823987',
-               'provisioning_status': 'ACTIVE'}
+    EXAMPLE_LB = {
+        'id': '70d638f5-29ba-443a-ba76-4277eb420292',
+        'name': 'test-lb',
+        'vip_subnet_id': '70d638f5-29ba-443a-ba76-4277eb420292',
+        'provisioning_status': 'ACTIVE',
+    }
+
+    EXAMPLE_LISTENER = {
+        'id': '76d638f5-29ba-443a-ba76-4277eb420292',
+        'name': 'test-listener',
+        'protocol': 'TCP',
+        'protocol_port': '483',
+        'provisioning_status': 'ACTIVE',
+        'loadbalancer_id': '90d638f5-29ba-443a-ba76-4277eb420292'
+    }
+
+    EXAMPLE_POOL = {
+        'id': '12d638f5-29ba-443a-ba76-4277eb420292',
+        'name': 'test-pool',
+        'lb_algorithm': 'ROUND_ROBIN'
+    }
+
+    EXAMPLE_MEMBER = {
+        'id': '45d638f5-29ba-443a-ba76-4277eb420292',
+        'name': 'test-member',
+        'protocol': 'TCP',
+        'lb_algorithm': 'ROUND_ROBIN'
+    }
+
+    EXAMPLE_HM = {
+        'id': '45d638f5-29ba-443a-ba76-4277eb420292',
+        'name': 'test-hm',
+        'delay': '56',
+        'max_retries': '5',
+        'pool_id': '98d638f5-29ba-443a-ba76-4277eb420292',
+        'type': 'HTTP'
+    }
+
+    EXAMPLE_L7POLICY = {
+        'id': '45d638f5-29ba-443a-ba76-4277eb420292',
+        'type': 'HOST_NAME',
+        'compare_type': '76d638f5-29ba-443a-ba76-4277eb420292',
+        'action': 'REDIRECT_TO_LISTENER'
+    }
+
+    EXAMPLE_L7RULE = {
+        'id': '12d638f5-29ba-443a-ba76-4277eb420292',
+        'type': 'PATH',
+        'compare_type': 'EQUAL_TO',
+        'value': '/bbb.html'
+    }
 
     LB_RESPONSE_TYPE_PROPERTIES = ['id', 'name', 'description',
                                    'provisioning_status', 'operating_status',
@@ -97,20 +145,20 @@ class TestElbv2Controler(base.TestCase):
     def setUp(self):
         super().setUp()
         self.controller = BaseV2Controller()
-        self.lb_response = lb_types.LoadBalancerResponse(**self.EXAMPLE)
+        self.lb_response = lb_types.LoadBalancerResponse(**self.EXAMPLE_LB)
         self.fields = ['id', 'name']
         self.lsnr_response = listener_types.ListenerResponse(
-            **self.EXAMPLE)
+            **self.EXAMPLE_LISTENER)
         self.pool_response = pool_types.PoolResponse(
-            **self.EXAMPLE)
+            **self.EXAMPLE_POOL)
         self.member_response = member_types.MemberResponse(
-            **self.EXAMPLE)
+            **self.EXAMPLE_MEMBER)
         self.hm_response = hm_types.HealthMonitorResponse(
-            **self.EXAMPLE)
+            **self.EXAMPLE_HM)
         self.l7policy_response = l7policy_types.L7PolicyResponse(
-            **self.EXAMPLE)
+            **self.EXAMPLE_L7POLICY)
         self.l7rule_response = l7rule_types.L7RuleResponse(
-            **self.EXAMPLE)
+            **self.EXAMPLE_L7RULE)
 
     def _assert_only_filtered_fields_present(self, list_objects, fields,
                                              type_properties):
