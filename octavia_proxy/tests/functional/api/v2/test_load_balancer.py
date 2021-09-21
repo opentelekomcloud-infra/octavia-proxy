@@ -126,11 +126,3 @@ class TestLoadBalancer(base.BaseAPITest):
                              status=400)
         self.assertIn('Invalid input for field/attribute vip_subnet_id',
                       response.json.get('faultstring'))
-
-    def test_create_no_project_id(self, **optionals):
-        lb_json = {'name': 'test1',
-                   'vip_subnet_id': self._network['subnet_id']
-                   }
-        lb_json.update(optionals)
-        body = self._build_body(lb_json)
-        self.post(self.LBS_PATH, body, status=400)
