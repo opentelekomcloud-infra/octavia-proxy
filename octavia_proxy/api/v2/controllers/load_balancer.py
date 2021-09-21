@@ -71,8 +71,6 @@ class LoadBalancersController(base.BaseController):
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
 
         # TODO: fix filtering and sorting, especially for multiple providers
-        # TODO: if provider is present in query => ...
-        # TODO: parallelize drivers querying
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
         query_filter.update(query_params)

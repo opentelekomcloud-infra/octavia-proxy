@@ -52,23 +52,10 @@ class BaseController(pecan_rest.RestController):
 
         return load_balancer
 
-    def find_listener(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                listener = driver_utils.call_provider(
-                    driver.name, driver.listener_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if listener:
-                    setattr(listener, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_listener(self, context, id, is_parallel=False):
+        listener = driver_invocation(
+            context, 'listener_get', id, is_parallel
+        )
 
         if not listener:
             raise exceptions.NotFound(

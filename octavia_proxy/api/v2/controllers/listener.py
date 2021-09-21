@@ -19,6 +19,7 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 
@@ -45,7 +46,7 @@ class ListenersController(base.BaseController):
         """Gets a single listener's details."""
         context = pecan_request.context.get('octavia_context')
 
-        result = self.find_listener(context, id)
+        result = self.find_listener(context, id)[0]
 
         self._auth_validate_action(context, result.project_id,
                                    constants.RBAC_GET_ONE)
@@ -66,28 +67,13 @@ class ListenersController(base.BaseController):
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
 
         # TODO: fix filtering and sorting, especially for multiple providers
-        # TODO: if provider is present in query => ...
-        # TODO: parallelize drivers querying
         query_filter.update(query_params)
-
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
+        is_parallel = query_filter.pop('is_parallel', False)
         links = []
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                lsnrs = driver_utils.call_provider(
-                    driver.name, driver.listeners,
-                    context.session,
-                    context.project_id,
-                    query_filter)
-                if lsnrs:
-                    LOG.debug('Received %s from %s' % (lsnrs, driver.name))
-                    result.extend(lsnrs)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        result = driver_invocation(
+            context, 'listeners', query_filter, is_parallel
+        )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
@@ -108,7 +94,7 @@ class ListenersController(base.BaseController):
             context, listener.project_id, constants.RBAC_POST)
 
         load_balancer = self.find_load_balancer(
-            context, listener.loadbalancer_id)
+            context, listener.loadbalancer_id)[0]
 
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(load_balancer.provider)
@@ -132,7 +118,7 @@ class ListenersController(base.BaseController):
         listener = listener_.listener
         context = pecan_request.context.get('octavia_context')
 
-        orig_listener = self.find_listener(context, id)
+        orig_listener = self.find_listener(context, id)[0]
 
         self._auth_validate_action(
             context, orig_listener.project_id,
@@ -156,7 +142,7 @@ class ListenersController(base.BaseController):
         """Deletes a listener from a load balancer."""
         context = pecan_request.context.get('octavia_context')
 
-        listener = self.find_listener(context, id)
+        listener = self.find_listener(context, id)[0]
 
         self._auth_validate_action(
             context, listener.project_id,
