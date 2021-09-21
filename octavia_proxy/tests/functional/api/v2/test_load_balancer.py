@@ -125,5 +125,3 @@ class TestLoadBalancer(base.BaseAPITest):
                              status=400)
         self.assertIn('Invalid input for field/attribute vip_subnet_id',
                       response.json.get('faultstring'))
-
-
