@@ -88,23 +88,10 @@ class BaseController(pecan_rest.RestController):
 
         return member
 
-    def find_health_monitor(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                hm = driver_utils.call_provider(
-                    driver.name, driver.health_monitor_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if hm:
-                    setattr(hm, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_health_monitor(self, context, id, is_parallel=False):
+        hm = driver_invocation(
+            context, 'health_monitor_get', is_parallel, id
+        )
 
         if not hm:
             raise exceptions.NotFound(
