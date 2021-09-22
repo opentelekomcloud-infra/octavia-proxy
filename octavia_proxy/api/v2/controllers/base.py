@@ -100,23 +100,10 @@ class BaseController(pecan_rest.RestController):
 
         return hm
 
-    def find_l7policy(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                l7policy = driver_utils.call_provider(
-                    driver.name, driver.l7policy_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if l7policy:
-                    setattr(l7policy, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_l7policy(self, context, id, is_parallel=False):
+        l7policy = driver_invocation(
+            context, 'l7policy_get', is_parallel, id
+        )
 
         if not l7policy:
             raise exceptions.NotFound(
@@ -125,25 +112,10 @@ class BaseController(pecan_rest.RestController):
 
         return l7policy
 
-    def find_l7rule(self, context, l7policy_id, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        l7rule = None
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                l7rule = driver_utils.call_provider(
-                    driver.name, driver.l7rule_get,
-                    context.session,
-                    context.project_id,
-                    l7policy_id,
-                    id)
-                if l7rule:
-                    setattr(l7rule, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_l7rule(self, context, l7policy_id, id, is_parallel=False):
+        l7rule = driver_invocation(
+            context, 'l7rule_get', is_parallel, l7policy_id, id
+        )
 
         if not l7rule:
             raise exceptions.NotFound(

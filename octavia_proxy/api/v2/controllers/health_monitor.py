@@ -46,6 +46,7 @@ class HealthMonitorController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         query_params = pcontext.get(const.PAGINATION_HELPER).params
         is_parallel = query_params.pop('is_parallel', False)
+
         hm = self.find_health_monitor(context, id, is_parallel)[0]
 
         self._auth_validate_action(context, hm.project_id,

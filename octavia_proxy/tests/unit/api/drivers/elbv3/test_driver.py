@@ -421,7 +421,7 @@ class TestElbv3MemberDriver(base.TestCase):
         'operating_status': None,
         'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'protocol_port': 4321,
-        'subnet_cidr_id': None,
+        'subnet_cidr_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'weight': 10,
     }
 

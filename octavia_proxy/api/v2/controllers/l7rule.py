@@ -16,6 +16,8 @@ from oslo_log import log as logging
 from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
+
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
@@ -39,8 +41,13 @@ class L7RuleController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single l7rule's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
-        l7rule = self.find_l7rule(context, self.l7policy_id, id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', False)
+
+        l7rule = self.find_l7rule(
+            context, self.l7policy_id, id, is_parallel)[0]
 
         self._auth_validate_action(context, l7rule.project_id,
                                    constants.RBAC_GET_ONE)
@@ -61,25 +68,12 @@ class L7RuleController(base.BaseController):
 
         query_filter.update(query_params)
 
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
+        is_parallel = query_filter.pop('is_parallel', False)
         links = []
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                l7rules = driver_utils.call_provider(
-                    driver.name, driver.l7rules,
-                    context.session,
-                    context.project_id,
-                    self.l7policy_id,
-                    query_filter)
-                if l7rules:
-                    LOG.debug('Received %s from %s' % (l7rules, driver.name))
-                    result.extend(l7rules)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        result = driver_invocation(
+            context, 'l7rules', is_parallel, self.l7policy_id, query_filter
+        )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
@@ -93,7 +87,7 @@ class L7RuleController(base.BaseController):
 
         l7rule = rule_.rule
         context = pecan_request.context.get('octavia_context')
-        l7policy = self.find_l7policy(context, id=self.l7policy_id)
+        l7policy = self.find_l7policy(context, id=self.l7policy_id)[0]
 
         if not l7rule.project_id and context.project_id:
             l7rule.project_id = context.project_id
@@ -101,11 +95,8 @@ class L7RuleController(base.BaseController):
         self._auth_validate_action(context, l7rule.project_id,
                                    constants.RBAC_POST)
 
-        listener = self.find_listener(
-            context, l7policy.listener_id)
-
         # Load the driver early as it also provides validation
-        driver = driver_factory.get_driver(listener.provider)
+        driver = driver_factory.get_driver(l7policy.provider)
 
         result = driver_utils.call_provider(
             driver.name, driver.l7rule_create,
@@ -124,17 +115,14 @@ class L7RuleController(base.BaseController):
         l7rule = l7rule_.rule
         context = pecan_request.context.get('octavia_context')
 
-        l7policy = self.find_l7policy(context, id=self.l7policy_id)
-        orig_l7rule = self.find_l7rule(context, self.l7policy_id, id)
-
-        listener = self.find_listener(
-            context, l7policy.listener_id)
+        l7policy = self.find_l7policy(context, id=self.l7policy_id)[0]
+        orig_l7rule = self.find_l7rule(context, self.l7policy_id, id)[0]
 
         self._auth_validate_action(context, l7policy.project_id,
                                    constants.RBAC_PUT)
 
         # Load the driver early as it also provides validation
-        driver = driver_factory.get_driver(listener.provider)
+        driver = driver_factory.get_driver(l7policy.provider)
 
         l7rule_dict = l7rule.to_dict(render_unsets=False)
 
@@ -152,28 +140,8 @@ class L7RuleController(base.BaseController):
     def delete(self, id):
         """Deletes a l7rule."""
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        l7rule = None
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                l7rule = driver_utils.call_provider(
-                    driver.name, driver.l7rule_get,
-                    context.session,
-                    context.project_id,
-                    self.l7policy_id,
-                    id)
-                if l7rule:
-                    setattr(l7rule, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-        if not l7rule:
-            raise exceptions.NotFound(
-                resource='l7 rule',
-                id=id)
+        l7rule = self.find_l7rule(context, self.l7policy_id, id)[0]
 
         self._auth_validate_action(
             context, l7rule.project_id,
