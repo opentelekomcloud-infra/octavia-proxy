@@ -78,7 +78,7 @@ class LoadBalancersController(base.BaseController):
 
         links = []
         result = driver_invocation(
-            context, 'loadbalancers', query_filter, is_parallel
+            context, 'loadbalancers', is_parallel, query_filter
         )
 
         # TODO: pagination

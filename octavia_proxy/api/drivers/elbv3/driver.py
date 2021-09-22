@@ -290,6 +290,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 member_id=query_filter['id']
             )
             if member_data:
+                member_data.provider = PROVIDER
                 result.append(member_data)
         else:
             for member in session.vlb.members(pool_id, **query_filter):
@@ -313,7 +314,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
         attrs = member.to_dict()
 
         attrs['address'] = attrs.pop('ip_address', None)
-        attrs['subnet_cidr_id'] = attrs.pop('subnet_id', None)
+        if 'subnet_id' in attrs:
+            attrs['subnet_cidr_id'] = attrs.pop('subnet_id')
 
         res = session.vlb.create_member(pool_id, **attrs)
         result_data = _member.MemberResponse.from_sdk_object(res)

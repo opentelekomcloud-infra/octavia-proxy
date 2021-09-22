@@ -20,6 +20,7 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
@@ -42,8 +43,11 @@ class MemberController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single pool member's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
-        member = self.find_member(context, self.pool_id, id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', False)
+        member = self.find_member(context, self.pool_id, id, is_parallel)[0]
 
         self._auth_validate_action(context, member.project_id,
                                    constants.RBAC_GET_ONE)
@@ -64,25 +68,12 @@ class MemberController(base.BaseController):
 
         query_filter.update(query_params)
 
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
+        is_parallel = query_filter.pop('is_parallel', False)
         links = []
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                members = driver_utils.call_provider(
-                    driver.name, driver.members,
-                    context.session,
-                    context.project_id,
-                    self.pool_id,
-                    query_filter)
-                if members:
-                    LOG.debug('Received %s from %s' % (members, driver.name))
-                    result.extend(members)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        result = driver_invocation(
+            context, 'members', is_parallel, self.pool_id, query_filter
+        )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
@@ -94,10 +85,9 @@ class MemberController(base.BaseController):
     def post(self, member_):
         """Creates a pool member on a pool."""
 
-        pool_provider = None
         member = member_.member
         context = pecan_request.context.get('octavia_context')
-        pool = self.find_pool(context, id=self.pool_id)
+        pool = self.find_pool(context, id=self.pool_id)[0]
 
         if not member.project_id and context.project_id:
             member.project_id = context.project_id
@@ -105,14 +95,7 @@ class MemberController(base.BaseController):
         self._auth_validate_action(context, member.project_id,
                                    constants.RBAC_POST)
 
-        if pool.loadbalancers:
-            pool_provider = self.find_load_balancer(
-                context, pool.loadbalancers[0].id)
-        elif pool.listeners:
-            pool_provider = self.find_listener(
-                context, pool.listeners[0].id)
-
-        provider = pool_provider.provider
+        provider = pool.provider
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(provider)
 
@@ -130,25 +113,17 @@ class MemberController(base.BaseController):
                          status_code=200)
     def put(self, id, member_):
         """Updates a pool member."""
-        provider = None
         member = member_.member
         context = pecan_request.context.get('octavia_context')
 
-        pool = self.find_pool(context, id=self.pool_id)
-        orig_member = self.find_member(context, self.pool_id, id)
-
-        if pool.loadbalancers:
-            provider = self.find_load_balancer(
-                context, pool.loadbalancers[0].id).provider
-        elif pool.listeners:
-            provider = self.find_listener(
-                context, pool.listeners[0].id).provider
+        pool = self.find_pool(context, id=self.pool_id)[0]
+        orig_member = self.find_member(context, self.pool_id, id)[0]
 
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_PUT)
 
         # Load the driver early as it also provides validation
-        driver = driver_factory.get_driver(provider)
+        driver = driver_factory.get_driver(pool.provider)
 
         member_dict = member.to_dict(render_unsets=False)
 
@@ -166,28 +141,8 @@ class MemberController(base.BaseController):
     def delete(self, id):
         """Deletes a pool member."""
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        member = None
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                member = driver_utils.call_provider(
-                    driver.name, driver.member_get,
-                    context.session,
-                    context.project_id,
-                    self.pool_id,
-                    id)
-                if member:
-                    setattr(member, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-        if not member:
-            raise exceptions.NotFound(
-                resource='member',
-                id=id)
+        member = self.find_member(context, self.pool_id, id)[0]
 
         self._auth_validate_action(
             context, member.project_id,

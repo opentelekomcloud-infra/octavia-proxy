@@ -71,7 +71,7 @@ class PoolsController(base.BaseController):
         links = []
 
         result = driver_invocation(
-            context, 'pools', query_filter, is_parallel
+            context, 'pools', is_parallel, query_filter
         )
 
         if fields is not None:
@@ -198,7 +198,7 @@ class PoolsController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         if pool_id and remainder and remainder[0] == 'members':
             remainder = remainder[1:]
-            pool = self.find_pool(context, pool_id)
+            pool = self.find_pool(context, pool_id)[0]
             if not pool:
                 LOG.info("Pool %s not found.", pool_id)
                 raise exceptions.NotFound(

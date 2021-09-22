@@ -75,7 +75,7 @@ class ListenersController(base.BaseController):
         links = []
 
         result = driver_invocation(
-            context, 'listeners', query_filter, is_parallel
+            context, 'listeners', is_parallel, query_filter
         )
 
         if fields is not None:

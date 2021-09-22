@@ -42,7 +42,7 @@ class BaseController(pecan_rest.RestController):
 
     def find_load_balancer(self, context, id, is_parallel=False):
         load_balancer = driver_invocation(
-            context, 'loadbalancer_get', id, is_parallel
+            context, 'loadbalancer_get', is_parallel, id
         )
 
         if not load_balancer:
@@ -54,7 +54,7 @@ class BaseController(pecan_rest.RestController):
 
     def find_listener(self, context, id, is_parallel=False):
         listener = driver_invocation(
-            context, 'listener_get', id, is_parallel
+            context, 'listener_get', is_parallel, id
         )
 
         if not listener:
@@ -66,7 +66,7 @@ class BaseController(pecan_rest.RestController):
 
     def find_pool(self, context, id, is_parallel=False):
         pool = driver_invocation(
-            context, 'pool_get', id, is_parallel
+            context, 'pool_get', is_parallel, id
         )
 
         if not pool:
@@ -76,24 +76,10 @@ class BaseController(pecan_rest.RestController):
 
         return pool
 
-    def find_member(self, context, pool_id, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                member = driver_utils.call_provider(
-                    driver.name, driver.member_get,
-                    context.session,
-                    context.project_id,
-                    pool_id,
-                    id)
-                if member:
-                    setattr(member, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_member(self, context, pool_id, id, is_parallel=False):
+        member = driver_invocation(
+            context, 'member_get', is_parallel, pool_id, id
+        )
 
         if not member:
             raise exceptions.NotFound(

@@ -308,6 +308,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
                 member_id=query_filter['id']
             )
             if member_data:
+                member_data.provider = PROVIDER
                 result.append(member_data)
         else:
             for member in session.elb.members(pool_id, **query_filter):
