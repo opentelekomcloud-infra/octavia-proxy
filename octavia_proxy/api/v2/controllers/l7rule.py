@@ -23,7 +23,6 @@ from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import l7rule as l7rule_types
 from octavia_proxy.common import constants
-from octavia_proxy.common import exceptions
 
 CONF = cfg.CONF
 

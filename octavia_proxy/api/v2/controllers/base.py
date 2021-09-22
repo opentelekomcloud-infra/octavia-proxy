@@ -4,8 +4,6 @@ from pecan import rest as pecan_rest
 from wsme import types as wtypes
 
 from octavia_proxy.api.common.invocation import driver_invocation
-from octavia_proxy.api.drivers import driver_factory
-from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 from octavia_proxy.common import policy
