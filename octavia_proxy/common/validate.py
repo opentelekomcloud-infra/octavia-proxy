@@ -29,6 +29,7 @@ from octavia_proxy.i18n import _
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
+
 def check_session_persistence(SP_dict):
     try:
         if SP_dict['cookie_name']:

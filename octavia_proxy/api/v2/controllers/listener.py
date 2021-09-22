@@ -21,7 +21,6 @@ from wsmeext import pecan as wsme_pecan
 
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.common import constants
-from octavia_proxy.common import exceptions
 
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory

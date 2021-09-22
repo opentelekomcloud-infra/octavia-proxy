@@ -26,7 +26,6 @@ from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import member as member_types
 from octavia_proxy.common import constants
-from octavia_proxy.common import exceptions
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)

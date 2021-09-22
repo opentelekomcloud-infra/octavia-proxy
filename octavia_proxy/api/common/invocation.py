@@ -10,8 +10,10 @@ LOG = logging.getLogger(__name__)
 ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
 
 
-def driver_invocation(context=None, function=None, params=None, is_parallel=False):
+def driver_invocation(context=None, function=None, is_parallel=False, *params):
     result = []
+    LOG.debug(f'called function: {function}')
+    LOG.debug(f'received params: {params}')
     if is_parallel:
         pass
     for provider in ENABLED_PROVIDERS:
@@ -23,7 +25,7 @@ def driver_invocation(context=None, function=None, params=None, is_parallel=Fals
                 method_to_call,
                 context.session,
                 context.project_id,
-                params)
+                *params)
             if resource:
                 LOG.debug('Received %s from %s' % (resource, driver.name))
                 try:
@@ -32,4 +34,5 @@ def driver_invocation(context=None, function=None, params=None, is_parallel=Fals
                     result.append(resource)
         except exceptions.ProviderNotImplementedError:
             LOG.exception('Driver %s is not supporting this')
+        LOG.debug(f'{function}, result: {result}')
     return result
