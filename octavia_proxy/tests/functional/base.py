@@ -10,9 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import keyring
-from keyrings.alt import file
-
 from oslotest import base
 
 from oslo_config import fixture as oslo_fixture
@@ -28,6 +25,3 @@ class TestCase(base.BaseTestCase):
         # debug can be enabled as:
         # cfg.debug = True
         self.conf = self.useFixture(oslo_fixture.Config(cfg))
-        keyring.set_keyring(
-            file.PlaintextKeyring()
-        )

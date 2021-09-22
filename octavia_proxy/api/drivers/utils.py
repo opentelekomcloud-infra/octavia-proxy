@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 
 from octavia_lib.api.drivers import exceptions as lib_exceptions
 from oslo_config import cfg
@@ -66,3 +67,33 @@ def call_provider(provider, driver_method, *args, **kwargs):
     except Exception as e:
         LOG.exception("Provider '%s' raised an unknown error: %s",
                       provider, str(e))
+
+
+def _base_to_provider_dict(current_dict, include_project_id=False):
+    new_dict = copy.deepcopy(current_dict)
+    for key in [
+            'provisioning_status', 'operating_status', 'provider',
+            'created_at', 'updated_at', 'tenant_id', 'tags',
+            'flavor_id', 'topology', 'vrrp_group', 'amphorae', 'vip',
+            'listeners', 'pools', 'server_group_id',
+    ]:
+        new_dict.pop(key, None)
+    if 'enabled' in new_dict:
+        new_dict['admin_state_up'] = new_dict.pop('enabled')
+    if 'project_id' in new_dict and not include_project_id:
+        del new_dict['project_id']
+    return new_dict
+
+
+# Note: The provider dict returned from this method will have provider
+#       data model objects in it.
+def lb_dict_to_provider_dict(lb_dict, vip=None):
+    new_lb_dict = _base_to_provider_dict(lb_dict, include_project_id=True)
+    new_lb_dict['loadbalancer_id'] = new_lb_dict.pop('id')
+    if vip:
+        new_lb_dict['vip_address'] = vip.ip_address
+        new_lb_dict['vip_network_id'] = vip.network_id
+        new_lb_dict['vip_port_id'] = vip.port_id
+        new_lb_dict['vip_subnet_id'] = vip.subnet_id
+        new_lb_dict['vip_qos_policy_id'] = vip.qos_policy_id
+    return new_lb_dict
