@@ -223,7 +223,8 @@ class LoadBalancersController(base.BaseController):
         # Load the driver early as it also provides validation
         driver = driver_factory.get_driver(provider)
 
-        self._validate_vip_request_object(load_balancer, context=context)
+        # multiple drivers breaks network validation, need to reinvent this
+        # self._validate_vip_request_object(load_balancer, context=context)
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
 

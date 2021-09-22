@@ -20,6 +20,7 @@ from octavia_proxy.common import exceptions
 from octavia_proxy.tests.unit import base
 from oslo_log import log as logging
 
+
 class TestUtils(base.TestCase):
     def setUp(self):
         super().setUp()
@@ -57,5 +58,4 @@ class TestUtils(base.TestCase):
 
         # Test driver raising ProviderDriverError
         mock_driver_method.side_effect = Exception
-        self.assertLogs(logging.getLogger(__name__),
-                          'exception')
+        self.assertLogs(logging.getLogger(__name__), 'exception')
