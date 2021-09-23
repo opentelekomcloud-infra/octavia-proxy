@@ -67,7 +67,6 @@ def call_provider(provider, driver_method, *args, **kwargs):
     except Exception as e:
         LOG.exception("Provider '%s' raised an unknown error: %s",
                       provider, str(e))
-        raise exceptions.ProviderDriverError(prov=provider, user_msg=e)
 
 
 def _base_to_provider_dict(current_dict, include_project_id=False):

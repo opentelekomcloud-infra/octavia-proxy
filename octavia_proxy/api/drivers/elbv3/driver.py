@@ -61,12 +61,17 @@ class ELBv3Driver(driver_base.ProviderDriver):
         query_filter.pop('project_id', None)
 
         result = []
-
+        # OSC tries to call firstly this function even if
+        # requested one resource by id, but filter by id is not
+        # supported in SDK, here we check this and call another
+        # function
         if 'id' in query_filter:
             lb_data = self.loadbalancer_get(
                 project_id=project_id, session=session,
                 lb_id=query_filter['id'])
-            result.append(lb_data)
+            if lb_data:
+                lb_data.provider = PROVIDER
+                result.append(lb_data)
         else:
             for lb in session.vlb.load_balancers(**query_filter):
                 lb = elbv3_backmapping(lb)
@@ -93,7 +98,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
-
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs = elbv3_foremapping(lb_attrs)
 
@@ -145,7 +149,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lsnr_data = self.listener_get(
                 project_id=project_id, session=session,
                 lsnr_id=query_filter['id'])
-            result.append(lsnr_data)
+            if lsnr_data:
+                lsnr_data.provider = PROVIDER
+                result.append(lsnr_data)
         else:
             for lsnr in session.vlb.listeners(**query_filter):
                 lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
@@ -225,13 +231,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
             pool_data = self.pool_get(
                 project_id=project_id, session=session,
                 pool_id=query_filter['id'])
-            result.append(pool_data)
+            if pool_data:
+                pool_data.provider = PROVIDER
+                result.append(pool_data)
         else:
             for pool in session.vlb.pools(**query_filter):
                 pool_data = _pool.PoolResponse.from_sdk_object(pool)
                 pool_data.provider = PROVIDER
                 result.append(pool_data)
-
         return result
 
     def pool_get(self, session, project_id, pool_id):
@@ -276,11 +283,20 @@ class ELBv3Driver(driver_base.ProviderDriver):
             query_filter = {}
         query_filter.pop('project_id', None)
 
-        for member in session.vlb.members(pool_id, **query_filter):
-            member_data = _member.MemberResponse.from_sdk_object(member)
-            member_data.provider = PROVIDER
-            result.append(member_data)
-
+        if 'id' in query_filter:
+            member_data = self.member_get(
+                project_id=project_id, session=session,
+                pool_id=pool_id,
+                member_id=query_filter['id']
+            )
+            if member_data:
+                member_data.provider = PROVIDER
+                result.append(member_data)
+        else:
+            for member in session.vlb.members(pool_id, **query_filter):
+                member_data = _member.MemberResponse.from_sdk_object(member)
+                member_data.provider = PROVIDER
+                result.append(member_data)
         return result
 
     def member_get(self, session, project_id, pool_id, member_id):
@@ -298,7 +314,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
         attrs = member.to_dict()
 
         attrs['address'] = attrs.pop('ip_address', None)
-        attrs['subnet_cidr_id'] = attrs.pop('subnet_id', None)
+        if 'subnet_id' in attrs:
+            attrs['subnet_cidr_id'] = attrs.pop('subnet_id')
 
         res = session.vlb.create_member(pool_id, **attrs)
         result_data = _member.MemberResponse.from_sdk_object(res)
@@ -329,13 +346,20 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
-        for healthmonitor in session.vlb.health_monitors(**query_filter):
-            healthmonitor_data = _hm.HealthMonitorResponse.from_sdk_object(
-                healthmonitor
-            )
-            healthmonitor_data.provider = PROVIDER
-            result.append(healthmonitor_data)
 
+        if 'id' in query_filter:
+            hm_data = self.health_monitor_get(
+                project_id=project_id, session=session,
+                healthmonitor_id=query_filter['id'])
+            if hm_data:
+                result.append(hm_data)
+        else:
+            for healthmonitor in session.vlb.health_monitors(**query_filter):
+                hm_data = _hm.HealthMonitorResponse.from_sdk_object(
+                    healthmonitor
+                )
+                hm_data.provider = PROVIDER
+                result.append(hm_data)
         return result
 
     def health_monitor_get(self, session, project_id, healthmonitor_id):
@@ -380,21 +404,22 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if not query_filter:
             query_filter = {}
 
-        results = []
+        result = []
         if 'id' in query_filter:
             policy_data = self.l7policy_get(
                 project_id=project_id, session=session,
                 l7_policy=query_filter['id']
             )
-            results.append(policy_data)
+            if policy_data:
+                result.append(policy_data)
         else:
             for l7_policy in session.vlb.l7_policies(**query_filter):
                 l7policy_data = _l7policy.L7PolicyResponse.from_sdk_object(
                     l7_policy
                 )
                 l7policy_data.provider = PROVIDER
-                results.append(l7policy_data)
-        return results
+                result.append(l7policy_data)
+        return result
 
     def l7policy_get(self, session, project_id, l7_policy):
         LOG.debug('Searching for L7 Policy')
@@ -455,7 +480,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 l7policy_id=l7policy_id,
                 l7rule_id=query_filter['id']
             )
-            result.append(l7rule_data)
+            if l7rule_data:
+                result.append(l7rule_data)
         else:
             for l7rule in session.vlb.l7_rules(l7policy_id, **query_filter):
                 l7rule_data = _l7rule.L7RuleResponse.from_sdk_object(l7rule)
