@@ -62,7 +62,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         result = []
         # OSC tries to call firstly this function even if
-        # requested one resource by id, but filter by id doesn't
+        # requested one resource by id, but filter by id is not
         # supported in SDK, here we check this and call another
         # function
         if 'id' in query_filter:
