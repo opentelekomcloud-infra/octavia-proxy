@@ -39,18 +39,24 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return {"eu-nl-01": "The compute availability zone to use for "
                             "this loadbalancer."}
 
-    def _normalize_lb(self, lb):
-        return self._normalize_tags(lb)
-
     def _normalize_tags(self, lb):
-        tags = []
         otc_tags = lb.tags
         if otc_tags:
             tags = []
-            for k, v in otc_tags:
-                tags.append('%s=%s' % (k, v))
+            for tag in otc_tags:
+                tags.append('%s=%s' % (tag['key'], tag['value']))
             lb.tags = tags
         return lb
+
+    def _resource_tags(self, tags):
+        result = []
+        for tag in tags:
+            tag = tag.split('=')
+            result.append({
+                'key': tag[0],
+                'value': tag[1]
+            })
+        return result
 
     def loadbalancers(self, session, project_id, query_filter=None):
         LOG.debug('Fetching loadbalancers')
@@ -76,7 +82,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             for lb in session.vlb.load_balancers(**query_filter):
                 lb = elbv3_backmapping(lb)
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                    self._normalize_lb(lb))
+                    self._normalize_tags(lb))
                 lb_data.provider = PROVIDER
                 result.append(lb_data)
 
@@ -90,7 +96,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if lb:
             lb = elbv3_backmapping(lb)
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                self._normalize_lb(lb))
+                self._normalize_tags(lb))
             lb_data.provider = PROVIDER
             return lb_data
 
@@ -98,13 +104,15 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
+        if lb_attrs['tags']:
+            lb_attrs['tags'] = self._resource_tags(lb_attrs['tags'])
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs = elbv3_foremapping(lb_attrs)
 
         lb = session.vlb.create_load_balancer(**lb_attrs)
         lb = elbv3_backmapping(lb)
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-            lb)
+            self._normalize_tags(lb))
 
         lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
@@ -119,7 +127,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             **new_attrs)
         lb = elbv3_backmapping(lb)
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-            lb)
+            self._normalize_tags(lb))
         lb_data.provider = PROVIDER
         return lb_data
 
