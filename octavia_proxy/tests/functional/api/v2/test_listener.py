@@ -57,3 +57,14 @@ class TestListener(base.BaseAPITest):
             listener_id=listener2.get('id')))
         self.delete(self.LISTENER_PATH.format(
             listener_id=listener3.get('id')))
+
+    def test_create_with_tags(self):
+        listener = self.create_listener(
+            constants.PROTOCOL_HTTP, 8080, self.lb_id,
+            tags=['test_tag1', 'test_tag2']).get(self.root_tag)
+        response = self.get(self.listener_path.format(
+            listener_id=listener['id']))
+        api_listener = response.json.get(self.root_tag)
+        self.assertEqual(listener, api_listener)
+        self.delete(self.LISTENER_PATH.format(
+            listener_id=listener.get('id')))
