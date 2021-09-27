@@ -39,23 +39,32 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return {"eu-nl-01": "The compute availability zone to use for "
                             "this loadbalancer."}
 
+    def _normalize_lb(self, res):
+        return self._normalize_tags(res)
+
     def _normalize_tags(self, resource):
         otc_tags = resource.tags
         if otc_tags:
             tags = []
             for tag in otc_tags:
-                tags.append('%s=%s' % (tag['key'], tag['value']))
+                if tag['value']:
+                    tags.append('%s=%s' % (tag['key'], tag['value']))
+                else:
+                    tags.append('%s' % tag['key'])
             resource.tags = tags
         return resource
 
     def _resource_tags(self, tags):
         result = []
         for tag in tags:
-            tag = tag.split('=')
-            result.append({
-                'key': tag[0],
-                'value': tag[1]
-            })
+            try:
+                tag = tag.split('=')
+                result.append({
+                    'key': tag[0],
+                    'value': tag[1]
+                })
+            except IndexError:
+                result.append({'key': tag[0], 'value': ''})
         return result
 
     def loadbalancers(self, session, project_id, query_filter=None):
@@ -81,7 +90,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             for lb in session.vlb.load_balancers(**query_filter):
                 lb = elbv3_backmapping(lb)
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                    self._normalize_tags(lb)
+                    self._normalize_lb(lb)
                 )
                 lb_data.provider = PROVIDER
                 result.append(lb_data)
@@ -96,7 +105,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if lb:
             lb = elbv3_backmapping(lb)
             lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                self._normalize_tags(lb))
+                self._normalize_lb(lb))
             lb_data.provider = PROVIDER
             return lb_data
 
@@ -112,7 +121,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb = session.vlb.create_load_balancer(**lb_attrs)
         lb = elbv3_backmapping(lb)
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-            self._normalize_tags(lb))
+            self._normalize_lb(lb))
 
         lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
@@ -127,7 +136,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             **new_attrs)
         lb = elbv3_backmapping(lb)
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-            self._normalize_tags(lb))
+            self._normalize_lb(lb))
         lb_data.provider = PROVIDER
         return lb_data
 
@@ -162,7 +171,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         else:
             for lsnr in session.vlb.listeners(**query_filter):
                 lsnr_data = _listener.ListenerResponse.from_sdk_object(
-                    self._normalize_tags(lsnr)
+                    self._normalize_lb(lsnr)
                 )
                 lsnr_data.provider = PROVIDER
                 result.append(lsnr_data)
@@ -176,7 +185,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             name_or_id=lsnr_id, ignore_missing=True)
         if lsnr:
             lsnr_data = _listener.ListenerResponse.from_sdk_object(
-                self._normalize_tags(lsnr)
+                self._normalize_lb(lsnr)
             )
             lsnr_data.provider = PROVIDER
             return lsnr_data
@@ -201,7 +210,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lsnr = session.vlb.create_listener(**lattrs)
 
         lsnr_data = _listener.ListenerResponse.from_sdk_object(
-            self._normalize_tags(lsnr)
+            self._normalize_lb(lsnr)
         )
 
         lsnr_data.provider = PROVIDER
@@ -225,7 +234,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             **new_attrs)
 
         lsnr_data = _listener.ListenerResponse.from_sdk_object(
-            self._normalize_tags(lsnr))
+            self._normalize_lb(lsnr))
         lsnr_data.provider = PROVIDER
         return lsnr_data
 
