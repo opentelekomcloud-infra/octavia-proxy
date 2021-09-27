@@ -39,14 +39,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return {"eu-nl-01": "The compute availability zone to use for "
                             "this loadbalancer."}
 
-    def _normalize_tags(self, lb):
-        otc_tags = lb.tags
+    def _normalize_tags(self, resource):
+        otc_tags = resource.tags
         if otc_tags:
             tags = []
             for tag in otc_tags:
                 tags.append('%s=%s' % (tag['key'], tag['value']))
-            lb.tags = tags
-        return lb
+            resource.tags = tags
+        return resource
 
     def _resource_tags(self, tags):
         result = []
@@ -76,13 +76,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 lb_id=query_filter['id'])
             if lb_data:
-                lb_data.provider = PROVIDER
                 result.append(lb_data)
         else:
             for lb in session.vlb.load_balancers(**query_filter):
                 lb = elbv3_backmapping(lb)
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                    self._normalize_tags(lb))
+                    self._normalize_tags(lb)
+                )
                 lb_data.provider = PROVIDER
                 result.append(lb_data)
 
@@ -158,11 +158,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 lsnr_id=query_filter['id'])
             if lsnr_data:
-                lsnr_data.provider = PROVIDER
                 result.append(lsnr_data)
         else:
             for lsnr in session.vlb.listeners(**query_filter):
-                lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+                lsnr_data = _listener.ListenerResponse.from_sdk_object(
+                    self._normalize_tags(lsnr)
+                )
                 lsnr_data.provider = PROVIDER
                 result.append(lsnr_data)
 
@@ -174,7 +175,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lsnr = session.vlb.find_listener(
             name_or_id=lsnr_id, ignore_missing=True)
         if lsnr:
-            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+            lsnr_data = _listener.ListenerResponse.from_sdk_object(
+                self._normalize_tags(lsnr)
+            )
             lsnr_data.provider = PROVIDER
             return lsnr_data
 
@@ -192,11 +195,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if 'timeout_member_connect' in lattrs:
             lattrs['keepalive_timeout'] = \
                 lattrs.pop('timeout_member_connect')
+        if lattrs['tags']:
+            lattrs['tags'] = self._resource_tags(lattrs['tags'])
 
         lsnr = session.vlb.create_listener(**lattrs)
 
         lsnr_data = _listener.ListenerResponse.from_sdk_object(
-            lsnr)
+            self._normalize_tags(lsnr)
+        )
 
         lsnr_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lsnr_data)
@@ -218,7 +224,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
             original_listener.id,
             **new_attrs)
 
-        lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+        lsnr_data = _listener.ListenerResponse.from_sdk_object(
+            self._normalize_tags(lsnr))
         lsnr_data.provider = PROVIDER
         return lsnr_data
 
@@ -240,7 +247,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 pool_id=query_filter['id'])
             if pool_data:
-                pool_data.provider = PROVIDER
                 result.append(pool_data)
         else:
             for pool in session.vlb.pools(**query_filter):
@@ -298,7 +304,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 member_id=query_filter['id']
             )
             if member_data:
-                member_data.provider = PROVIDER
                 result.append(member_data)
         else:
             for member in session.vlb.members(pool_id, **query_filter):

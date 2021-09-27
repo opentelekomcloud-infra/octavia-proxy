@@ -46,7 +46,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 lb_id=query_filter['id'])
             if lb_data:
-                lb_data.provider = PROVIDER
                 result.append(lb_data)
         else:
             for lb in session.elb.load_balancers(**query_filter):
@@ -117,7 +116,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 listener_id=query_filter['id'])
             if lsnr_data:
-                lsnr_data.provider = PROVIDER
                 result.append(lsnr_data)
         else:
             for lsnr in session.elb.listeners(**query_filter):
@@ -245,7 +243,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
                 project_id=project_id, session=session,
                 pool_id=query_filter['id'])
             if pool_data:
-                pool_data.provider = PROVIDER
                 result.append(pool_data)
         else:
             for pl in session.elb.pools(**query_filter):
@@ -308,7 +305,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
                 member_id=query_filter['id']
             )
             if member_data:
-                member_data.provider = PROVIDER
                 result.append(member_data)
         else:
             for member in session.elb.members(pool_id, **query_filter):

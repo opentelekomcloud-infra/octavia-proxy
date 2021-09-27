@@ -15,14 +15,12 @@ from dateutil import parser
 
 from oslo_config import cfg
 from wsme import types as wtypes
-
 from octavia_proxy.api.common import types
 from octavia_proxy.api.v2.types import l7policy
 from octavia_proxy.api.v2.types import pool
 from octavia_proxy.common import constants
 
 CONF = cfg.CONF
-
 
 class BaseListenerType(types.BaseType):
     _type_to_model_map = {
@@ -106,9 +104,10 @@ class ListenerResponse(BaseListenerType):
             'timeout_client_data', 'timeout_memeber_connect',
             'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
         ]:
-            v = sdk_entity.get(key)
-            if v:
-                setattr(listener, key, v)
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(listener, key, v)
 
         listener.admin_state_up = sdk_entity.is_admin_state_up
         for attr in ['created_at', 'updated_at']:
