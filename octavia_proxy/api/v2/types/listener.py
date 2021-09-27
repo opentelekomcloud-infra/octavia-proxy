@@ -22,6 +22,7 @@ from octavia_proxy.common import constants
 
 CONF = cfg.CONF
 
+
 class BaseListenerType(types.BaseType):
     _type_to_model_map = {
         'admin_state_up': 'enabled',
