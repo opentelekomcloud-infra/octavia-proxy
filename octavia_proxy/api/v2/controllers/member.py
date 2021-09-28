@@ -156,6 +156,17 @@ class MemberController(base.BaseController):
             self.pool_id,
             member)
 
+    def _graph_create(self, session, member_dict):
+
+        provider = member_dict.pop('provider', None)
+        driver = driver_factory.get_driver(provider)
+
+        new_member = driver_utils.call_provider(
+            driver.name, driver.member_create,
+            session, self.pool_id, member_dict)
+
+        return new_member
+
 
 class MembersController(MemberController):
 

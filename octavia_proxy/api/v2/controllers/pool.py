@@ -236,8 +236,10 @@ class PoolsController(base.BaseController):
         if hm:
             hm['pool_id'] = result_pool.id
             hm['project_id'] = result_pool.project_id
+            hm['provider'] = result_pool.provider
             new_hm = health_monitor.HealthMonitorController()._graph_create(
                 session, hm)
+            setattr(result_pool, 'healthmonitor_id', new_hm.id)
             if result_pool.protocol in (constants.PROTOCOL_UDP):
                 health_monitor.HealthMonitorController(
                 )._validate_healthmonitor_request_for_udp(
@@ -249,12 +251,14 @@ class PoolsController(base.BaseController):
                         "type %(protocol)s.") % {
                             'type': new_hm.type,
                             'protocol': '/'.join((constants.PROTOCOL_UDP))})
+
         # Now create members
         new_members = []
         for m in members:
             m['project_id'] = result_pool.project_id
-            new_members.append(
-                member.MembersController(result_pool.id)._graph_create(
-                    session, m))
-        result_pool.members = new_members  # хз
-        return pool_types.PoolFullResponse()
+            new_member = member.MembersController(
+                result_pool.id)._graph_create(session, m).id
+            new_members.append(new_member.id)
+            setattr(result_pool, 'healthmonitor_id', new_members)
+
+        return

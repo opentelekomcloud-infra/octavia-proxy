@@ -166,7 +166,7 @@ class ListenersController(base.BaseController):
             driver.name, driver.listener_create, session, listener_dict)
 
         # Now create l7policies
-        new_l7ps = []
+        new_l7ps_ids = []
         for l7p in l7policies:
             l7p['project_id'] = listener.project_id
             l7p['load_balancer_id'] = listener.loadbalancer_id
@@ -179,7 +179,9 @@ class ListenersController(base.BaseController):
                     raise exceptions.SingleCreateDetailsMissing(
                         type='Pool', name=pool_name)
                 l7p['redirect_pool_id'] = pool_id
-            new_l7ps.append(l7policy.L7PoliciesController()._graph_create(
-                session, l7p))
-        listener.l7policies = new_l7ps
+                l7p['provider'] = listener.provider
+            new_l7ps = l7policy.L7PoliciesController()._graph_create(
+                session, l7p)
+            new_l7ps_ids.append(new_l7ps.id)
+        setattr(listener, l7policies, new_l7ps_ids)
         return listener

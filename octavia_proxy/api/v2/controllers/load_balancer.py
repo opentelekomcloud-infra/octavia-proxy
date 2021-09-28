@@ -220,9 +220,9 @@ class LoadBalancersController(base.BaseController):
             result['pools'] = []
             result['listeners'] = []
             for pool in pools:
-                result['pools'].append(types.IdOnlyType(pool.id))
+                result['pools'].append(types.IdOnlyType(id=pool.id))
             for listener in listeners:
-                result['listeners'].append(types.IdOnlyType(listener.id))
+                result['listeners'].append(types.IdOnlyType(id=listener.id))
         return lb_types.LoadBalancerRootResponse(load_balancer=result)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerRootResponse,
@@ -303,11 +303,13 @@ class LoadBalancersController(base.BaseController):
     def _validate_availability_zone(self, session, load_balancer):
         pass
 
-    def _graph_create(self, session, lock_session, lb, listeners, pools):
+    def _graph_create(self, session, lb):
         # Track which pools must have a full specification
         pools_required = set()
         # Look through listeners and find any extra pools, and move them to the
         # top level so they are created first.
+        listeners = lb.listeners
+        pools =lb.pools
         for li in listeners:
             default_pool = li.get('default_pool')
             pool_name = (
