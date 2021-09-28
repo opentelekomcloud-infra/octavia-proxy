@@ -414,6 +414,16 @@ class TestElbv3MemberDriver(base.TestCase):
         self.sess.vlb.create_member = mock.MagicMock(return_value=self.member)
         self.sess.vlb.find_member = mock.MagicMock(return_value=self.member)
         self.sess.vlb.update_member = mock.MagicMock(return_value=self.member)
+        self.sess.vlb.get_pool = mock.MagicMock(return_value={
+                'loadbalancers': [
+                    {'id': '12f0a424-cdb9-4584-b9c0-6a38fbacdc5t'}
+                ]
+            })
+        self.sess.vlb.get_load_balancer = mock.MagicMock(
+            return_value={
+                'vip_subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'
+            }
+        )
 
     def test_members_no_qp(self):
         self.driver.members(self.sess, 'l1', 'pid')
