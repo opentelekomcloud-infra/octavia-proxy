@@ -113,7 +113,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
-        if lb_attrs['tags']:
+        if 'tags' in lb_attrs:
             lb_attrs['tags'] = self._resource_tags(lb_attrs['tags'])
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs = elbv3_foremapping(lb_attrs)
@@ -204,7 +204,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if 'timeout_member_connect' in lattrs:
             lattrs['keepalive_timeout'] = \
                 lattrs.pop('timeout_member_connect')
-        if lattrs['tags']:
+        if 'tags' in lattrs:
             lattrs['tags'] = self._resource_tags(lattrs['tags'])
 
         lsnr = session.vlb.create_listener(**lattrs)
@@ -338,6 +338,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
         attrs['address'] = attrs.pop('ip_address', None)
         if 'subnet_id' in attrs:
             attrs['subnet_cidr_id'] = attrs.pop('subnet_id')
+        else:
+            lb_id = session.vlb.get_pool(pool_id)['loadbalancers'][0]['id']
+            attrs['subnet_cidr_id'] = session.vlb.get_load_balancer(
+                lb_id)['vip_subnet_id']
 
         res = session.vlb.create_member(pool_id, **attrs)
         result_data = _member.MemberResponse.from_sdk_object(res)
