@@ -26,7 +26,7 @@ from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
 
 from octavia_proxy.api.v2.types import listener as listener_types
-from octavia_proxy.api.v2.controllers import base
+from octavia_proxy.api.v2.controllers import base, l7policy
 
 
 CONF = cfg.CONF
@@ -157,3 +157,29 @@ class ListenersController(base.BaseController):
             driver.name, driver.listener_delete,
             context.session,
             listener)
+
+    def _graph_create(self, session, listener_dict,
+                      l7policies=None, pool_name_ids=None):
+        driver = driver_factory.get_driver(listener_dict['provider'])
+        l7policies = listener_dict.pop('l7policies', l7policies)
+        listener = driver_utils.call_provider(
+            driver.name, driver.listener_create, session, listener_dict)
+
+        # Now create l7policies
+        new_l7ps = []
+        for l7p in l7policies:
+            l7p['project_id'] = listener.project_id
+            l7p['load_balancer_id'] = listener.loadbalancer_id
+            l7p['listener_id'] = listener.id
+            redirect_pool = l7p.pop('redirect_pool', None)
+            if redirect_pool:
+                pool_name = redirect_pool['name']
+                pool_id = pool_name_ids.get(pool_name)
+                if not pool_id:
+                    raise exceptions.SingleCreateDetailsMissing(
+                        type='Pool', name=pool_name)
+                l7p['redirect_pool_id'] = pool_id
+            new_l7ps.append(l7policy.L7PoliciesController()._graph_create(
+                session, l7p))
+        listener.l7policies = new_l7ps
+        return listener
