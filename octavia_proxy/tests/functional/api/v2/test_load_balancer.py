@@ -85,8 +85,6 @@ class TestLoadBalancer(base.BaseAPITest):
         body = self._build_body(lb_json)
         response = self.post(self.LBS_PATH, body)
         self.api_lb = response.json.get(self.root_tag)
-        print(lb_json)
-        print(self.api_lb)
         self._assert_request_matches_response(lb_json, self.api_lb)
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
