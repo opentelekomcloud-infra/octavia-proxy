@@ -12,9 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 from oslo_log import log as logging
+from pecan import request
 
 from octavia_proxy.common import constants
-
+from octavia_proxy.common import exceptions
 from octavia_proxy.common.config import cfg
 
 CONF = cfg.CONF
@@ -42,6 +43,159 @@ class PaginationHelper(object):
         :param sort_dir: default direction to sort (asc, desc)
         """
         self.marker = params.get('marker')
+        #self.marker = self._parse_marker(params)
+        #self.sort_dir = self._validate_sort_dir(sort_dir)
+        self.limit = self._parse_limit(params)
+        #self.sort_keys = self._parse_sort_keys(params)
         self.params = params
         self.filters = None
         self.page_reverse = params.get('page_reverse', 'False')
+
+    @staticmethod
+    def _parse_limit(params):
+        """Method for limit parsing.
+        :param params: Query params.
+        :type params: dict
+        :return: Limit value
+        :rtype: int
+        """
+        if not str(CONF.api_settings.pagination_max_limit).isdigit():
+            page_max_limit = None
+        else:
+            page_max_limit = int(CONF.api_settings.pagination_max_limit)
+        limit = params.get('limit', page_max_limit)
+        try:
+            # Deal with limit being a string or int meaning 'Unlimited'
+            if not str(limit).isdigit():
+                limit = None
+            # If we don't have a max, just use whatever limit is specified
+            elif page_max_limit is None:
+                limit = int(limit)
+            # Otherwise, we need to compare against the max
+            else:
+                limit = min(int(limit), page_max_limit)
+        except ValueError as e:
+            raise exceptions.InvalidLimit(key = limit) from e
+        return limit
+
+    @staticmethod
+    def _parse_marker(params):
+        pass
+
+    def _marker_index(self, entities_list):
+        entity = [entity for entity in entities_list if entity['id'] ==
+                  self.marker]
+        if entity:
+            return list.index(entities_list, entity[0])
+
+    def _make_link(self, entities_list, limit, marker, rel):
+        """Create links.
+
+        :param entities_list: List of resources for pagination
+        :type entities_list: list
+        :param rel: Prompt of the previous or next page. Value can be "next" or
+        "previous".
+        :type rel: str
+        :return: Link on previous or next page.
+        :rtype: dict
+        """
+        link_attr = []
+        link = {}
+        if CONF.api_settings.api_base_uri:
+            path_url = "{api_base_uri}{path}".format(
+                api_base_uri=CONF.apisettings.api_base_uri.rstrip('/'),
+                path=request.path
+            )
+        else:
+            path_url = request.path_url
+        if entities_list:
+            if limit:
+                link_attr = ["limit={}".format(limit)]
+            if marker:
+                link_attr.append("marker={}".format(marker))
+            if self.page_reverse:
+                link_attr.append("page_reverse=True")
+            link = {
+                "rel": "{rel}".format(rel=rel),
+                "href": "{url}?{params}".format(
+                    url=path_url,
+                    params="&".join(link_attr)
+                )
+            }
+        return link
+
+    def _make_link_list(*links):
+        result = []
+        for link in links:
+            result.append(link)
+        # need to add resources types
+        return result
+
+    def _filtering_values(self):
+        pass
+
+    def _sorting_values(self):
+        pass
+
+    def _paginating_values(self, entities_list):
+        """ Pagination
+
+        :param entities_list: List of resources for pagination
+        :type entities_list: list
+        :return: Pagination page with links.
+        :rtype: tuple
+        """
+        result = []
+        links = []
+
+        if entities_list:
+            list_len = len(entities_list)
+            local_limit = self.limit if self.limit else list_len
+            if self.page_reverse:
+                entities_list.reverse()
+
+            if self.marker:
+                marker_i = self._marker_index(entities_list)
+                if marker_i is None and self.limit is None:
+                    result.extend(entities_list)
+                elif marker_i is None and self.limit:
+                    result.extend(entities_list[0: local_limit])
+                    links.extend(self._make_link_list(self._make_link(
+                        entities_list, self.limit,
+                        entities_list[local_limit].get('id'), "next"
+                    )))
+                elif marker_i == list_len - 1:
+                    result.extend(entities_list[marker_i: list_len])
+                    links.extend(self._make_link_list(self._make_link(
+                        entities_list, self.limit, self.marker, "previous")))
+                elif marker_i + local_limit < list_len - 1:
+                    result.extend(entities_list[
+                                  marker_i + 1: marker_i + 1 + local_limit])
+                    links.extend(self._make_link_list(
+                        self._make_link(entities_list, self.limit,
+                                        self.marker, "previous"),
+                        self._make_link(entities_list, self.limit,
+                                  entities_list[local_limit + 1].get('id'),
+                                  "next")
+                    )
+                    )
+                else:
+                    result.extend(entities_list[marker_i + 1: list_len])
+                    links.extend(self._make_link_list(self._make_link(
+                        entities_list, self.limit, self.marker, "previous"
+                    )))
+            elif self.limit:
+                result.extend(entities_list[0: local_limit])
+                links.extend(self._make_link_list(self._make_link(
+                    entities_list, self.limit,
+                    entities_list[local_limit].get('id'), "next"
+                )))
+            else:
+                result.extend(entities_list)
+        return result, links
+
+    def apply(self):
+        #filtering values
+        #sorting values
+        #paginating values
+        pass
