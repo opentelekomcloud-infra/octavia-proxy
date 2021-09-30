@@ -40,6 +40,7 @@
     default-branch: main
     templates:
       - publish-otc-docs-pti
+      - api-ref-jobs
       - release-notes-jobs
     check:
       jobs:

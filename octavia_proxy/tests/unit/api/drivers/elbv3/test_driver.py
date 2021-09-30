@@ -20,6 +20,10 @@ from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
                                       l7_policy, l7_rule)
 
 from octavia_proxy.api.drivers.elbv3 import driver
+from octavia_proxy.api.v2.types import (
+    load_balancer as oct_lb,
+    listener as oct_lis
+)
 from octavia_proxy.tests.unit import base
 from octavia_proxy.tests.unit.api.drivers.common import Statuses, statuses
 
@@ -54,7 +58,10 @@ class TestElbv3Driver(base.TestCase):
         'name': 'test',
         'availability_zone': 'eu-nl-01',
         'admin_state_up': True,
-        'tags': [],
+        'tags': [
+            {'key': 'tag1', 'value': 'val'},
+            {'key': 'tag2', 'value': ''},
+            {'key': 'tag3', 'value': ''}],
         'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'network_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'created_at': '2021-08-10T09:39:24+00:00',
@@ -70,46 +77,27 @@ class TestElbv3Driver(base.TestCase):
         'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
     }
+    octavia_attrs = {
+        'name': 'test',
+        'description': 'Test',
+        'provider': 'elbv3',
+        'vip_subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'vip_network_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'tags': ["tag1=val", 'tag2=', 'tag3'],
+    }
     fake_call_create = {
         'availability_zone_list': ['eu-nl-01'],
-        'availability_zones': None,
-        'billing_info': None,
-        'created_at': '2021-08-10T09:39:24+00:00',
         'description': 'Test',
-        'eips': None,
-        'elb_virsubnet_ids': [None],
-        'flavor_id': None,
-        'floating_ip': None,
-        'floating_ips': None,
-        'guaranteed': True,
-        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
-        'ip_target_enable': None,
-        'ipv6_vip_address': None,
-        'ipv6_vip_port_id': None,
-        'ipv6_vip_subnet_id': None,
-        'is_admin_state_up': True,
-        'l4_flavor_id': None,
-        'l4_scale_flavor_id': None,
-        'l7_flavor_id': None,
-        'l7_scale_flavor_id': None,
-        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'location': None,
+        'elb_virsubnet_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
+        'enabled': True,
         'name': 'test',
-        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
-        'operating_status': None,
-        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'provider': 'elbv3',
-        'provisioning_status': None,
-        'tags': [],
-        'updated_at': '2021-08-10T09:39:24+00:00',
-        'vip_address': None,
-        'vip_port_id': None,
-        'vip_qos_policy_id': None,
-        'vip_subnet_cidr_id': None,
-        'vip_subnet_id': None,
-        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'
+        'tags': [
+            {'key': 'tag1', 'value': 'val'},
+            {'key': 'tag2', 'value': ''},
+            {'key': 'tag3', 'value': ''}],
+        'vip_subnet_cidr_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'vip_subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
     }
 
     def setUp(self):
@@ -161,7 +149,8 @@ class TestElbv3Driver(base.TestCase):
             name_or_id=self.lb, ignore_missing=True)
 
     def test_loadbalancer_create(self):
-        self.driver.loadbalancer_create(self.sess, self.lb)
+        lb = oct_lb.LoadBalancerPOST(**self.octavia_attrs)
+        self.driver.loadbalancer_create(self.sess, lb)
         self.sess.vlb.create_load_balancer.assert_called_with(
             **self.fake_call_create
         )
@@ -226,50 +215,39 @@ class TestElbv3ListenerDriver(base.TestCase):
         'insert_headers': {'X-Forwarded-ELB-IP': True},
         'name': 'test',
         'admin_state_up': True,
-        'tags': [],
         'timeout_client_data': 10,
         'timeout_member_data': 10,
         'timeout_member_connect': 10,
         'timeout_tcp_inspect': 10,
         'created_at': '2021-08-10T09:39:24+00:00',
         'updated_at': '2021-08-10T09:39:24+00:00',
-        'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}]
-    }
-    fake_call_create = {
-        'allowed_cidrs': None,
-        'client_ca_tls_container_ref': None,
-        'client_timeout': 10,
-        'created_at': '2021-08-10T09:39:24+00:00',
-        'description': None,
-        'default_pool_id': None,
-        'default_tls_container_ref': None,
-        'enable_member_retry': None,
-        'enhance_l7policy': None,
-        'http2_enable': None,
-        'insert_headers': {'X-Forwarded-ELB-IP': True},
-        'ipgroup': None,
-        'is_admin_state_up': True,
-        'keepalive_timeout': 10,
-        'l7_policies': None,
-        'load_balancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'load_balancers': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'member_timeout': 10,
-        'operating_status': None,
-        'project_id': None,
+        'tags': [
+            {'key': 'tag1', 'value': 'val'},
+            {'key': 'tag2', 'value': ''},
+            {'key': 'tag3', 'value': ''}],
+    }
+    octavia_attrs = {
+        'name': 'test',
+        'description': 'Test',
+        'provider': 'elbv3',
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'protocol': 'TCP',
         'protocol_port': 80,
-        'provisioning_status': None,
-        'sni_container_refs': None,
-        'tags': [],
-        'timeout_tcp_inspect': 10,
-        'tls_ciphers': None,
-        'tls_ciphers_policy': None,
-        'tls_versions': None,
-        'transparent_ip': None,
-        'updated_at': '2021-08-10T09:39:24+00:00',
-        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'tags': ["tag1=val", 'tag2=', 'tag3'],
+    }
+    fake_call_create = {
+        'client_authentication': 'NONE',
+        'description': 'Test',
+        'enabled': True,
+        'loadbalancer_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'name': 'test',
-        'location': None
+        'protocol': 'TCP',
+        'protocol_port': 80,
+        'tags': [
+            {'key': 'tag1', 'value': 'val'},
+            {'key': 'tag2', 'value': ''},
+            {'key': 'tag3', 'value': ''}],
     }
 
     def setUp(self):
@@ -299,7 +277,8 @@ class TestElbv3ListenerDriver(base.TestCase):
             name_or_id=self.lsnr, ignore_missing=True)
 
     def test_listener_create(self):
-        self.driver.listener_create(self.sess, self.lsnr)
+        lsnr = oct_lis.ListenerPOST(**self.octavia_attrs)
+        self.driver.listener_create(self.sess, lsnr)
         self.sess.vlb.create_listener.assert_called_with(
             **self.fake_call_create
         )
@@ -423,7 +402,7 @@ class TestElbv3MemberDriver(base.TestCase):
         'operating_status': None,
         'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'protocol_port': 4321,
-        'subnet_cidr_id': None,
+        'subnet_cidr_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'weight': 10,
     }
 
@@ -435,6 +414,16 @@ class TestElbv3MemberDriver(base.TestCase):
         self.sess.vlb.create_member = mock.MagicMock(return_value=self.member)
         self.sess.vlb.find_member = mock.MagicMock(return_value=self.member)
         self.sess.vlb.update_member = mock.MagicMock(return_value=self.member)
+        self.sess.vlb.get_pool = mock.MagicMock(return_value={
+                'loadbalancers': [
+                    {'id': '12f0a424-cdb9-4584-b9c0-6a38fbacdc5t'}
+                ]
+            })
+        self.sess.vlb.get_load_balancer = mock.MagicMock(
+            return_value={
+                'vip_subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'
+            }
+        )
 
     def test_members_no_qp(self):
         self.driver.members(self.sess, 'l1', 'pid')

@@ -20,6 +20,7 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base, member
@@ -42,8 +43,11 @@ class PoolsController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a pool's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
-        pool = self.find_pool(context, id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', False)
+        pool = self.find_pool(context, id, is_parallel)[0]
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_GET_ONE)
 
@@ -63,24 +67,12 @@ class PoolsController(base.BaseController):
 
         query_filter.update(query_params)
 
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
+        is_parallel = query_filter.pop('is_parallel', False)
         links = []
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pools = driver_utils.call_provider(
-                    driver.name, driver.pools,
-                    context.session,
-                    context.project_id,
-                    query_filter)
-                if pools:
-                    LOG.debug('Received %s from %s' % (pools, driver.name))
-                    result.extend(pools)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        result = driver_invocation(
+            context, 'pools', is_parallel, query_filter
+        )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
@@ -110,12 +102,12 @@ class PoolsController(base.BaseController):
             context, pool.project_id, constants.RBAC_POST)
         if pool.loadbalancer_id:
             loadbalancer = self.find_load_balancer(
-                context, pool.loadbalancer_id)
+                context, pool.loadbalancer_id)[0]
             pool.loadbalancer_id = loadbalancer.id
         elif pool.listener_id:
-            listener = self.find_listener(context, pool.listener_id)
+            listener = self.find_listener(context, pool.listener_id)[0]
             loadbalancer = self.find_load_balancer(
-                context, listener.loadbalancers[0].id)
+                context, listener.loadbalancers[0].id)[0]
             pool.loadbalancer_id = listener.loadbalancers[0].id
         else:
             msg = _("Must provide at least one of: "
@@ -137,7 +129,7 @@ class PoolsController(base.BaseController):
         pool_dict = pool.to_dict(render_unsets=False)
         pool_dict['id'] = None
 
-        if listener.default_pool_id:
+        if listener and listener.default_pool_id:
             raise exceptions.DuplicatePoolEntry()
 
         result = driver_utils.call_provider(
@@ -154,7 +146,7 @@ class PoolsController(base.BaseController):
         pool = pool_.pool
         context = pecan_request.context.get('octavia_context')
 
-        orig_pool = self.find_pool(context, id)
+        orig_pool = self.find_pool(context, id)[0]
 
         self._auth_validate_action(
             context, orig_pool.project_id,
@@ -177,27 +169,8 @@ class PoolsController(base.BaseController):
     def delete(self, id):
         """Deletes a pool from a load balancer."""
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        pool = None
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pool = driver_utils.call_provider(
-                    driver.name, driver.pool_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if pool:
-                    setattr(pool, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-        if not pool:
-            raise exceptions.NotFound(
-                resource='pool',
-                id=id)
+        pool = self.find_pool(context, id)[0]
 
         self._auth_validate_action(
             context, pool.project_id,
@@ -225,7 +198,7 @@ class PoolsController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         if pool_id and remainder and remainder[0] == 'members':
             remainder = remainder[1:]
-            pool = self.find_pool(context, pool_id)
+            pool = self.find_pool(context, pool_id)[0]
             if not pool:
                 LOG.info("Pool %s not found.", pool_id)
                 raise exceptions.NotFound(

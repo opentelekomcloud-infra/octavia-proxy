@@ -76,8 +76,7 @@ api_opts = [
                        'octavia:Deprecated alias of the Octavia '
                        'Amphora driver.'),
                 default={'elbv2': 'The ELBv2 driver.',
-                         'elbv3': 'The ELBv3 driver.'
-                         }),
+                         'elbv3': 'The ELBv3 driver.'}),
     cfg.StrOpt('default_provider_driver', default='elbv2',
                help=_('Default provider driver.')),
     cfg.StrOpt('region', default='eu-de',

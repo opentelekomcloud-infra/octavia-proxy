@@ -18,6 +18,7 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base, l7rule
@@ -40,9 +41,12 @@ class L7PoliciesController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single l7policy's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', False)
 
-        result = self.find_l7policy(context, id)
+        result = self.find_l7policy(context, id, is_parallel)[0]
 
         self._auth_validate_action(context, result.project_id,
                                    constants.RBAC_GET_ONE)
@@ -57,30 +61,18 @@ class L7PoliciesController(base.BaseController):
         """Lists all l7policies of a listener."""
         pcontext = pecan_request.context
         context = pcontext.get('octavia_context')
+
         query_filter = self._auth_get_all(context, project_id)
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
+
         query_filter.update(query_params)
 
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
+        is_parallel = query_filter.pop('is_parallel', False)
         links = []
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
 
-            try:
-                l7policies = driver_utils.call_provider(
-                    driver.name, driver.l7policies,
-                    context.session,
-                    context.project_id,
-                    query_filter
-                )
-                if l7policies:
-                    LOG.debug(
-                        'Received %s from %s' % (l7policies, driver.name)
-                    )
-                    result.extend(l7policies)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        result = driver_invocation(
+            context, 'l7policies', is_parallel, query_filter
+        )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
@@ -105,7 +97,7 @@ class L7PoliciesController(base.BaseController):
         )
 
         if l7policy.listener_id:
-            listener = self.find_listener(context, id=l7policy.listener_id)
+            listener = self.find_listener(context, id=l7policy.listener_id)[0]
         else:
             msg = "Must provide listener_id"
             raise exceptions.ValidationException(detail=msg)
@@ -126,7 +118,7 @@ class L7PoliciesController(base.BaseController):
         l7policy = l7policy_.l7policy
         context = pecan_request.context.get('octavia_context')
 
-        orig_l7policy = self.find_l7policy(context, id)
+        orig_l7policy = self.find_l7policy(context, id)[0]
 
         self._auth_validate_action(
             context, orig_l7policy.project_id,
@@ -150,7 +142,7 @@ class L7PoliciesController(base.BaseController):
         """Deletes a l7policy."""
         context = pecan_request.context.get('octavia_context')
 
-        l7policy = self.find_l7policy(context, id)
+        l7policy = self.find_l7policy(context, id)[0]
 
         self._auth_validate_action(
             context, l7policy.project_id,
@@ -174,7 +166,7 @@ class L7PoliciesController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         if l7policy_id and remainder and remainder[0] == 'rules':
             remainder = remainder[1:]
-            l7policy = self.find_l7policy(context, l7policy_id)
+            l7policy = self.find_l7policy(context, l7policy_id)[0]
             if not l7policy:
                 LOG.info("L7Policy %s not found.", l7policy_id)
                 raise exceptions.NotFound(
