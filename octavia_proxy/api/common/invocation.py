@@ -1,7 +1,10 @@
+import threading
+
 from oslo_config import cfg
 from oslo_log import log as logging
-from octavia_proxy.api.drivers import utils as driver_utils
+
 from octavia_proxy.api.drivers import driver_factory
+from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.common import exceptions
 
 CONF = cfg.CONF
@@ -10,29 +13,65 @@ LOG = logging.getLogger(__name__)
 ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
 
 
-def driver_invocation(context=None, function=None, is_parallel=False, *params):
+class DriverThread(threading.Thread):
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs=None, Verbose=None):
+        threading.Thread.__init__(self, group, target, name, args, kwargs)
+        if kwargs is None:
+            kwargs = {}
+        self._return = None
+
+    def run(self):
+        print(type(self._target))
+        if self._target is not None:
+            self._return = self._target(*self._args,
+                                        **self._kwargs)
+
+    def join(self, *args):
+        threading.Thread.join(self, *args)
+        return self._return
+
+
+def driver_call(provider, context=None, function=None, *params):
     result = []
-    LOG.debug(f'called function: {function}')
-    LOG.debug(f'received params: {params}')
-    if is_parallel:
-        pass
+    driver = driver_factory.get_driver(provider)
+    method_to_call = getattr(driver, function)
+    try:
+        resource = driver_utils.call_provider(
+            driver.name,
+            method_to_call,
+            context.session,
+            context.project_id,
+            *params)
+        if resource:
+            LOG.debug('Received %s from %s' % (resource, driver.name))
+            try:
+                result.extend(resource)
+            except TypeError:
+                result.append(resource)
+    except exceptions.ProviderNotImplementedError:
+        LOG.exception('Driver is not supporting this')
+    return result
+
+
+def driver_invocation(context=None, function=None, is_parallel=True, *params):
+    result = []
+    LOG.debug('Called function: %s' % function)
+    LOG.debug('Received params: %s' % params)
+    threads = []
     for provider in ENABLED_PROVIDERS:
-        driver = driver_factory.get_driver(provider)
-        method_to_call = getattr(driver, function)
-        try:
-            resource = driver_utils.call_provider(
-                driver.name,
-                method_to_call,
-                context.session,
-                context.project_id,
-                *params)
-            if resource:
-                LOG.debug('Received %s from %s' % (resource, driver.name))
-                try:
-                    result.extend(resource)
-                except TypeError:
-                    result.append(resource)
-        except exceptions.ProviderNotImplementedError:
-            LOG.exception('Driver %s is not supporting this')
-        LOG.debug(f'{function}, result: {result}')
+        if is_parallel:
+            LOG.debug("Create and start thread %s.", provider)
+            x = DriverThread(
+                target=driver_call,
+                args=(provider, context, function, *params)
+            )
+            threads.append(x)
+            x.start()
+        else:
+            result.extend(driver_call(provider, context, function, *params))
+        LOG.debug('%s, result: %s' % (function, result))
+    for index, thread in enumerate(threads):
+        result.extend(thread.join())
+        LOG.debug("Thread %d done", index)
     return result
