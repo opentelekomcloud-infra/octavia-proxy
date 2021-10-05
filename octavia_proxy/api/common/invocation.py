@@ -42,7 +42,7 @@ def driver_invocation(context=None, function=None, is_parallel=True, *params):
     result = []
     if is_parallel:
         LOG.debug('Create and start threads.')
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             calls = {
                 executor.submit(
                     driver_call, provider, context, function, *params
