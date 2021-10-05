@@ -196,6 +196,55 @@ class HealthMonitorSingleCreate(BaseHealthMonitorType):
         wtypes.StringType(min_length=1, max_length=255,
                           pattern=constants.DOMAIN_NAME_REGEX))
 
+    def to_hm_post(self, pool_id=None, project_id=None):
+        hm_post = HealthMonitorPOST()
+
+        if self.name:
+            setattr(hm_post, 'name', self.name)
+
+        if self.type:
+            setattr(hm_post, 'type', self.type)
+
+        if self.delay:
+            setattr(hm_post, 'delay', self.delay)
+
+        if self.timeout:
+            setattr(hm_post, 'timeout', self.timeout)
+
+        if self.max_retries_down:
+            setattr(hm_post, 'max_retries_down', self.max_retries_down)
+
+        if self.max_retries:
+            setattr(hm_post, 'max_retries', self.max_retries)
+
+        if self.http_method:
+            setattr(hm_post, 'http_method', self.http_method)
+
+        if self.url_path:
+            setattr(hm_post, 'url_path', self.url_path)
+
+        if self.expected_codes:
+            setattr(hm_post, 'expected_codes', self.expected_codes)
+
+        if self.admin_state_up:
+            setattr(hm_post, 'admin_state_up', self.admin_state_up)
+
+        if self.tags:
+            setattr(hm_post, 'tags', self.tags)
+
+        if self.http_version:
+            setattr(hm_post, 'http_version', self.http_version)
+
+        if self.domain_name:
+            setattr(hm_post, 'domain_name', self.domain_name)
+
+        if pool_id:
+            setattr(hm_post, 'pool_id', pool_id)
+
+        if project_id:
+            setattr(hm_post, 'project_id', self.project_id)
+
+        return hm_post
 
 class HealthMonitorStatusResponse(BaseHealthMonitorType):
     """Defines which attributes are to be shown on status response."""

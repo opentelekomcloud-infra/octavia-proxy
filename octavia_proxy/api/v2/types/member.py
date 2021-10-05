@@ -151,6 +151,44 @@ class MemberSingleCreate(BaseMemberType):
     monitor_address = wtypes.wsattr(types.IPAddressType())
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
 
+    def to_member_post(self, project_id=None):
+        member_post = MemberPOST()
+
+        if self.name:
+            setattr(member_post, 'name', self.name)
+
+        if self.admin_state_up:
+            setattr(member_post, 'admin_state_up', self.admin_state_up)
+
+        if self.address:
+            setattr(member_post, 'address', self.address)
+
+        if self.protocol_port:
+            setattr(member_post, 'protocol_port', self.protocol_port)
+
+        if self.weight:
+            setattr(member_post, 'weight', self.weight)
+
+        if self.backup:
+            setattr(member_post, 'backup', self.backup)
+
+        if self.subnet_id:
+            setattr(member_post, 'subnet_id', self.subnet_id)
+
+        if self.monitor_port:
+            setattr(member_post, 'monitor_port', self.monitor_port)
+
+        if self.monitor_address:
+            setattr(member_post, 'monitor_address', self.monitor_address)
+
+        if self.tags:
+            setattr(member_post, 'tags', self.tags)
+
+        if project_id:
+            setattr(member_post, 'project_id', project_id)
+
+        return member_post
+
 
 class MemberStatusResponse(BaseMemberType):
     """Defines which attributes are to be shown on status response."""

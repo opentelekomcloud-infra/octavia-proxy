@@ -135,3 +135,32 @@ class L7RuleSingleCreate(BaseL7Type):
     invert = wtypes.wsattr(bool, default=False)
     admin_state_up = wtypes.wsattr(bool, default=True)
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
+
+    def to_l7rule_post(self, project_id=None):
+        l7rule_post = L7RulePOST()
+
+        if self.type:
+            setattr(l7rule_post, 'type', self.type)
+
+        if self.compare_type:
+            setattr(l7rule_post, 'compare_type', self.compare_type)
+
+        if self.key:
+            setattr(l7rule_post, 'key', self.key)
+
+        if self.value:
+            setattr(l7rule_post, 'value', self.value)
+
+        if self.invert:
+            setattr(l7rule_post, 'invert', self.invert)
+
+        if self.admin_state_up:
+            setattr(l7rule_post, 'admin_state_up', self.admin_state_up)
+
+        if self.tags:
+            setattr(l7rule_post, 'tags', self.tags)
+
+        if project_id:
+            setattr(l7rule_post, 'project_id', project_id)
+
+        return l7rule_post

@@ -253,6 +253,70 @@ class PoolSingleCreate(BasePoolType):
         max_length=32)))
     alpn_protocols = wtypes.wsattr(wtypes.ArrayType(types.AlpnProtocolType()))
 
+    def to_pool_post(self, project_id=None, loadbalancer_id=None,
+                          listener_id=None):
+        pool_post = PoolPOST()
+
+        if self.name:
+            setattr(pool_post, 'name', self.name)
+
+        if self.description:
+            setattr(pool_post, 'description', self.description)
+
+        if self.admin_state_up:
+            setattr(pool_post, 'admin_state_up', self.admin_state_up)
+
+        if self.protocol:
+            setattr(pool_post, 'protocol', self.protocol)
+
+        if self.lb_algorithm:
+            setattr(pool_post, 'lb_algorithm', self.lb_algorithm)
+
+        if self.session_persistence:
+            setattr(pool_post, 'session_persistence', self.session_persistence)
+
+        if self.healthmonitor:
+            setattr(pool_post, 'healthmonitor', self.healthmonitor)
+
+        if self.members:
+            setattr(pool_post, 'members', self.members)
+
+        if self.tags:
+            setattr(pool_post, 'tags', self.tags)
+
+        if self.tls_container_ref:
+            setattr(pool_post, 'tls_container_ref', self.tls_container_ref)
+
+        if self.ca_tls_container_ref:
+            setattr(pool_post, 'ca_tls_container_ref',
+                    self.ca_tls_container_ref)
+
+        if self.crl_container_ref:
+            setattr(pool_post, 'crl_container_ref', self.crl_container_ref)
+
+        if self.tls_enabled:
+            setattr(pool_post, 'tls_enabled', self.tls_enabled)
+
+        if self.tls_ciphers:
+            setattr(pool_post, 'tls_ciphers', self.tls_ciphers)
+
+        if self.tls_versions:
+            setattr(pool_post, 'ttls_versions', self.tls_versions)
+
+        if self.alpn_protocols:
+            setattr(pool_post, 'alpn_protocols', self.alpn_protocols)
+
+        if loadbalancer_id:
+            setattr(pool_post, 'loadbalancer_id', loadbalancer_id)
+
+        if listener_id:
+            setattr(pool_post, 'listener_id', listener_id)
+
+        if project_id:
+            setattr(pool_post, 'project_id', project_id)
+
+        return pool_post
+
 
 class PoolStatusResponse(BasePoolType):
     """Defines which attributes are to be shown on status response."""

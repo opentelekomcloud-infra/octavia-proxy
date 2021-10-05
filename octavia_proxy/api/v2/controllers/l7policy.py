@@ -23,6 +23,7 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base, l7rule
 from octavia_proxy.api.v2.types import l7policy as l7policy_types
+from octavia_proxy.api.common import types
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 
@@ -175,21 +176,18 @@ class L7PoliciesController(base.BaseController):
                 l7policy_id=l7policy.id), remainder
         return None
 
-    def _graph_create(self, session, policy_dict):
-
-        provider = policy_dict.pop('provider', None)
+    def _graph_create(self, session, policy, provider=None):
         driver = driver_factory.get_driver(provider)
-        rules = policy_dict.pop('l7rules', []) or []
+        rules = policy.rules
         policy = driver_utils.call_provider(
-            driver.name, driver.create_l7policy, session, policy_dict)
-
+            driver.name, driver.l7policy_create, session, policy)
         new_rules_ids = []
-        for r in rules:
-            r['project_id'] = policy.project_id
-            r['provider'] = policy.provider
-            new_rule = l7rule.L7RuleController(policy.id)._graph_create(
-                    session, r)
-            new_rules_ids.append(new_rule.id)
+        if rules:
+            for r in rules:
+                rule_post = r.to_l7rule_post(project_id=policy.project_id)
+                new_rule = l7rule.L7RuleController(policy.id)._graph_create(
+                        session, rule_post, provider=provider)
+                new_rules_ids.append(types.IdOnlyType(id=new_rule.id))
 
         setattr(policy, 'l7rules', new_rules_ids)
         return policy

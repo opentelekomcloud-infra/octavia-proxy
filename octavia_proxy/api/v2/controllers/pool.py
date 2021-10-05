@@ -25,8 +25,8 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base, member, health_monitor
 from octavia_proxy.api.v2.types import pool as pool_types
-from octavia_proxy.common import constants, validate
-from octavia_proxy.common import exceptions
+from octavia_proxy.api.common import types
+from octavia_proxy.common import constants, validate, exceptions
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
@@ -210,36 +210,36 @@ class PoolsController(base.BaseController):
             return member.MembersController(pool_id=pool.id), remainder
         return None
 
-    def _graph_create(self, session, pool_dict):
-        load_balancer_id = pool_dict['load_balancer_id']
-        members = pool_dict.pop('members', []) or []
-        hm = pool_dict.pop('health_monitor', None)
-        provider = pool_dict.pop('provider', None)
+    def _graph_create(self, session, pool, provider=None):
+        members = pool.members
+        hm = pool.healthmonitor
 
         driver = driver_factory.get_driver(provider)
 
         # if pool.listener_id and listener:
         #     self._validate_protocol(listener.protocol, pool.protocol)
 
-        if pool_dict.protocol in constants.PROTOCOL_UDP:
-            self._validate_pool_request_for_tcp_udp(pool_dict)
+        if pool.protocol in constants.PROTOCOL_UDP:
+            self._validate_pool_request_for_tcp_udp(pool)
 
-        if pool_dict.session_persistence:
-            sp_dict = pool_dict.session_persistence.to_dict(render_unsets=False)
+        if pool.session_persistence:
+            sp_dict = pool.session_persistence.to_dict(render_unsets=False)
             validate.check_session_persistence(sp_dict)
 
         result_pool = driver_utils.call_provider(
             driver.name, driver.pool_create,
-            session, pool_dict)
+            session, pool)
 
         # Now possibly create a healthmonitor
         if hm:
-            hm['pool_id'] = result_pool.id
-            hm['project_id'] = result_pool.project_id
-            hm['provider'] = result_pool.provider
+
+            hm_post = hm.to_hm_post(pool_id=result_pool.id,
+                                    project_id=result_pool.project_id)
             new_hm = health_monitor.HealthMonitorController()._graph_create(
-                session, hm)
-            setattr(result_pool, 'healthmonitor_id', new_hm.id)
+                session, hm_post, provider=result_pool.provider)
+            setattr(result_pool, 'healthmonitor_id',
+                    types.IdOnlyType(id=new_hm.id))
+
             if result_pool.protocol in (constants.PROTOCOL_UDP):
                 health_monitor.HealthMonitorController(
                 )._validate_healthmonitor_request_for_udp(
@@ -253,12 +253,16 @@ class PoolsController(base.BaseController):
                             'protocol': '/'.join((constants.PROTOCOL_UDP))})
 
         # Now create members
-        new_members = []
-        for m in members:
-            m['project_id'] = result_pool.project_id
-            new_member = member.MembersController(
-                result_pool.id)._graph_create(session, m).id
-            new_members.append(new_member.id)
-            setattr(result_pool, 'healthmonitor_id', new_members)
+        if members:
+            new_members = []
+            for m in members:
+                member_post = m.to_member_post(
+                    project_id=result_pool.project_id)
+                new_member = member.MembersController(result_pool.id)\
+                    ._graph_create(session, member_post,
+                                   provider=result_pool.provider)
+                new_members.append(types.IdOnlyType(id=new_member.id))
+            setattr(result_pool, 'members', new_members)
 
-        return
+        return result_pool
+

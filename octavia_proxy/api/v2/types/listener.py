@@ -306,6 +306,99 @@ class ListenerSingleCreate(BaseListenerType):
         max_length=32)))
     alpn_protocols = wtypes.wsattr(wtypes.ArrayType(types.AlpnProtocolType()))
 
+    def to_listener_post(self, project_id=None, loadbalancer_id=None,
+                         default_pool_id=None):
+        listener_post = ListenerPOST()
+
+        if self.name:
+            setattr(listener_post, 'name', self.name)
+
+        if self.description:
+            setattr(listener_post, 'description', self.description)
+
+        if self.admin_state_up:
+            setattr(listener_post, 'admin_state_up', self.admin_state_up)
+
+        if self.protocol:
+            setattr(listener_post, 'protocol', self.protocol)
+
+        if self.protocol_port:
+            setattr(listener_post, 'protocol_port', self.protocol_port)
+
+        if self.connection_limit:
+            setattr(listener_post, 'connection_limit', self.connection_limit)
+
+        if self.default_tls_container_ref:
+            setattr(listener_post, 'protocol_port', self.protocol_port)
+
+        if self.sni_container_refs:
+            setattr(listener_post, 'connection_limit', self.connection_limit)
+
+        if self.l7policies:
+            setattr(listener_post, 'l7policies', self.l7policies)
+
+        if self.insert_headers:
+            setattr(listener_post, 'insert_headers', self.insert_headers)
+
+        if self.timeout_client_data:
+            setattr(listener_post, 'timeout_client_data',
+                    self.timeout_client_data)
+
+        if self.timeout_member_connect:
+            setattr(listener_post, 'timeout_member_connect',
+                    self.timeout_member_connect)
+
+        if self.timeout_member_data:
+            setattr(listener_post, 'timeout_member_data',
+                    self.timeout_member_data)
+
+        if self.timeout_tcp_inspect:
+            setattr(listener_post, 'timeout_tcp_inspect',
+                    self.timeout_tcp_inspect)
+
+        if self.tags:
+            setattr(listener_post, 'tags',
+                    self.tags)
+
+        if self.client_ca_tls_container_ref:
+            setattr(listener_post, 'client_ca_tls_container_ref',
+                    self.client_ca_tls_container_ref)
+
+        if self.client_authentication:
+            setattr(listener_post, 'client_authentication',
+                    self.client_authentication)
+
+        if self.client_crl_container_ref:
+            setattr(listener_post, 'client_crl_container_ref',
+                    self.client_crl_container_ref)
+
+        if self.allowed_cidrs:
+            setattr(listener_post, 'allowed_cidrs',
+                    self.allowed_cidrs)
+
+        if self.tls_ciphers:
+            setattr(listener_post, 'tls_ciphers',
+                    self.tls_ciphers)
+
+        if self.tls_versions:
+            setattr(listener_post, 'tls_versions',
+                    self.tls_versions)
+
+        if self.alpn_protocols:
+            setattr(listener_post, 'alpn_protocols',
+                    self.alpn_protocols)
+
+        if project_id:
+            setattr(listener_post, 'project_id', project_id)
+
+        if loadbalancer_id:
+            setattr(listener_post, 'loadbalancer_id', loadbalancer_id)
+
+        if default_pool_id:
+            setattr(listener_post, 'default_pool_id', default_pool_id)
+
+        return listener_post
+
 
 class ListenerStatusResponse(BaseListenerType):
     """Defines which attributes are to be shown on status response."""

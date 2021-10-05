@@ -254,11 +254,10 @@ class HealthMonitorController(base.BaseController):
             driver.name, driver.health_monitor_delete,
             context.session, hm)
 
-    def _graph_create(self, session, hm_dict):
-        driver = driver_factory.get_driver(hm_dict['provider'])
+    def _graph_create(self, session, hm_dict, provider=None):
+        driver = driver_factory.get_driver(provider)
         result = driver_utils.call_provider(
             driver.name, driver.health_monitor_create,
             session,
             hm_dict)
         return result
-

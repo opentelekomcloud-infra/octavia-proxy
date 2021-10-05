@@ -169,3 +169,49 @@ class L7PolicySingleCreate(BaseL7PolicyType):
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
     redirect_http_code = wtypes.wsattr(
         wtypes.Enum(int, *constants.SUPPORTED_L7POLICY_REDIRECT_HTTP_CODES))
+
+    def to_l7policy_post(self, project_id=None, redirect_pool_id=None,
+                              listener_id=None):
+        l7policy_post = L7PolicyPOST()
+
+        if self.name:
+            setattr(l7policy_post, 'name', self.name)
+
+        if self.description:
+            setattr(l7policy_post, 'description', self.description)
+
+        if self.admin_state_up:
+            setattr(l7policy_post, 'admin_state_up', self.admin_state_up)
+
+        if self.action:
+            setattr(l7policy_post, 'action', self.action)
+
+        if self.redirect_url:
+            setattr(l7policy_post, 'redirect_url', self.redirect_url)
+
+        if self.redirect_prefix:
+            setattr(l7policy_post, 'redirect_prefix', self.redirect_prefix)
+
+        if self.position:
+            setattr(l7policy_post, 'position', self.position)
+
+        if self.rules:
+            setattr(l7policy_post, 'rules', self.rules)
+
+        if self.tags:
+            setattr(l7policy_post, 'tags', self.tags)
+
+        if self.redirect_http_code:
+            setattr(l7policy_post, 'redirect_http_code',
+                    self.redirect_http_code)
+
+        if project_id:
+            setattr(l7policy_post, 'project_id', project_id)
+
+        if listener_id:
+            setattr(l7policy_post, 'listener_id', listener_id)
+
+        if redirect_pool_id:
+            setattr(l7policy_post, 'redirect_pool_id', redirect_pool_id)
+
+        return l7policy_post

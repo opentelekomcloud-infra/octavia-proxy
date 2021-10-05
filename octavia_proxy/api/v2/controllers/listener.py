@@ -21,7 +21,8 @@ from wsmeext import pecan as wsme_pecan
 
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.common import constants
-
+from octavia_proxy.common import exceptions
+from octavia_proxy.api.common import types
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
 
@@ -158,30 +159,33 @@ class ListenersController(base.BaseController):
             context.session,
             listener)
 
-    def _graph_create(self, session, listener_dict,
-                      l7policies=None, pool_name_ids=None):
-        driver = driver_factory.get_driver(listener_dict['provider'])
-        l7policies = listener_dict.pop('l7policies', l7policies)
+    def _graph_create(self, session, listener_dict, pool_name_ids=None,
+                      provider=None):
+        driver = driver_factory.get_driver(provider)
+        l7policies = listener_dict.l7policies
         listener = driver_utils.call_provider(
             driver.name, driver.listener_create, session, listener_dict)
-
         # Now create l7policies
         new_l7ps_ids = []
         for l7p in l7policies:
-            l7p['project_id'] = listener.project_id
-            l7p['load_balancer_id'] = listener.loadbalancer_id
-            l7p['listener_id'] = listener.id
-            redirect_pool = l7p.pop('redirect_pool', None)
-            if redirect_pool:
-                pool_name = redirect_pool['name']
+            project_id = listener.project_id
+            listener_id = listener.id
+            if l7p.redirect_pool:
+                pool_name = l7p.redirect_pool.name
                 pool_id = pool_name_ids.get(pool_name)
                 if not pool_id:
                     raise exceptions.SingleCreateDetailsMissing(
                         type='Pool', name=pool_name)
-                l7p['redirect_pool_id'] = pool_id
-                l7p['provider'] = listener.provider
+                redirect_pool_id = pool_id
+                l7policy_post = l7p.to_l7policy_post(
+                    project_id=project_id, listener_id=listener_id,
+                    redirect_pool_id=redirect_pool_id)
+            else:
+                l7policy_post = l7p.to_l7policy_post(
+                    project_id=project_id, listener_id=listener_id)
             new_l7ps = l7policy.L7PoliciesController()._graph_create(
-                session, l7p)
-            new_l7ps_ids.append(new_l7ps.id)
-        setattr(listener, l7policies, new_l7ps_ids)
+                session, l7policy_post, provider=listener.provider)
+            new_l7ps_ids.append(types.IdOnlyType(id=new_l7ps.id))
+        if new_l7ps_ids:
+            setattr(listener, 'l7policies', new_l7ps_ids)
         return listener

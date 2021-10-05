@@ -155,10 +155,9 @@ class L7RuleController(base.BaseController):
             self.l7policy_id,
             l7rule)
 
-    def _graph_create(self, session, rule_dict):
-        provider = rule_dict.pop('provider', None)
+    def _graph_create(self, session, rule, provider=None):
         driver = driver_factory.get_driver(provider)
         rule = driver_utils.call_provider(
             driver.name, driver.l7rule_ceate, session,
-            self.l7policy_id, rule_dict)
+            self.l7policy_id, rule)
         return rule

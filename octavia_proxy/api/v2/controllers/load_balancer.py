@@ -206,23 +206,24 @@ class LoadBalancersController(base.BaseController):
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
 
-        if load_balancer.pools or load_balancer.listeners:
-            lb_pools = load_balancer.pools
-            lb_listeners = load_balancer.listeners
         # Dispatch to the driver
         result = driver_utils.call_provider(
             driver.name, driver.loadbalancer_create,
             context.session,
             load_balancer)
         if load_balancer.pools or load_balancer.listeners:
+            pools = load_balancer.pools
+            listeners = load_balancer.listeners
             pools, listeners = self._graph_create(
-                context.session, load_balancer)
-            result['pools'] = []
-            result['listeners'] = []
+                context.session, result, pools, listeners)
+            pools_ids = []
+            listeners_ids = []
             for pool in pools:
-                result['pools'].append(types.IdOnlyType(id=pool.id))
+                pools_ids.append(types.IdOnlyType(id=pool.id))
             for listener in listeners:
-                result['listeners'].append(types.IdOnlyType(id=listener.id))
+                listeners_ids.append(types.IdOnlyType(id=listener.id))
+            setattr(result, 'pools', pools_ids)
+            setattr(result, 'listeners', listeners_ids)
         return lb_types.LoadBalancerRootResponse(load_balancer=result)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerRootResponse,
@@ -303,102 +304,45 @@ class LoadBalancersController(base.BaseController):
     def _validate_availability_zone(self, session, load_balancer):
         pass
 
-    def _graph_create(self, session, lb):
-        # Track which pools must have a full specification
-        pools_required = set()
-        # Look through listeners and find any extra pools, and move them to the
-        # top level so they are created first.
-        listeners = lb.listeners
-        pools =lb.pools
+    def _graph_create(self, session, lb, pools, listeners):
+
         for li in listeners:
-            default_pool = li.get('default_pool')
+            default_pool = li.default_pool
             pool_name = (
-                default_pool.get('name') if default_pool else None)
+                default_pool.name if default_pool else None)
             # All pools need to have a name so they can be referenced
             if default_pool and not pool_name:
                 raise exceptions.ValidationException(
                     detail='Pools must be named when creating a fully '
                            'populated loadbalancer.')
-
-            # If a pool has more than a name, assume it's a full specification
-            # (but use >3 because it will also have "enabled" and "tls_enabled"
-            # as default)
-            if default_pool and len(default_pool) > 3:
-                pools.append(default_pool)
-                li['default_pool'] = {'name': pool_name}
-            # Otherwise, it's a reference and we record it and move on
-            elif default_pool:
-                pools_required.add(pool_name)
-            # We also need to check policy redirects
-            for policy in li.get('l7policies'):
-                redirect_pool = policy.get('redirect_pool')
-                pool_name = (
-                    redirect_pool.get('name') if redirect_pool else None)
-                # All pools need to have a name so they can be referenced
-                if redirect_pool and not pool_name:
-                    raise exceptions.ValidationException(
-                        detail='Pools must be named when creating a fully '
-                               'populated loadbalancer.')
-                # If a pool has more than a name, assume it's a full spec
-                # (but use > 3 because it will also have "enabled" and
-                # "tls_enabled" as default)
-                if redirect_pool and len(redirect_pool) > 3:
-                    pool_name = redirect_pool['name']
-                    policy['redirect_pool'] = {'name': pool_name}
-                    pools.append(redirect_pool)
-                # Otherwise, it's a reference and we record it and move on
-                elif redirect_pool:
-                    pools_required.add(pool_name)
-
-        # Make sure all pool names are unique.
-        pool_names = [p.get('name') for p in pools]
-        if len(set(pool_names)) != len(pool_names):
-            raise exceptions.ValidationException(
-                detail="Pool names must be unique when creating a fully "
-                       "populated loadbalancer.")
-        # Make sure every reference is present in our spec list
-        for pool_ref in pools_required:
-            if pool_ref not in pool_names:
-                raise exceptions.ValidationException(
-                    detail="Pool '{name}' was referenced but no full "
-                           "definition was found.".format(name=pool_ref))
+            pools.append(default_pool)
 
         # Now create all of the pools ahead of the listeners.
-        new_pools = []
+        result_pools = []
         pool_name_ids = {}
         for p in pools:
-            if 'protocol' not in p:
-                raise exceptions.ValidationException(
-                    detail="Mandatory parametr 'protocol' is missing for"
-                           " pool '{name}'.".format(name=p['name']))
-            if 'lb_algorithm' not in p:
-                raise exceptions.ValidationException(
-                    detail="Mandatory parametr 'lb_algorithm' is missing for"
-                           " pool '{name}'.".format(name=p['name']))
+            pool_post = p.to_pool_post(loadbalancer_id=lb.id,
+                                       project_id=lb.project_id)
 
-            p['load_balancer_id'] = lb.id
-            p['project_id'] = lb.project_id
-            p['provider'] = lb.provider
             new_pool = (pool.PoolsController()._graph_create(
-                session, p))
-            new_pools.append(new_pool)
+                session, pool_post, provider=lb.provider))
+            result_pools.append(new_pool)
             pool_name_ids[new_pool.name] = new_pool.id
 
         # Now create all of the listeners
-        new_lists = []
+        result_listeners = []
         for li in listeners:
-            default_pool = li.pop('default_pool', None)
-            # If there's a default pool, replace it with the ID
-            if default_pool:
-                pool_name = default_pool['name']
-                pool_id = pool_name_ids.get(pool_name)
-                if not pool_id:
-                    raise exceptions.SingleCreateDetailsMissing(
-                        type='Pool', name=pool_name)
-                li['default_pool_id'] = lb.id
-            li['project_id'] = lb.project_id
-            li['provider'] = lb.provider
-            new_lists.append(listener.ListenersController()._graph_create(
-                lock_session, li, pool_name_ids=pool_name_ids))
+            if li.default_pool:
+                name = li.default_pool.name
+                listener_post = li.to_listener_post(
+                    project_id=lb.project_id, loadbalancer_id=lb.id,
+                    default_pool_id=pool_name_ids[name])
+            else:
+                listener_post = li.to_listener_post(
+                    project_id=lb.project_id, loadbalancer_id=lb.id)
 
-        return new_pools, new_lists
+            result_listener = listener.ListenersController()._graph_create(
+                session, listener_post, pool_name_ids=pool_name_ids,
+                provider=lb.provider)
+            result_listeners.append(result_listener)
+        return result_pools, result_listeners
