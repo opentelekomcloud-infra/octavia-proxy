@@ -204,9 +204,8 @@ def elbv3_foremapping(attrs):
         attrs['vip_subnet_cidr_id'] = attrs['vip_subnet_id']
     if 'vip_network_id' in attrs:
         attrs['elb_virsubnet_ids'] = [attrs.pop('vip_network_id')]
-    attrs['availability_zone_list'] = [
-        attrs.pop('availability_zone', 'eu-nl-01')
-    ]
+    azs = attrs.pop('availability_zone', 'eu-nl-01')
+    attrs['availability_zone_list'] = azs.replace(' ', '').split(',')
     return attrs
 
 
