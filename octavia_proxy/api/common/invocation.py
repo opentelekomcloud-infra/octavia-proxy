@@ -44,7 +44,7 @@ def driver_call(provider, context=None, function=None, *params):
             context.project_id,
             *params)
         if resource:
-            LOG.debug('Received %s from %s' % (resource, driver.name))
+            LOG.debug(f'Received {resource} from {driver.name}')
             try:
                 result.extend(resource)
             except TypeError:
@@ -56,22 +56,22 @@ def driver_call(provider, context=None, function=None, *params):
 
 def driver_invocation(context=None, function=None, is_parallel=True, *params):
     result = []
-    LOG.debug('Called function: %s' % function)
-    LOG.debug('Received params: %s' % params)
+    LOG.debug(f'Called function: {function}')
+    LOG.debug(f'Received params: {params}')
     threads = []
     for provider in ENABLED_PROVIDERS:
         if is_parallel:
-            LOG.debug("Create and start thread %s.", provider)
-            x = DriverThread(
+            LOG.debug(f'Create and start thread {provider}.')
+            dt = DriverThread(
                 target=driver_call,
                 args=(provider, context, function, *params)
             )
-            threads.append(x)
-            x.start()
+            threads.append(dt)
+            dt.start()
         else:
             result.extend(driver_call(provider, context, function, *params))
-        LOG.debug('%s, result: %s' % (function, result))
+        LOG.debug(f'{function}, result: {result}')
     for index, thread in enumerate(threads):
         result.extend(thread.join())
-        LOG.debug("Thread %d done", index)
+        LOG.debug(f'Thread {index} done')
     return result
