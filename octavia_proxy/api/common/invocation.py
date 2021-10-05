@@ -45,8 +45,8 @@ def driver_invocation(context=None, function=None, is_parallel=True, *params):
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             calls = {
                 executor.submit(
-                    driver_call, provider, context, function, *params):
-                    provider for provider in ENABLED_PROVIDERS
+                    driver_call, provider, context, function, *params
+                ): provider for provider in ENABLED_PROVIDERS
             }
             for future in concurrent.futures.as_completed(calls):
                 result.extend(future.result())
