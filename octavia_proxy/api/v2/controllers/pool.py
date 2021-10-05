@@ -46,7 +46,8 @@ class PoolsController(base.BaseController):
         pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
-        is_parallel = query_params.pop('is_parallel', False)
+        is_parallel = query_params.pop('is_parallel', True)
+
         pool = self.find_pool(context, id, is_parallel)[0]
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_GET_ONE)
@@ -67,7 +68,7 @@ class PoolsController(base.BaseController):
 
         query_filter.update(query_params)
 
-        is_parallel = query_filter.pop('is_parallel', False)
+        is_parallel = query_filter.pop('is_parallel', True)
         links = []
 
         result = driver_invocation(

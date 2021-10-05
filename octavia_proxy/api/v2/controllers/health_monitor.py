@@ -45,7 +45,7 @@ class HealthMonitorController(base.BaseController):
         pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
         query_params = pcontext.get(const.PAGINATION_HELPER).params
-        is_parallel = query_params.pop('is_parallel', False)
+        is_parallel = query_params.pop('is_parallel', True)
 
         hm = self.find_health_monitor(context, id, is_parallel)[0]
 
@@ -68,7 +68,7 @@ class HealthMonitorController(base.BaseController):
 
         query_filter.update(query_params)
 
-        is_parallel = query_filter.pop('is_parallel', False)
+        is_parallel = query_filter.pop('is_parallel', True)
         links = []
 
         result = driver_invocation(

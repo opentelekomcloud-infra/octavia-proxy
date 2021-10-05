@@ -45,7 +45,7 @@ class MemberController(base.BaseController):
         pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
-        is_parallel = query_params.pop('is_parallel', False)
+        is_parallel = query_params.pop('is_parallel', True)
         member = self.find_member(context, self.pool_id, id, is_parallel)[0]
 
         self._auth_validate_action(context, member.project_id,
@@ -67,7 +67,7 @@ class MemberController(base.BaseController):
 
         query_filter.update(query_params)
 
-        is_parallel = query_filter.pop('is_parallel', False)
+        is_parallel = query_filter.pop('is_parallel', True)
         links = []
 
         result = driver_invocation(

@@ -55,10 +55,12 @@ def driver_call(provider, context=None, function=None, *params):
 
 
 def driver_invocation(context=None, function=None, is_parallel=True, *params):
-    result = []
     LOG.debug(f'Called function: {function}')
     LOG.debug(f'Received params: {params}')
+
+    result = []
     threads = []
+
     for provider in ENABLED_PROVIDERS:
         if is_parallel:
             LOG.debug(f'Create and start thread {provider}.')
