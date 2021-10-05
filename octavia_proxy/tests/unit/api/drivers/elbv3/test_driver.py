@@ -155,6 +155,18 @@ class TestElbv3Driver(base.TestCase):
             **self.fake_call_create
         )
 
+    def test_loadbalancer_create_multiple_azs(self):
+        azs = 'az1,az2'
+        self.fake_call_create['availability_zone_list'] = azs.split(',')
+        lb = oct_lb.LoadBalancerPOST(
+            **self.octavia_attrs,
+            availability_zone=azs
+        )
+        self.driver.loadbalancer_create(self.sess, lb)
+        self.sess.vlb.create_load_balancer.assert_called_with(
+            **self.fake_call_create
+        )
+
     def test_loadbalancer_update(self):
         attrs = {
             'description': 'New Description',
