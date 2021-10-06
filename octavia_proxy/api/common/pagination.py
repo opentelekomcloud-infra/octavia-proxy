@@ -299,3 +299,5 @@ class PaginationHelper(object):
         #paginating values
         if CONF.api_settings.allow_pagination:
             return self._make_pagination(entities_list=entities_list)
+        else:
+            return entities_list
