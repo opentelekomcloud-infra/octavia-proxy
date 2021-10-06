@@ -11,9 +11,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from operator import itemgetter
+
 from oslo_log import log as logging
 from pecan import request
 
+from octavia_proxy.api.common import types
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 from octavia_proxy.common.config import cfg
@@ -42,11 +45,12 @@ class PaginationHelper(object):
                        sort: array of attr by which results should be sorted
         :param sort_dir: default direction to sort (asc, desc)
         """
-        self.marker = params.get('marker')
-        #self.marker = self._parse_marker(params)
-        #self.sort_dir = self._validate_sort_dir(sort_dir)
+        self.sort_dir = self._validate_sort_dir(params.get('sort_dir'))
+        self.sort_key = params.get('sort_key')
+        self.sort = params.get('sort')
         self.limit = self._parse_limit(params)
-        #self.sort_keys = self._parse_sort_keys(params)
+        self.marker = params.get('marker')
+        self.sort_keys_dirs = self._parse_sort_keys(params)
         self.params = params
         self.filters = None
         self.page_reverse = params.get('page_reverse', 'False')
@@ -75,12 +79,45 @@ class PaginationHelper(object):
             else:
                 limit = min(int(limit), page_max_limit)
         except ValueError as e:
-            raise exceptions.InvalidLimit(key = limit) from e
+            raise exceptions.InvalidLimit(key=limit) from e
         return limit
 
     @staticmethod
-    def _parse_marker(params):
-        pass
+    def _validate_sort_dir(sort_dir):
+        sort_dir = sort_dir.lower()
+        if sort_dir not in constants.ALLOWED_SORT_DIR:
+            raise exceptions.InvalidSortDirection(key=sort_dir)
+        return sort_dir
+
+    def _parse_sort_keys(self, params):
+        sort_keys_dirs = []
+        sort = params.get('sort')
+        sort_keys = params.get('sort_key')
+        if sort:
+            for sort_dir_key in sort.split(","):
+                comps = sort_dir_key.split(":")
+                if len(comps) == 1:  # Use default sort order
+                    sort_keys_dirs.append((comps[0], self.sort_dir))
+                elif len(comps) == 2:
+                    sort_keys_dirs.append(
+                        (comps[0], self._validate_sort_dir(comps[1])))
+                else:
+                    raise exceptions.InvalidSortKey(key=comps)
+        elif sort_keys:
+            sort_keys = sort_keys.split(',')
+            sort_dirs = params.get('sort_dir')
+            if not sort_dirs:
+                sort_dirs = [self.sort_dir] * len(sort_keys)
+            else:
+                sort_dirs = sort_dirs.split(',')
+
+            if len(sort_dirs) < len(sort_keys):
+                sort_dirs += [self.sort_dir] * (len(sort_keys) -
+                                                len(sort_dirs))
+            for sk, sd in zip(sort_keys, sort_dirs):
+                sort_keys_dirs.append((sk, self._validate_sort_dir(sd)))
+
+        return sort_keys_dirs
 
     def _marker_index(self, entities_list):
         entity = [entity for entity in entities_list if entity['id'] ==
@@ -88,7 +125,7 @@ class PaginationHelper(object):
         if entity:
             return list.index(entities_list, entity[0])
 
-    def _make_link(self, entities_list, limit, marker, rel):
+    def _make_link(self, entities_list, rel, limit=None, marker=None):
         """Create links.
 
         :param entities_list: List of resources for pagination
@@ -115,6 +152,10 @@ class PaginationHelper(object):
                 link_attr.append("marker={}".format(marker))
             if self.page_reverse:
                 link_attr.append("page_reverse=True")
+            if self.sort:
+                link_attr.append("sort={}".format(self.sort))
+            if self.sort_key:
+                link_attr.append("sort_key={}".format(self.sort_key))
             link = {
                 "rel": "{rel}".format(rel=rel),
                 "href": "{url}?{params}".format(
@@ -125,19 +166,53 @@ class PaginationHelper(object):
         return link
 
     def _make_link_list(*links):
-        result = []
-        for link in links:
-            result.append(link)
-        # need to add resources types
-        return result
+        return [types.PageType(**link) for link in links]
 
-    def _filtering_values(self):
+    def _multikeysort(self, entities_list, sort_keys_dirs):
+        """Sort a list of dictionary objects or objects by multiple keys.
+
+        :param entities_list: A list of dictionary objects or objects
+        :type entities_list: list
+        :param sort_keys_dirs: A list of entities fields and directions
+         to sort by.
+        :type sort_keys_dirs: list
+        :return: Sorted list of entities.
+        :rtype: list
+        """
+
+        def is_reversed(current_sort_dir):
+            return current_sort_dir.lower() == 'desc'
+
+        for key, direction in reversed(sort_keys_dirs):
+            entities_list.sort(
+                key=itemgetter(key), reverse=is_reversed(direction)
+            )
+        return entities_list
+
+    def _make_filtering(self):
         pass
 
-    def _sorting_values(self):
-        pass
+    def _make_sorting(self, entities_list, sort_keys_dirs,
+                      sort_dir=constants.DEFAULT_SORT_DIR):
+        """Sorting
 
-    def _paginating_values(self, entities_list):
+        :param entities_list: List of resources for sorting
+        :type entities_list: list
+        :param sort_keys_dirs: List of tuples of sort keys and directions
+        :type sort_keys_dirs: list
+        :param sort_dir: Sort direction for default sorting keys
+        :type sort_dir: str
+        :return: Sorting list of entities
+        :rtype: list
+        """
+        if entities_list:
+            keys_only = [k[0] for k in sort_keys_dirs]
+            for key in constants.DEFAULT_SORT_KEYS:
+                if key not in keys_only and key in entities_list[0]:
+                    sort_keys_dirs.append((key, sort_dir))
+            return self._multikeysort(entities_list, sort_keys_dirs)
+
+    def _make_pagination(self, entities_list):
         """ Pagination
 
         :param entities_list: List of resources for pagination
@@ -155,47 +230,72 @@ class PaginationHelper(object):
                 entities_list.reverse()
 
             if self.marker:
-                marker_i = self._marker_index(entities_list)
+                marker_i = self._marker_index(entities_list=entities_list)
                 if marker_i is None and self.limit is None:
                     result.extend(entities_list)
                 elif marker_i is None and self.limit:
                     result.extend(entities_list[0: local_limit])
                     links.extend(self._make_link_list(self._make_link(
-                        entities_list, self.limit,
-                        entities_list[local_limit].get('id'), "next"
+                        entities_list=entities_list,
+                        rel="next",
+                        limit=self.limit,
+                        marker=entities_list[local_limit].get('id')
                     )))
                 elif marker_i == list_len - 1:
                     result.extend(entities_list[marker_i: list_len])
                     links.extend(self._make_link_list(self._make_link(
-                        entities_list, self.limit, self.marker, "previous")))
+                        entities_list=entities_list,
+                        rel="previous",
+                        limit=self.limit,
+                        marker=self.marker
+                    )))
                 elif marker_i + local_limit < list_len - 1:
                     result.extend(entities_list[
                                   marker_i + 1: marker_i + 1 + local_limit])
                     links.extend(self._make_link_list(
-                        self._make_link(entities_list, self.limit,
-                                        self.marker, "previous"),
-                        self._make_link(entities_list, self.limit,
-                                  entities_list[local_limit + 1].get('id'),
-                                  "next")
+                        self._make_link(
+                            entities_list=entities_list,
+                            rel="previous",
+                            limit=self.limit,
+                            marker=self.marker
+                        ),
+                        self._make_link(
+                            entities_list=entities_list,
+                            rel="next",
+                            limit=self.limit,
+                            marker=entities_list[local_limit + 1].get('id')
+                        )
                     )
                     )
                 else:
                     result.extend(entities_list[marker_i + 1: list_len])
                     links.extend(self._make_link_list(self._make_link(
-                        entities_list, self.limit, self.marker, "previous"
+                        entities_list=entities_list,
+                        rel="previous",
+                        limit=self.limit,
+                        marker=self.marker
                     )))
             elif self.limit:
                 result.extend(entities_list[0: local_limit])
                 links.extend(self._make_link_list(self._make_link(
-                    entities_list, self.limit,
-                    entities_list[local_limit].get('id'), "next"
+                    entities_list=entities_list,
+                    rel="next",
+                    limit=self.limit,
+                    marker=entities_list[local_limit].get('id')
                 )))
             else:
                 result.extend(entities_list)
         return result, links
 
-    def apply(self):
+    def apply(self, entities_list):
         #filtering values
         #sorting values
+        if CONF.api_settings.allow_sorting:
+            self._make_sorting(
+                entities_list=entities_list,
+                sort_keys_dirs=self.sort_keys_dirs,
+                sort_dir=self.sort_dir
+            )
         #paginating values
-        pass
+        if CONF.api_settings.allow_pagination:
+            return self._make_pagination(entities_list=entities_list)
