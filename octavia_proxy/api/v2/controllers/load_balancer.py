@@ -26,7 +26,8 @@ from wsmeext import pecan as wsme_pecan
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.v2.controllers import base, pool, listener
+from octavia_proxy.api.v2.controllers import base, pool as pool_controller,\
+    listener as li_controller
 from octavia_proxy.api.v2.types import load_balancer as lb_types
 from octavia_proxy.api.common import types
 from octavia_proxy.common import constants, validate, utils
@@ -220,8 +221,8 @@ class LoadBalancersController(base.BaseController):
             listeners_ids = []
             for pool in pools:
                 pools_ids.append(types.IdOnlyType(id=pool.id))
-            for listener in listeners:
-                listeners_ids.append(types.IdOnlyType(id=listener.id))
+            for li in listeners:
+                listeners_ids.append(types.IdOnlyType(id=li.id))
             setattr(result, 'pools', pools_ids)
             setattr(result, 'listeners', listeners_ids)
         return lb_types.LoadBalancerRootResponse(load_balancer=result)
@@ -305,44 +306,52 @@ class LoadBalancersController(base.BaseController):
         pass
 
     def _graph_create(self, session, lb, pools, listeners):
-
-        for li in listeners:
-            default_pool = li.default_pool
-            pool_name = (
-                default_pool.name if default_pool else None)
-            # All pools need to have a name so they can be referenced
-            if default_pool and not pool_name:
-                raise exceptions.ValidationException(
-                    detail='Pools must be named when creating a fully '
-                           'populated loadbalancer.')
-            pools.append(default_pool)
-
-        # Now create all of the pools ahead of the listeners.
         result_pools = []
-        pool_name_ids = {}
-        for p in pools:
-            pool_post = p.to_pool_post(loadbalancer_id=lb.id,
-                                       project_id=lb.project_id)
-
-            new_pool = (pool.PoolsController()._graph_create(
-                session, pool_post, provider=lb.provider))
-            result_pools.append(new_pool)
-            pool_name_ids[new_pool.name] = new_pool.id
-
-        # Now create all of the listeners
         result_listeners = []
-        for li in listeners:
-            if li.default_pool:
-                name = li.default_pool.name
-                listener_post = li.to_listener_post(
-                    project_id=lb.project_id, loadbalancer_id=lb.id,
-                    default_pool_id=pool_name_ids[name])
-            else:
-                listener_post = li.to_listener_post(
-                    project_id=lb.project_id, loadbalancer_id=lb.id)
 
-            result_listener = listener.ListenersController()._graph_create(
-                session, listener_post, pool_name_ids=pool_name_ids,
-                provider=lb.provider)
-            result_listeners.append(result_listener)
+        if listeners:
+            for li in listeners:
+                default_pool = li.default_pool
+                pool_name = (
+                    default_pool.name if default_pool else None)
+                # All pools need to have a name so they can be referenced
+                if default_pool and not pool_name:
+                    raise exceptions.ValidationException(
+                        detail='Pools must be named when creating a fully '
+                               'populated loadbalancer.')
+                pools.append(default_pool)
+
+        pool_name_ids = {}
+        if pools:
+            pool_name_ids = {}
+            for p in pools:
+                pool_post = p.to_pool_post(loadbalancer_id=lb.id,
+                                           project_id=lb.project_id)
+
+                new_pool = (pool_controller.PoolsController()._graph_create(
+                    session, pool_post, provider=lb.provider))
+                result_pools.append(new_pool)
+                pool_name_ids[new_pool.name] = new_pool.id
+
+            if len(pool_name_ids.keys()) != len(set(pool_name_ids.keys())):
+                raise exceptions.ValidationException(
+                    detail="Pool names must be unique when creating a fully "
+                           "populated loadbalancer.")
+
+        if listeners:
+            for li in listeners:
+                if li.default_pool:
+                    name = li.default_pool.name
+                    listener_post = li.to_listener_post(
+                        project_id=lb.project_id, loadbalancer_id=lb.id,
+                        default_pool_id=pool_name_ids[name])
+                else:
+                    listener_post = li.to_listener_post(
+                        project_id=lb.project_id, loadbalancer_id=lb.id)
+
+                result_listener = li_controller.ListenersController()\
+                    ._graph_create(session, listener_post,
+                                   pool_name_ids=pool_name_ids,
+                                   provider=lb.provider)
+                result_listeners.append(result_listener)
         return result_pools, result_listeners

@@ -159,7 +159,8 @@ class LoadBalancerFullResponse(LoadBalancerResponse):
 
         if sdk_entity.listeners:
             load_balancer.listeners = [
-                listener_types.ListenerRootResponse(listener=i) for i in sdk_entity.listeners
+                listener_types.ListenerRootResponse(listener=i) for i in
+                sdk_entity.listeners
             ]
         if sdk_entity.pools:
             load_balancer.pools = [

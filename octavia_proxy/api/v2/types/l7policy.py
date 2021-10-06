@@ -171,7 +171,7 @@ class L7PolicySingleCreate(BaseL7PolicyType):
         wtypes.Enum(int, *constants.SUPPORTED_L7POLICY_REDIRECT_HTTP_CODES))
 
     def to_l7policy_post(self, project_id=None, redirect_pool_id=None,
-                              listener_id=None):
+                         listener_id=None):
         l7policy_post = L7PolicyPOST()
 
         if self.name:

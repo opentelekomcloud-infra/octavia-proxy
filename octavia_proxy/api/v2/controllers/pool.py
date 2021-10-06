@@ -265,4 +265,3 @@ class PoolsController(base.BaseController):
             setattr(result_pool, 'members', new_members)
 
         return result_pool
-

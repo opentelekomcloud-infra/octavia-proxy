@@ -246,6 +246,7 @@ class HealthMonitorSingleCreate(BaseHealthMonitorType):
 
         return hm_post
 
+
 class HealthMonitorStatusResponse(BaseHealthMonitorType):
     """Defines which attributes are to be shown on status response."""
     id = wtypes.wsattr(wtypes.UuidType())

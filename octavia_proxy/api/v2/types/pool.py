@@ -254,7 +254,7 @@ class PoolSingleCreate(BasePoolType):
     alpn_protocols = wtypes.wsattr(wtypes.ArrayType(types.AlpnProtocolType()))
 
     def to_pool_post(self, project_id=None, loadbalancer_id=None,
-                          listener_id=None):
+                     listener_id=None):
         pool_post = PoolPOST()
 
         if self.name:
