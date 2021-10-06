@@ -567,7 +567,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         return result
 
-    def flavor_get(self, session, fl_id):
+    def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
 
         fl = session.vlb.find_flavor(

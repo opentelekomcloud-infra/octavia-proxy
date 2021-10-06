@@ -1,5 +1,6 @@
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
+
 from octavia_proxy.api.v2.types import (
     health_monitor as _hm, listener as _listener, load_balancer,
     pool as _pool, member as _member, l7policy as _l7policy,
@@ -482,3 +483,11 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def l7rule_delete(self, session, l7policy_id, l7rule):
         LOG.debug('Deleting l7 rule %s' % l7rule.to_dict())
         session.elb.delete_l7_rule(l7rule.id, l7policy_id)
+
+    def flavors(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching flavors')
+        result = []
+        return result
+
+    def flavor_get(self, session, project_id, fl_id):
+        LOG.debug('Searching flavor')
