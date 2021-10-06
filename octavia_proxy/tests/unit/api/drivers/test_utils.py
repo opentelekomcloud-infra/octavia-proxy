@@ -18,6 +18,7 @@ from octavia_lib.api.drivers import exceptions as lib_exceptions
 from octavia_proxy.api.drivers import utils
 from octavia_proxy.common import exceptions
 from octavia_proxy.tests.unit import base
+from oslo_log import log as logging
 
 
 class TestUtils(base.TestCase):
@@ -57,6 +58,4 @@ class TestUtils(base.TestCase):
 
         # Test driver raising ProviderDriverError
         mock_driver_method.side_effect = Exception
-        self.assertRaises(exceptions.ProviderDriverError,
-                          utils.call_provider, "provider_name",
-                          mock_driver_method)
+        self.assertLogs(logging.getLogger(__name__), 'exception')

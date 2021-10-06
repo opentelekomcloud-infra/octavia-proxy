@@ -49,7 +49,6 @@ class TestElbv2Driver(base.TestCase):
         'admin_state_up': True,
         'tags': [],
         'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
-        'network_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'created_at': '2021-08-10T09:39:24+00:00',
         'updated_at': '2021-08-10T09:39:24+00:00',
         'description': 'Test',
