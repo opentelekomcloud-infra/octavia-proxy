@@ -195,9 +195,6 @@ class L7PolicySingleCreate(BaseL7PolicyType):
         if self.position:
             setattr(l7policy_post, 'position', self.position)
 
-        if self.rules:
-            setattr(l7policy_post, 'rules', self.rules)
-
         if self.tags:
             setattr(l7policy_post, 'tags', self.tags)
 

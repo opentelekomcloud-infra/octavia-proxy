@@ -210,8 +210,7 @@ class PoolsController(base.BaseController):
             return member.MembersController(pool_id=pool.id), remainder
         return None
 
-    def _graph_create(self, session, pool, provider=None):
-        members = pool.members
+    def _graph_create(self, session, pool, members, provider=None):
         hm = pool.healthmonitor
 
         driver = driver_factory.get_driver(provider)
@@ -237,8 +236,7 @@ class PoolsController(base.BaseController):
                                     project_id=result_pool.project_id)
             new_hm = health_monitor.HealthMonitorController()._graph_create(
                 session, hm_post, provider=result_pool.provider)
-            setattr(result_pool, 'healthmonitor_id',
-                    types.IdOnlyType(id=new_hm.id))
+            setattr(result_pool, 'healthmonitor_id', new_hm.id)
 
             if result_pool.protocol in (constants.PROTOCOL_UDP):
                 health_monitor.HealthMonitorController(

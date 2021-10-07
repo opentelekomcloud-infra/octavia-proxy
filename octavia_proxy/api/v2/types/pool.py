@@ -191,7 +191,6 @@ class PoolPOST(BasePoolType):
     # TODO(johnsom) Remove after deprecation (R series)
     project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
     healthmonitor = wtypes.wsattr(health_monitor.HealthMonitorSingleCreate)
-    members = wtypes.wsattr([member.MemberSingleCreate])
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
     tls_container_ref = wtypes.wsattr(
         wtypes.StringType(max_length=255))
@@ -277,9 +276,6 @@ class PoolSingleCreate(BasePoolType):
 
         if self.healthmonitor:
             setattr(pool_post, 'healthmonitor', self.healthmonitor)
-
-        if self.members:
-            setattr(pool_post, 'members', self.members)
 
         if self.tags:
             setattr(pool_post, 'tags', self.tags)

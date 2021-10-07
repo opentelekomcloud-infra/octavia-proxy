@@ -176,18 +176,20 @@ class L7PoliciesController(base.BaseController):
                 l7policy_id=l7policy.id), remainder
         return None
 
-    def _graph_create(self, session, policy, provider=None):
+    def _graph_create(self, session, policy, rules=None, provider=None):
         driver = driver_factory.get_driver(provider)
-        rules = policy.rules
-        policy = driver_utils.call_provider(
+
+        result_policy = driver_utils.call_provider(
             driver.name, driver.l7policy_create, session, policy)
+
         new_rules_ids = []
         if rules:
             for r in rules:
-                rule_post = r.to_l7rule_post(project_id=policy.project_id)
-                new_rule = l7rule.L7RuleController(policy.id)._graph_create(
-                        session, rule_post, provider=provider)
+                rule_post = r.to_l7rule_post(
+                    project_id=result_policy.project_id)
+                new_rule = l7rule.L7RuleController(result_policy.id).\
+                    _graph_create(session, rule_post, provider=provider)
                 new_rules_ids.append(types.IdOnlyType(id=new_rule.id))
 
-        setattr(policy, 'l7rules', new_rules_ids)
-        return policy
+            setattr(result_policy, 'rules', new_rules_ids)
+        return result_policy

@@ -242,7 +242,7 @@ class HealthMonitorSingleCreate(BaseHealthMonitorType):
             setattr(hm_post, 'pool_id', pool_id)
 
         if project_id:
-            setattr(hm_post, 'project_id', self.project_id)
+            setattr(hm_post, 'project_id', project_id)
 
         return hm_post
 

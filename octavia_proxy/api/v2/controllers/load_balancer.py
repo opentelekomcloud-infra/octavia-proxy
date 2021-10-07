@@ -325,11 +325,12 @@ class LoadBalancersController(base.BaseController):
         if pools:
             pool_name_ids = {}
             for p in pools:
+                members = p.members
                 pool_post = p.to_pool_post(loadbalancer_id=lb.id,
                                            project_id=lb.project_id)
 
                 new_pool = (pool_controller.PoolsController()._graph_create(
-                    session, pool_post, provider=lb.provider))
+                    session, pool_post, members=members, provider=lb.provider))
                 result_pools.append(new_pool)
                 pool_name_ids[new_pool.name] = new_pool.id
 

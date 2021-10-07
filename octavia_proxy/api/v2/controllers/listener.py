@@ -170,6 +170,7 @@ class ListenersController(base.BaseController):
         for l7p in l7policies:
             project_id = listener.project_id
             listener_id = listener.id
+            rules = l7p.rules
             if l7p.redirect_pool:
                 pool_name = l7p.redirect_pool.name
                 pool_id = pool_name_ids.get(pool_name)
@@ -184,7 +185,8 @@ class ListenersController(base.BaseController):
                 l7policy_post = l7p.to_l7policy_post(
                     project_id=project_id, listener_id=listener_id)
             new_l7ps = l7policy.L7PoliciesController()._graph_create(
-                session, l7policy_post, provider=listener.provider)
+                session, l7policy_post, rules=rules,
+                provider=listener.provider)
             new_l7ps_ids.append(types.IdOnlyType(id=new_l7ps.id))
         if new_l7ps_ids:
             setattr(listener, 'l7policies', new_l7ps_ids)
