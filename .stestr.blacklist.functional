@@ -1,2 +1,0 @@
-octavia_proxy.tests.functional.api.v2.test_load_balancer.TestLoadBalancer.test_create_with_tags
-octavia_proxy.tests.functional.api.v2.test_listener.TestListener.test_create_with_tags
