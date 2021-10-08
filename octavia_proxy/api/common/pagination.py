@@ -45,7 +45,7 @@ class PaginationHelper(object):
                        sort: array of attr by which results should be sorted
         :param sort_dir: default direction to sort (asc, desc)
         """
-        self.sort_dir = self._validate_sort_dir(params.get('sort_dir'))
+        self.sort_dir = self._validate_sort_dir(sort_dir)
         self.sort_key = params.get('sort_key')
         self.sort = params.get('sort')
         self.limit = self._parse_limit(params)
@@ -166,7 +166,7 @@ class PaginationHelper(object):
         return link
 
     def _make_link_list(*links):
-        return [types.PageType(**link) for link in links]
+        return [link for link in links]
 
     def _multikeysort(self, entities_list, sort_keys_dirs):
         """Sort a list of dictionary objects or objects by multiple keys.
@@ -275,7 +275,7 @@ class PaginationHelper(object):
                         limit=self.limit,
                         marker=self.marker
                     )))
-            elif self.limit:
+            elif self.limit <= list_len:
                 result.extend(entities_list[0: local_limit])
                 links.extend(self._make_link_list(self._make_link(
                     entities_list=entities_list,
