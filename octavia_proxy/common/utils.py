@@ -195,6 +195,10 @@ class exception_logger(object):
         return call
 
 
+def string_to_list(value):
+    return value.replace(' ', '').split(',')
+
+
 def elbv3_foremapping(attrs):
     if 'pools' in attrs:
         attrs.pop('pools')
@@ -205,11 +209,12 @@ def elbv3_foremapping(attrs):
     if 'vip_network_id' in attrs:
         attrs['elb_virsubnet_ids'] = [attrs.pop('vip_network_id')]
     azs = attrs.pop('availability_zone', 'eu-nl-01')
-    attrs['availability_zone_list'] = azs.replace(' ', '').split(',')
+    attrs['availability_zone_list'] = string_to_list(azs)
     return attrs
 
 
 def elbv3_backmapping(load_balancer):
+
     if load_balancer.l4_flavor_id:
         load_balancer.flavor_id = load_balancer.l4_flavor_id
     if load_balancer.l7_flavor_id:

@@ -1,3 +1,5 @@
+import re
+
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 
@@ -117,6 +119,24 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_attrs['tags'] = self._resource_tags(lb_attrs['tags'])
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs = elbv3_foremapping(lb_attrs)
+
+        if 'flavor_id' in lb_attrs:
+            flavors = []
+            if re.match(r's\d.\w+', lb_attrs['flavor_id']):
+                for item in ['L7', 'L4']:
+                    flavors.append(session.vlb.find_flavor(
+                        name_or_id=f'{item}_flavor.elb.{lb_attrs["flavor_id"]}'
+                    ))
+            else:
+                flavors.append(session.vlb.get_flavor(lb_attrs['flavor_id']))
+                flavors.append(session.vlb.find_flavor(
+                    name_or_id=flavors[0].name.replace('L7', 'L4')
+                ))
+            LOG.debug(f'################## {flavors} $$$$$$$$$$$$$$$$$$$$$$$$')
+            for flavor in flavors:
+                lb_attrs['l7_flavor_id'] = flavor[0].id
+                lb_attrs['l4_flavor_id'] = flavor[1].id
+            lb_attrs.pop('flavor_id')
 
         lb = session.vlb.create_load_balancer(**lb_attrs)
         lb = elbv3_backmapping(lb)
@@ -559,19 +579,31 @@ class ELBv3Driver(driver_base.ProviderDriver):
         query_filter.pop('project_id', None)
 
         result = []
-
-        for fl in session.vlb.flavors(**query_filter):
-            fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
-            fl_data.provider = PROVIDER
-            result.append(fl_data)
-
+        if 'name' in query_filter:
+            query_filter['name'] = ''.join(
+                ('L7_flavor.elb.', query_filter['name'])
+            )
+        if 'id' in query_filter:
+            fl_data = self.flavor_get(
+                project_id=project_id, session=session,
+                fl_id=query_filter['id']
+            )
+            if fl_data:
+                result.append(fl_data)
+        else:
+            for fl in session.vlb.flavors(**query_filter):
+                if not fl['name'].startswith('L4'):
+                    fl['name'] = re.sub(r'L\d_\w+.\w+.', '', fl['name'])
+                    fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
+                    fl_data.provider = PROVIDER
+                    result.append(fl_data)
         return result
 
     def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
-
         fl = session.vlb.find_flavor(
             name_or_id=fl_id, ignore_missing=True)
+        fl['name'] = re.sub(r'L\d_\w+.\w+.', '', fl['name'])
         if fl:
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
             fl_data.provider = PROVIDER
