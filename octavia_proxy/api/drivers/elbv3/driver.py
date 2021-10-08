@@ -590,9 +590,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         result = []
         if 'name' in query_filter:
-            query_filter['name'] = ''.join(
-                ('L7_flavor.elb.', query_filter['name'])
-            )
+            query_filter['name'] = f'L7_flavor.elb.{query_filter["name"]}'
         if 'id' in query_filter:
             fl_data = self.flavor_get(
                 project_id=project_id, session=session,
