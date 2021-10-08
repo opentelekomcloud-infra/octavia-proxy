@@ -46,7 +46,7 @@ class ListenersController(base.BaseController):
         pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
-        is_parallel = query_params.pop('is_parallel', False)
+        is_parallel = query_params.pop('is_parallel', True)
 
         result = self.find_listener(context, id, is_parallel)[0]
 
@@ -70,7 +70,7 @@ class ListenersController(base.BaseController):
 
         # TODO: fix filtering and sorting, especially for multiple providers
         query_filter.update(query_params)
-        is_parallel = query_filter.pop('is_parallel', False)
+        is_parallel = query_filter.pop('is_parallel', True)
         links = []
 
         result = driver_invocation(
