@@ -14,7 +14,7 @@ from octavia_proxy.api.v2.types import (
     pool as _pool
 )
 from octavia_proxy.common.utils import (
-    elbv3_backmapping, elbv3_foremapping, loadbalancer_cascade_delete
+    elbv3_backmapping, loadbalancer_cascade_delete
 )
 
 LOG = logging.getLogger(__name__)
@@ -115,27 +115,37 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
+        lb_attrs.pop('loadbalancer_id', None)
+
+        if 'pools' in lb_attrs:
+            lb_attrs.pop('pools')
+        if 'listeners' in lb_attrs:
+            lb_attrs.pop('listeners')
+        if 'vip_subnet_id' in lb_attrs:
+            lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
+        if 'vip_network_id' in lb_attrs:
+            lb_attrs['elb_virsubnet_ids'] = [lb_attrs.pop('vip_network_id')]
+        azs = lb_attrs.pop('availability_zone', 'eu-nl-01')
+        lb_attrs['availability_zone_list'] = azs.replace(' ', '').split(',')
+
         if 'tags' in lb_attrs:
             lb_attrs['tags'] = self._resource_tags(lb_attrs['tags'])
-        lb_attrs.pop('loadbalancer_id', None)
-        lb_attrs = elbv3_foremapping(lb_attrs)
 
         if 'flavor_id' in lb_attrs:
             flavors = []
             if re.match(r's\d.\w+', lb_attrs['flavor_id']):
                 for item in ['L7', 'L4']:
-                    flavors.append(session.vlb.find_flavor(
+                    flavors.extend(session.vlb.find_flavor(
                         name_or_id=f'{item}_flavor.elb.{lb_attrs["flavor_id"]}'
                     ))
             else:
-                flavors.append(session.vlb.get_flavor(lb_attrs['flavor_id']))
-                flavors.append(session.vlb.find_flavor(
+                flavors.extend(session.vlb.get_flavor(lb_attrs['flavor_id']))
+                flavors.extend(session.vlb.find_flavor(
                     name_or_id=flavors[0].name.replace('L7', 'L4')
                 ))
-            LOG.debug(f'################## {flavors} $$$$$$$$$$$$$$$$$$$$$$$$')
-            for flavor in flavors:
-                lb_attrs['l7_flavor_id'] = flavor[0].id
-                lb_attrs['l4_flavor_id'] = flavor[1].id
+            if flavors:
+                lb_attrs['l7_flavor_id'] = flavors[0].id
+                lb_attrs['l4_flavor_id'] = flavors[1].id
             lb_attrs.pop('flavor_id')
 
         lb = session.vlb.create_load_balancer(**lb_attrs)

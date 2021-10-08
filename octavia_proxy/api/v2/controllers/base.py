@@ -122,7 +122,7 @@ class BaseController(pecan_rest.RestController):
 
         return l7rule
 
-    def find_flavor(self, context, id, is_parallel=False):
+    def find_flavor(self, context, id, is_parallel=True):
         flavor = driver_invocation(
             context, 'flavor_get', is_parallel, id
         )
