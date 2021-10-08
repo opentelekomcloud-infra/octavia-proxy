@@ -17,7 +17,7 @@ import requests
 from keystoneauth1 import adapter
 from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
                                       member, health_monitor,
-                                      l7_policy, l7_rule)
+                                      l7_policy, l7_rule, flavor)
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.api.v2.types import (
@@ -115,6 +115,18 @@ class TestElbv3Driver(base.TestCase):
         self.sess.vlb.get_load_balancer_statuses = mock.MagicMock(
             return_value=Statuses(**statuses)
         )
+        self.sess.vlb.get_flavor = mock.MagicMock(
+            return_value=[flavor.Flavor(**{
+                'id': '9d3ed668-b0ab-4abc-af4a-81458851ef34',
+                'name': 'L7_flavor.elb.s2.medium'
+            })]
+        )
+        self.sess.vlb.find_flavor = mock.MagicMock(
+            return_value=[flavor.Flavor(**{
+                'id': '232e88a6-e373-49bb-ae8c-830423a37895',
+                'name': 'L4_flavor.elb.s2.medium'
+            })]
+        )
 
     def test_get_supported_flavor_metadata(self):
         resp = self.driver.get_supported_flavor_metadata()
@@ -167,6 +179,18 @@ class TestElbv3Driver(base.TestCase):
             **self.fake_call_create
         )
 
+    def test_loadbalancer_create_flavors(self):
+        lb = oct_lb.LoadBalancerPOST(
+            **self.octavia_attrs,
+            flavor_id='9d3ed668-b0ab-4abc-af4a-81458851ef34'
+        )
+        self.driver.loadbalancer_create(self.sess, lb)
+        self.sess.vlb.create_load_balancer.assert_called_with(
+            **self.fake_call_create,
+            l4_flavor_id='232e88a6-e373-49bb-ae8c-830423a37895',
+            l7_flavor_id='9d3ed668-b0ab-4abc-af4a-81458851ef34'
+        )
+
     def test_loadbalancer_update(self):
         attrs = {
             'description': 'New Description',
@@ -205,6 +229,24 @@ class TestElbv3Driver(base.TestCase):
         )
         self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
 
+
+class TestElbv3FlavorDriver(base.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.flavor = flavor.Flavor(
+            **{
+                'id': '232e88a6-e373-49bb-ae8c-830423a37895',
+                'name': 'L4_flavor.elb.s2.medium'
+            })
+        self.sess = mock.MagicMock()
+        self.sess.vlb.find_flavor = mock.MagicMock(
+            return_value={
+                'id': '232e88a6-e373-49bb-ae8c-830423a37895',
+                'name': 'L4_flavor.elb.s2.medium'
+            }
+        )
+
     def test_flavors_qp(self):
         self.driver.flavors(
             self.sess, 'p1',
@@ -216,6 +258,11 @@ class TestElbv3Driver(base.TestCase):
     def test_flavors_no_qp(self):
         self.driver.flavors(self.sess, 'p1')
         self.sess.vlb.flavors.assert_called_with()
+
+    def test_flavor_get(self):
+        self.driver.flavor_get(self.sess, 'test', self.flavor)
+        self.sess.vlb.find_flavor.assert_called_with(
+            name_or_id=self.flavor, ignore_missing=True)
 
 
 class TestElbv3ListenerDriver(base.TestCase):
