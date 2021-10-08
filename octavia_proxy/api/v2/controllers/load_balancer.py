@@ -49,7 +49,7 @@ class LoadBalancersController(base.BaseController):
         pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
-        is_parallel = query_params.pop('is_parallel', False)
+        is_parallel = query_params.pop('is_parallel', True)
 
         result = self.find_load_balancer(context, id, is_parallel)[0]
 
@@ -74,7 +74,7 @@ class LoadBalancersController(base.BaseController):
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
         query_filter.update(query_params)
-        is_parallel = query_filter.pop('is_parallel', False)
+        is_parallel = query_filter.pop('is_parallel', True)
 
         links = []
         result = driver_invocation(

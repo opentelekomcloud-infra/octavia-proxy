@@ -49,6 +49,9 @@ class TestLoadBalancer(base.BaseAPITest):
         self.assertIsNotNone(resp.get('updated_at'))
         for key, value in optionals.items():
             self.assertEqual(value, req.get(key))
+        if req.get('tags'):
+            self.assertEqual(req.get('tags'),
+                             resp.get('tags'))
 
     def test_create_without_project_id(self, **optionals):
         lb_json = {'name': 'test1',
@@ -69,6 +72,18 @@ class TestLoadBalancer(base.BaseAPITest):
         lb_json.update(optionals)
         body = self._build_body(lb_json)
         response = self.post(self.LBS_PATH, body, use_v2_0=True)
+        self.api_lb = response.json.get(self.root_tag)
+        self._assert_request_matches_response(lb_json, self.api_lb)
+        self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
+
+    def test_create_with_tags(self, **optionals):
+        lb_json = {'name': 'test3',
+                   'vip_subnet_id': self._network['subnet_id'],
+                   'tags': ['test_tag1', 'test_tag2']
+                   }
+        lb_json.update(optionals)
+        body = self._build_body(lb_json)
+        response = self.post(self.LBS_PATH, body)
         self.api_lb = response.json.get(self.root_tag)
         self._assert_request_matches_response(lb_json, self.api_lb)
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
