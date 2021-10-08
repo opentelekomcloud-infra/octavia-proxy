@@ -43,7 +43,7 @@ class FlavorsController(base.BaseController):
         pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
-        is_parallel = query_params.pop('is_parallel', False)
+        is_parallel = query_params.pop('is_parallel', True)
 
         flavor = self.find_flavor(context, id, is_parallel)[0]
 
@@ -61,7 +61,7 @@ class FlavorsController(base.BaseController):
         query_filter = self._auth_get_all(context, project_id)
         query_params = pcontext.get(constants.PAGINATION_HELPER).params
         query_filter.update(query_params)
-        is_parallel = query_filter.pop('is_parallel', False)
+        is_parallel = query_filter.pop('is_parallel', True)
 
         links = []
         result = driver_invocation(
