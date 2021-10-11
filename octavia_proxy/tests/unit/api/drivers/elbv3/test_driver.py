@@ -283,8 +283,26 @@ class TestElbv3FlavorDriver(base.TestCase):
             qp['id']
         )
 
+    def test_flavors_short_name(self):
+        qp = {'name': 's2.medium'}
+        self.driver.flavors(
+            self.sess, 'p1',
+            query_filter=qp)
+        self.sess.vlb.flavors.assert_called_with(
+            name='L7_flavor.elb.s2.medium'
+        )
+
+    def test_flavors_full_name(self):
+        qp = {'name': 'L7_flavor.elb.s2.medium'}
+        self.driver.flavors(
+            self.sess, 'p1',
+            query_filter=qp)
+        self.sess.vlb.flavors.assert_called_with(
+            name='L7_flavor.elb.L7_flavor.elb.s2.medium'
+        )
+
     def test_flavor_get(self):
-        self.driver.flavor_get(self.sess, 'test', self.flavors[0].id)
+        self.driver.flavor_get(self.sess, 'p1', self.flavors[0].id)
         self.sess.vlb.get_flavor.assert_called_with(self.flavors[0].id)
 
 
