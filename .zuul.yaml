@@ -60,3 +60,10 @@
             required-projects:
               - name: opentelekomcloud/python-otcextensions
                 override-checkout: elb
+    promote:
+      jobs:
+        - infra-prod-propose-octavia-proxy-image-stable:
+            vars: &imagevars
+              value: "quay.io/opentelekomcloud/octavia-proxy:{{ zuul.tag is defined | ternary([zuul.get('tag', '').split('.')[0], '.'.join(zuul.get('tag', '').split('.')[:2]), zuul.get('tag', '')], ['latest']) }}"
+        - infra-prod-propose-octavia-proxy-image-latest:
+            vars: *imagevars
