@@ -129,6 +129,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if 'tags' in lb_attrs:
             lb_attrs['tags'] = self._resource_tags(lb_attrs['tags'])
 
+        # According to our decision to show only L7 flavors
+        # here we assign same type of L4 flavor for load balancer instance
         if 'flavor_id' in lb_attrs:
             l7_flavor = session.vlb.get_flavor(
                 lb_attrs['flavor_id'])
@@ -578,6 +580,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         query_filter.pop('project_id', None)
 
+        # Shows only L7 flavors in output to not confuse users,
+        # because `create` only support one parameter for flavor
         result = []
         if 'name' in query_filter:
             query_filter['name'] = f'L7_flavor.elb.{query_filter["name"]}'
@@ -600,6 +604,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
         fl = session.vlb.get_flavor(fl_id)
+
+        # Shows only L7 flavors in output to not confuse users,
+        # because `create` only support one parameter for flavor
         if fl and not fl['name'].startswith('L4_flavor.elb'):
             fl['name'] = fl['name'][14:]
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
