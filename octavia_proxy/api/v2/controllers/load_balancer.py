@@ -225,7 +225,8 @@ class LoadBalancersController(base.BaseController):
                 listeners_ids.append(types.IdOnlyType(id=li.id))
             setattr(result, 'pools', pools_ids)
             setattr(result, 'listeners', listeners_ids)
-        return lb_types.LoadBalancerRootResponse(load_balancer=result)
+
+        return lb_types.LoadBalancerRootResponse(loadbalancer=result)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerRootResponse,
                          wtypes.text, status_code=200,

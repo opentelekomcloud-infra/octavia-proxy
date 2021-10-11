@@ -261,5 +261,4 @@ class PoolsController(base.BaseController):
                                    provider=result_pool.provider)
                 new_members.append(types.IdOnlyType(id=new_member.id))
             setattr(result_pool, 'members', new_members)
-
         return result_pool
