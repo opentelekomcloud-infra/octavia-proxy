@@ -116,16 +116,16 @@ class TestElbv3Driver(base.TestCase):
             return_value=Statuses(**statuses)
         )
         self.sess.vlb.get_flavor = mock.MagicMock(
-            return_value=[flavor.Flavor(**{
+            return_value=flavor.Flavor(**{
                 'id': '9d3ed668-b0ab-4abc-af4a-81458851ef34',
                 'name': 'L7_flavor.elb.s2.medium'
-            })]
+            })
         )
         self.sess.vlb.find_flavor = mock.MagicMock(
-            return_value=[flavor.Flavor(**{
+            return_value=flavor.Flavor(**{
                 'id': '232e88a6-e373-49bb-ae8c-830423a37895',
                 'name': 'L4_flavor.elb.s2.medium'
-            })]
+            })
         )
 
     def test_get_supported_flavor_metadata(self):
@@ -231,38 +231,61 @@ class TestElbv3Driver(base.TestCase):
 
 
 class TestElbv3FlavorDriver(base.TestCase):
+    output = [
+        {
+            'id': '5e512bae-950a-4bb3-8e30-3e8d6a9e030e',
+            'name': 'L4_flavor.elb.s2.small'
+        },
+        {
+            'id': '7628a037-c229-4c0c-820b-4ea862743aef',
+            'name': 'L7_flavor.elb.s2.small'
+        },
+        {
+            'id': '95b6c7e0-f0d8-495b-9b14-53df1a8dbd81',
+            'name': 'L4_flavor.elb.s2.medium'
+        },
+        {
+            'id': '9d3ed668-b0ab-4abc-af4a-81458851ef34',
+            'name': 'L7_flavor.elb.s2.medium'
+        }
+    ]
+
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv3Driver()
-        self.flavor = flavor.Flavor(
-            **{
-                'id': '232e88a6-e373-49bb-ae8c-830423a37895',
-                'name': 'L4_flavor.elb.s2.medium'
-            })
+        self.flavors = [flavor.Flavor(**f) for f in self.output]
         self.sess = mock.MagicMock()
-        self.sess.vlb.find_flavor = mock.MagicMock(
-            return_value={
-                'id': '232e88a6-e373-49bb-ae8c-830423a37895',
-                'name': 'L4_flavor.elb.s2.medium'
-            }
+        self.sess.vlb.flavors = mock.MagicMock(
+            return_value=self.flavors
         )
-
-    def test_flavors_qp(self):
-        self.driver.flavors(
-            self.sess, 'p1',
-            query_filter={'a': 'b'})
-        self.sess.vlb.flavors.assert_called_with(
-            a='b'
+        self.sess.vlb.get_flavor = mock.MagicMock(
+            return_value=flavor.Flavor(**{
+                'id': '7628a037-c229-4c0c-820b-4ea862743aef',
+                'name': 'L7_flavor.elb.s2.small'
+            })
         )
 
     def test_flavors_no_qp(self):
-        self.driver.flavors(self.sess, 'p1')
+        result = self.driver.flavors(self.sess, 'p1')
+        self.assertEquals(2, len(result))
+        self.assertEquals('7628a037-c229-4c0c-820b-4ea862743aef', result[0].id)
+        self.assertEquals('9d3ed668-b0ab-4abc-af4a-81458851ef34', result[1].id)
         self.sess.vlb.flavors.assert_called_with()
 
+    def test_flavors_qp(self):
+        qp = {'id': '7628a037-c229-4c0c-820b-4ea862743aef'}
+        result = self.driver.flavors(
+            self.sess, 'p1',
+            query_filter=qp)
+        self.assertEquals('7628a037-c229-4c0c-820b-4ea862743aef', result[0].id)
+        self.assertEquals('L7_flavor.elb.s2.small'[14:], result[0].name)
+        self.sess.vlb.get_flavor.assert_called_with(
+            qp['id']
+        )
+
     def test_flavor_get(self):
-        self.driver.flavor_get(self.sess, 'test', self.flavor)
-        self.sess.vlb.find_flavor.assert_called_with(
-            name_or_id=self.flavor, ignore_missing=True)
+        self.driver.flavor_get(self.sess, 'test', self.flavors[0].id)
+        self.sess.vlb.get_flavor.assert_called_with(self.flavors[0].id)
 
 
 class TestElbv3ListenerDriver(base.TestCase):

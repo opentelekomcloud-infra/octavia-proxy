@@ -599,10 +599,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
-        fl = session.vlb.find_flavor(
-            name_or_id=fl_id, ignore_missing=True)
-        fl['name'] = fl['name'][14:]
-        if fl:
+        fl = session.vlb.get_flavor(fl_id)
+        if fl and not fl['name'].startswith('L4_flavor.elb'):
+            fl['name'] = fl['name'][14:]
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
             fl_data.provider = PROVIDER
             return fl_data
