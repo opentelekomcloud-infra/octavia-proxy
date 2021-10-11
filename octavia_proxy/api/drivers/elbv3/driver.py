@@ -1,5 +1,3 @@
-import re
-
 from octavia_lib.api.drivers import provider_base as driver_base
 from oslo_log import log as logging
 
@@ -132,20 +130,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_attrs['tags'] = self._resource_tags(lb_attrs['tags'])
 
         if 'flavor_id' in lb_attrs:
-            flavors = []
-            if re.match(r's\d.\w+', lb_attrs['flavor_id']):
-                for item in ['L7', 'L4']:
-                    flavors.extend(session.vlb.find_flavor(
-                        name_or_id=f'{item}_flavor.elb.{lb_attrs["flavor_id"]}'
-                    ))
-            else:
-                flavors.extend(session.vlb.get_flavor(lb_attrs['flavor_id']))
-                flavors.extend(session.vlb.find_flavor(
-                    name_or_id=flavors[0].name.replace('L7', 'L4')
-                ))
-            if flavors:
-                lb_attrs['l7_flavor_id'] = flavors[0].id
-                lb_attrs['l4_flavor_id'] = flavors[1].id
+            l7_flavor = session.vlb.get_flavor(
+                lb_attrs['flavor_id'])
+            lb_attrs['l7_flavor_id'] = l7_flavor.id
+            lb_attrs['l4_flavor_id'] = session.vlb.find_flavor(
+                name_or_id=l7_flavor.name.replace('L7', 'L4')
+            ).id
             lb_attrs.pop('flavor_id')
 
         lb = session.vlb.create_load_balancer(**lb_attrs)
@@ -600,8 +590,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 result.append(fl_data)
         else:
             for fl in session.vlb.flavors(**query_filter):
-                if not fl['name'].startswith('L4'):
-                    fl['name'] = re.sub(r'L\d_\w+.\w+.', '', fl['name'])
+                if not fl['name'].startswith('L4_flavor.elb'):
+                    fl['name'] = fl['name'][14:]
                     fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
                     fl_data.provider = PROVIDER
                     result.append(fl_data)
@@ -611,7 +601,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Searching flavor')
         fl = session.vlb.find_flavor(
             name_or_id=fl_id, ignore_missing=True)
-        fl['name'] = re.sub(r'L\d_\w+.\w+.', '', fl['name'])
+        fl['name'] = fl['name'][14:]
         if fl:
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
             fl_data.provider = PROVIDER
