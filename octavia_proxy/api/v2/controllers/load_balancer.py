@@ -28,7 +28,7 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import load_balancer as lb_types
-from octavia_proxy.common import constants, validate, utils
+from octavia_proxy.common import constants, validate
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
 
