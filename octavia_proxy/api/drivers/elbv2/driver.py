@@ -15,6 +15,22 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def __init__(self):
         super().__init__()
 
+    def _normalize_lb(self, res):
+        return self._normalize_tags(res)
+
+    def _normalize_tags(self, resource):
+        otc_tags = resource.tags
+        if otc_tags:
+            tags = []
+            for tag in otc_tags:
+                tag_list = tag.split('=')
+                if not tag_list[1]:
+                    tags.append(tag_list[0])
+                else:
+                    tags.append(tag)
+            resource.tags = tags
+        return resource
+
     def get_supported_flavor_metadata(self):
         LOG.debug('Provider %s elbv2, get_supported_flavor_metadata',
                   self.__class__.__name__)
@@ -50,7 +66,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         else:
             for lb in session.elb.load_balancers(**query_filter):
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                    lb)
+                    self._normalize_lb(lb))
                 lb_data.provider = PROVIDER
                 result.append(lb_data)
         return result
@@ -63,7 +79,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('lb is %s' % lb)
 
         if lb:
-            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(lb)
+            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+                self._normalize_lb(lb))
             lb_data.provider = PROVIDER
             return lb_data
 
@@ -120,7 +137,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         else:
             for lsnr in session.elb.listeners(**query_filter):
                 lsnr_data = _listener.ListenerResponse.from_sdk_object(
-                    lsnr)
+                    self._normalize_lb(lsnr))
                 lsnr_data.provider = PROVIDER
                 result.append(lsnr_data)
         return result
@@ -132,7 +149,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
             name_or_id=listener_id, ignore_missing=True)
 
         if lsnr:
-            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+            lsnr_data = _listener.ListenerResponse.from_sdk_object(
+                self._normalize_lb(lsnr))
             lsnr_data.provider = PROVIDER
             return lsnr_data
 
