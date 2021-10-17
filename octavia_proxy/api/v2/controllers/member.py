@@ -159,11 +159,12 @@ class MemberController(base.BaseController):
     def _graph_create(self, session, member_dict, provider=None):
         driver = driver_factory.get_driver(provider)
 
-        new_member = driver_utils.call_provider(
+        new_member_response = driver_utils.call_provider(
             driver.name, driver.member_create,
             session, self.pool_id, member_dict)
+        new_member_full_response = new_member_response.to_full_response()
 
-        return new_member
+        return new_member_full_response
 
 
 class MembersController(MemberController):

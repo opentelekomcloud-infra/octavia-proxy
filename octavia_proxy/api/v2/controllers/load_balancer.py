@@ -29,7 +29,6 @@ from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base, pool as pool_controller,\
     listener as li_controller
 from octavia_proxy.api.v2.types import load_balancer as lb_types
-from octavia_proxy.api.common import types
 from octavia_proxy.common import constants, validate, utils
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
@@ -207,26 +206,23 @@ class LoadBalancersController(base.BaseController):
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
 
-        # Dispatch to the driver
-        result = driver_utils.call_provider(
+        lb_response = driver_utils.call_provider(
             driver.name, driver.loadbalancer_create,
             context.session,
             load_balancer)
+        pools = None
+        listeners = None
         if load_balancer.pools or load_balancer.listeners:
             pools = load_balancer.pools
             listeners = load_balancer.listeners
             pools, listeners = self._graph_create(
-                context.session, result, pools, listeners)
-            pools_ids = []
-            listeners_ids = []
-            for pool in pools:
-                pools_ids.append(types.IdOnlyType(id=pool.id))
-            for li in listeners:
-                listeners_ids.append(types.IdOnlyType(id=li.id))
-            setattr(result, 'pools', pools_ids)
-            setattr(result, 'listeners', listeners_ids)
+                context.session, lb_response, pools, listeners)
 
-        return lb_types.LoadBalancerRootResponse(loadbalancer=result)
+        lb_full_response = lb_response.to_full_response(pools=pools,
+                                                        listeners=listeners)
+
+        return lb_types.LoadBalancerFullRootResponse(
+            loadbalancer=lb_full_response)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerRootResponse,
                          wtypes.text, status_code=200,
@@ -309,22 +305,19 @@ class LoadBalancersController(base.BaseController):
     def _graph_create(self, session, lb, pools, listeners):
         result_pools = []
         result_listeners = []
+        pool_name_ids = {}
 
         if listeners:
             for li in listeners:
                 default_pool = li.default_pool
                 pool_name = (
                     default_pool.name if default_pool else None)
-                # All pools need to have a name so they can be referenced
                 if default_pool and not pool_name:
                     raise exceptions.ValidationException(
                         detail='Pools must be named when creating a fully '
                                'populated loadbalancer.')
                 pools.append(default_pool)
 
-        pool_name_ids = {}
-        if pools:
-            pool_name_ids = {}
             for p in pools:
                 members = p.members
                 pool_post = p.to_pool_post(loadbalancer_id=lb.id,

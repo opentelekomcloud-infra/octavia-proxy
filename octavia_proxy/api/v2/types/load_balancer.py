@@ -19,8 +19,7 @@ from oslo_log import log as logging
 from octavia_proxy.api.common import types
 from octavia_proxy.api.v2.types import listener
 from octavia_proxy.api.v2.types import pool
-from octavia_proxy.api.v2.types import listener as listener_types,\
-    pool as pool_types
+
 
 LOG = logging.getLogger(__name__)
 
@@ -128,6 +127,32 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             ]
         return load_balancer
 
+    def to_full_response(self, pools=None, listeners=None):
+        full_response = LoadBalancerFullResponse()
+        full_response.id = self.id
+        full_response.name = self.name
+        full_response.description = self.description
+        full_response.provisioning_status = self.provisioning_status
+        full_response.operating_status = self.operating_status
+        full_response.project_id = self.project_id
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.vip_address = self.vip_address
+        full_response.vip_port_id = self.vip_port_id
+        full_response.vip_subnet_id = self.vip_subnet_id
+        full_response.vip_network_id = self.vip_network_id
+        full_response.provider = self.provider
+        full_response.flavor_id = self.flavor_id
+        full_response.vip_qos_policy_id = self.vip_qos_policy_id
+        full_response.tags = self.tags
+        full_response.availability_zone = self.availability_zone
+        full_response.admin_state_up = self.admin_state_up
+        if listeners:
+            full_response.listeners = listeners
+        if pools:
+            full_response.pools = pools
+        return full_response
+
 
 class LoadBalancerFullResponse(LoadBalancerResponse):
     @classmethod
@@ -136,37 +161,6 @@ class LoadBalancerFullResponse(LoadBalancerResponse):
 
     listeners = wtypes.wsattr([listener.ListenerFullResponse])
     pools = wtypes.wsattr([pool.PoolFullResponse])
-
-    @classmethod
-    def from_sdk_object(cls, sdk_entity, children=False):
-        load_balancer = cls()
-        for key in [
-            'id', 'name',
-            'availability_zone', 'description', 'flavor_id',
-            'operating_status', 'project_id', 'provider',
-            'provisioning_status', 'tags', 'vip_address', 'vip_network_id',
-            'vip_port_id', 'vip_qos_policy_id', 'vip_subnet_id'
-        ]:
-
-            if hasattr(sdk_entity, key):
-                v = getattr(sdk_entity, key)
-                if v:
-                    setattr(load_balancer, key, v)
-
-        load_balancer.admin_state_up = sdk_entity.is_admin_state_up
-        for attr in ['created_at', 'updated_at']:
-            setattr(load_balancer, attr, parser.parse(sdk_entity[attr]))
-
-        if sdk_entity.listeners:
-            load_balancer.listeners = [
-                listener_types.ListenerRootResponse(listener=i) for i in
-                sdk_entity.listeners
-            ]
-        if sdk_entity.pools:
-            load_balancer.pools = [
-                pool_types.PoolRootResponse(pool=i) for i in sdk_entity.pools
-            ]
-        return load_balancer
 
 
 class LoadBalancerRootResponse(types.BaseType):

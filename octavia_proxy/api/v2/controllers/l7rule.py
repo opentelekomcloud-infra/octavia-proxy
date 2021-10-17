@@ -157,7 +157,8 @@ class L7RuleController(base.BaseController):
 
     def _graph_create(self, session, rule, provider=None):
         driver = driver_factory.get_driver(provider)
-        rule = driver_utils.call_provider(
+        rule_response = driver_utils.call_provider(
             driver.name, driver.l7rule_create, session,
             self.l7policy_id, rule)
-        return rule
+        rule_full_response = rule_response.to_full_response()
+        return rule_full_response

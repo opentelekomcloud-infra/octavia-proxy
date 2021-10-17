@@ -256,8 +256,8 @@ class HealthMonitorController(base.BaseController):
 
     def _graph_create(self, session, hm_dict, provider=None):
         driver = driver_factory.get_driver(provider)
-        result = driver_utils.call_provider(
+        hm_response = driver_utils.call_provider(
             driver.name, driver.health_monitor_create,
-            session,
-            hm_dict)
-        return result
+            session, hm_dict)
+        hm_full_response = hm_response.to_full_response()
+        return hm_full_response

@@ -66,6 +66,24 @@ class L7RuleResponse(BaseL7Type):
                 setattr(l7rule, attr, parser.parse(v) or None)
         return l7rule
 
+    def to_full_response(self):
+        full_response = L7RuleFullResponse()
+        full_response.id = self.id
+        full_response.type = self.type
+        full_response.compare_type = self.compare_type
+        full_response.key = self.key
+        full_response.value = self.value
+        full_response.invert = self.invert
+        full_response.provisioning_status = self.provisioning_status
+        full_response.operating_status = self.operating_status
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.project_id = self.project_id
+        full_response.admin_state_up = self.admin_state_up
+        full_response.tags = self.tags
+
+        return full_response
+
 
 class L7RuleFullResponse(L7RuleResponse):
     @classmethod
@@ -138,29 +156,20 @@ class L7RuleSingleCreate(BaseL7Type):
 
     def to_l7rule_post(self, project_id=None):
         l7rule_post = L7RulePOST()
-
         if self.type:
             setattr(l7rule_post, 'type', self.type)
-
         if self.compare_type:
             setattr(l7rule_post, 'compare_type', self.compare_type)
-
         if self.key:
             setattr(l7rule_post, 'key', self.key)
-
         if self.value:
             setattr(l7rule_post, 'value', self.value)
-
         if self.invert:
             setattr(l7rule_post, 'invert', self.invert)
-
         if self.admin_state_up:
             setattr(l7rule_post, 'admin_state_up', self.admin_state_up)
-
         if self.tags:
             setattr(l7rule_post, 'tags', self.tags)
-
         if project_id:
             setattr(l7rule_post, 'project_id', project_id)
-
         return l7rule_post

@@ -22,7 +22,6 @@ from wsmeext import pecan as wsme_pecan
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
-from octavia_proxy.api.common import types
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
 
@@ -165,8 +164,7 @@ class ListenersController(base.BaseController):
         l7policies = listener_dict.l7policies
         listener = driver_utils.call_provider(
             driver.name, driver.listener_create, session, listener_dict)
-        # Now create l7policies
-        new_l7ps_ids = []
+        new_l7ps = []
         for l7p in l7policies:
             project_id = listener.project_id
             listener_id = listener.id
@@ -184,10 +182,9 @@ class ListenersController(base.BaseController):
             else:
                 l7policy_post = l7p.to_l7policy_post(
                     project_id=project_id, listener_id=listener_id)
-            new_l7ps = l7policy.L7PoliciesController()._graph_create(
+            new_l7p = l7policy.L7PoliciesController()._graph_create(
                 session, l7policy_post, rules=rules,
                 provider=listener.provider)
-            new_l7ps_ids.append(types.IdOnlyType(id=new_l7ps.id))
-        if new_l7ps_ids:
-            setattr(listener, 'l7policies', new_l7ps_ids)
-        return listener
+            new_l7ps.append(new_l7p)
+        listener_full_response = listener.to_full_response(l7policies=new_l7ps)
+        return listener_full_response

@@ -25,7 +25,6 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base, member, health_monitor
 from octavia_proxy.api.v2.types import pool as pool_types
-from octavia_proxy.api.common import types
 from octavia_proxy.common import constants, validate, exceptions
 from octavia_proxy.i18n import _
 
@@ -210,8 +209,12 @@ class PoolsController(base.BaseController):
             return member.MembersController(pool_id=pool.id), remainder
         return None
 
-    def _graph_create(self, session, pool, members, provider=None):
-        hm = pool.healthmonitor
+    def _graph_create(self, session, pool, hm=None, members=None,
+                      provider=None):
+        if not hm:
+            hm = pool.healthmonitor
+        if not members:
+            members = pool.members
 
         driver = driver_factory.get_driver(provider)
 
@@ -228,15 +231,12 @@ class PoolsController(base.BaseController):
         result_pool = driver_utils.call_provider(
             driver.name, driver.pool_create,
             session, pool)
-
-        # Now possibly create a healthmonitor
+        new_hm = None
         if hm:
-
             hm_post = hm.to_hm_post(pool_id=result_pool.id,
                                     project_id=result_pool.project_id)
             new_hm = health_monitor.HealthMonitorController()._graph_create(
                 session, hm_post, provider=result_pool.provider)
-            setattr(result_pool, 'healthmonitor_id', new_hm.id)
 
             if result_pool.protocol in (constants.PROTOCOL_UDP):
                 health_monitor.HealthMonitorController(
@@ -251,14 +251,15 @@ class PoolsController(base.BaseController):
                             'protocol': '/'.join((constants.PROTOCOL_UDP))})
 
         # Now create members
+        new_members = []
         if members:
-            new_members = []
             for m in members:
                 member_post = m.to_member_post(
                     project_id=result_pool.project_id)
                 new_member = member.MembersController(result_pool.id)\
                     ._graph_create(session, member_post,
                                    provider=result_pool.provider)
-                new_members.append(types.IdOnlyType(id=new_member.id))
-            setattr(result_pool, 'members', new_members)
-        return result_pool
+                new_members.append(new_member)
+        full_response_pool = result_pool.to_full_response(members=new_members,
+                                                          healthmonitor=new_hm)
+        return full_response_pool
