@@ -28,7 +28,7 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import load_balancer as lb_types
-from octavia_proxy.common import constants, validate, utils
+from octavia_proxy.common import constants, validate
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
 
@@ -125,7 +125,7 @@ class LoadBalancersController(base.BaseController):
             context=context)
         if not load_balancer.vip_subnet_id:
             if load_balancer.vip_address:
-                for subnet_id in network.subnets:
+                for subnet_id in network.subnet_ids:
                     subnet = context.session.get_subnet(subnet_id)
                     if validate.is_ip_member_of_cidr(load_balancer.vip_address,
                                                      subnet.cidr):
@@ -139,27 +139,11 @@ class LoadBalancersController(base.BaseController):
             else:
                 # If subnet and IP are not provided, pick the first subnet with
                 # enough available IPs, preferring ipv4
-                if not network.subnets:
+                if not network.subnet_ids:
                     raise exceptions.ValidationException(detail=_(
                         "Supplied network does not contain a subnet."
                     ))
-                ip_avail = context.session.get_network_ip_availability(
-                    network)
-                if (CONF.controller_worker.loadbalancer_topology ==
-                        constants.TOPOLOGY_SINGLE):
-                    num_req_ips = 2
-                if (CONF.controller_worker.loadbalancer_topology ==
-                        constants.TOPOLOGY_ACTIVE_STANDBY):
-                    num_req_ips = 3
-                subnets = [subnet_id for subnet_id in network.subnets if
-                           utils.subnet_ip_availability(ip_avail, subnet_id,
-                                                        num_req_ips)]
-                if not subnets:
-                    raise exceptions.ValidationException(detail=_(
-                        "Subnet(s) in the supplied network do not contain "
-                        "enough available IPs."
-                    ))
-                for subnet_id in subnets:
+                for subnet_id in network.subnet_ids:
                     # Use the first subnet, in case there are no ipv4 subnets
                     if not load_balancer.vip_subnet_id:
                         load_balancer.vip_subnet_id = subnet_id
@@ -209,7 +193,8 @@ class LoadBalancersController(base.BaseController):
 
         if not load_balancer.project_id and context.project_id:
             load_balancer.project_id = context.project_id
-
+        elif not context.project_id:
+            load_balancer.project_id = context.session.current_project.id
         if not load_balancer.project_id:
             raise exceptions.ValidationException(detail=(
                 "Missing project ID in request where one is required. "
