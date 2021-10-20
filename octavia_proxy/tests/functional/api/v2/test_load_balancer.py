@@ -88,6 +88,22 @@ class TestLoadBalancer(base.BaseAPITest):
         self._assert_request_matches_response(lb_json, self.api_lb)
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
+    def test_complex_create_v2_0(self, **optionals):
+        lb_json = {'name': 'test2',
+                   'vip_subnet_id': self._network['subnet_id'],
+                   'project_id': self.project_id,
+                   "listeners": [{"name": "fav_listener", "protocol": "HTTP",
+                                  "protocol_port": "483"}]
+                   }
+        lb_json.update(optionals)
+        body = self._build_body(lb_json)
+        response = self.post(self.LBS_PATH, body, use_v2_0=True)
+        self.api_lb = response.json.get(self.root_tag)
+        listeners = self.api_lb['listeners']
+        self.assertTrue(listeners)
+        self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id'),
+                                        cascade=True))
+
     def test_create_without_vip(self):
         lb_json = {'name': 'test1',
                    'project_id': self.project_id}

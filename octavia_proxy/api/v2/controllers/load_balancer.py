@@ -29,7 +29,7 @@ from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base, pool as pool_controller,\
     listener as li_controller
 from octavia_proxy.api.v2.types import load_balancer as lb_types
-from octavia_proxy.common import constants, validate, utils
+from octavia_proxy.common import constants, validate
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
 
@@ -310,13 +310,12 @@ class LoadBalancersController(base.BaseController):
         if listeners:
             for li in listeners:
                 default_pool = li.default_pool
-                pool_name = (
-                    default_pool.name if default_pool else None)
-                if default_pool and not pool_name:
-                    raise exceptions.ValidationException(
-                        detail='Pools must be named when creating a fully '
-                               'populated loadbalancer.')
-                pools.append(default_pool)
+                if not isinstance(default_pool, wtypes.UnsetType):
+                    if not default_pool.name:
+                        raise exceptions.ValidationException(
+                            detail='Pools must be named when creating a fully '
+                                   'populated loadbalancer.')
+                    pools.append(default_pool)
 
             for p in pools:
                 members = p.members
