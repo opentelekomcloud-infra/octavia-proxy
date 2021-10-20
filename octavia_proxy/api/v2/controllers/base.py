@@ -38,7 +38,7 @@ class BaseController(pecan_rest.RestController):
             converted = _convert(sdk_entity)
         return converted
 
-    def find_load_balancer(self, context, id, is_parallel=False):
+    def find_load_balancer(self, context, id, is_parallel=True):
         load_balancer = driver_invocation(
             context, 'loadbalancer_get', is_parallel, id
         )
@@ -50,7 +50,7 @@ class BaseController(pecan_rest.RestController):
 
         return load_balancer
 
-    def find_listener(self, context, id, is_parallel=False):
+    def find_listener(self, context, id, is_parallel=True):
         listener = driver_invocation(
             context, 'listener_get', is_parallel, id
         )
@@ -62,7 +62,7 @@ class BaseController(pecan_rest.RestController):
 
         return listener
 
-    def find_pool(self, context, id, is_parallel=False):
+    def find_pool(self, context, id, is_parallel=True):
         pool = driver_invocation(
             context, 'pool_get', is_parallel, id
         )
@@ -74,7 +74,7 @@ class BaseController(pecan_rest.RestController):
 
         return pool
 
-    def find_member(self, context, pool_id, id, is_parallel=False):
+    def find_member(self, context, pool_id, id, is_parallel=True):
         member = driver_invocation(
             context, 'member_get', is_parallel, pool_id, id
         )
@@ -86,19 +86,19 @@ class BaseController(pecan_rest.RestController):
 
         return member
 
-    def find_health_monitor(self, context, id, is_parallel=False):
+    def find_health_monitor(self, context, id, is_parallel=True):
         hm = driver_invocation(
             context, 'health_monitor_get', is_parallel, id
         )
 
         if not hm:
             raise exceptions.NotFound(
-                resource='Healthmonitor',
+                resource='HealthMonitor',
                 id=id)
 
         return hm
 
-    def find_l7policy(self, context, id, is_parallel=False):
+    def find_l7policy(self, context, id, is_parallel=True):
         l7policy = driver_invocation(
             context, 'l7policy_get', is_parallel, id
         )
@@ -110,17 +110,29 @@ class BaseController(pecan_rest.RestController):
 
         return l7policy
 
-    def find_l7rule(self, context, l7policy_id, id, is_parallel=False):
+    def find_l7rule(self, context, l7policy_id, id, is_parallel=True):
         l7rule = driver_invocation(
             context, 'l7rule_get', is_parallel, l7policy_id, id
         )
 
         if not l7rule:
             raise exceptions.NotFound(
-                resource='L7 rule',
+                resource='L7Rule',
                 id=id)
 
         return l7rule
+
+    def find_flavor(self, context, id, is_parallel=True):
+        flavor = driver_invocation(
+            context, 'flavor_get', is_parallel, id
+        )
+
+        if not flavor:
+            raise exceptions.NotFound(
+                resource='Flavor',
+                id=id)
+
+        return flavor
 
     @staticmethod
     def _validate_protocol(listener_protocol, pool_protocol):

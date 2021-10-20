@@ -21,12 +21,10 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
-from octavia_proxy.api.drivers import driver_factory
-from octavia_proxy.api.drivers import utils as driver_utils
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import flavors as flavor_types
 from octavia_proxy.common import constants
-from octavia_proxy.common import exceptions
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
@@ -42,27 +40,12 @@ class FlavorsController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single flavor's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        flavor = None
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', True)
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                flavor = driver_utils.call_provider(
-                    driver.name, driver.flavor_get,
-                    context.session,
-                    id)
-                if flavor:
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-
-        if not flavor:
-            raise exceptions.NotFound(
-                resource='Flavor',
-                id=id)
+        flavor = self.find_flavor(context, id, is_parallel)[0]
 
         if fields is not None:
             flavor = self._filter_fields([flavor], fields)[0]
@@ -74,24 +57,16 @@ class FlavorsController(base.BaseController):
         """Lists all flavors."""
         pcontext = pecan_request.context
         context = pcontext.get('octavia_context')
-        query_filter = self._auth_get_all(context, project_id)
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
-        links = []
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
 
-            try:
-                fl = driver_utils.call_provider(
-                    driver.name, driver.flavors,
-                    context.session,
-                    context.project_id,
-                    query_filter)
-                if fl:
-                    LOG.debug('Received %s from %s' % (fl, driver.name))
-                    result.extend(fl)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        query_filter = self._auth_get_all(context, project_id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        query_filter.update(query_params)
+        is_parallel = query_filter.pop('is_parallel', True)
+
+        links = []
+        result = driver_invocation(
+            context, 'flavors', is_parallel, query_filter
+        )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
