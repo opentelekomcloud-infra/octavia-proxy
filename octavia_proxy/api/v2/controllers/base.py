@@ -93,7 +93,7 @@ class BaseController(pecan_rest.RestController):
 
         if not hm:
             raise exceptions.NotFound(
-                resource='Healthmonitor',
+                resource='HealthMonitor',
                 id=id)
 
         return hm
@@ -117,10 +117,22 @@ class BaseController(pecan_rest.RestController):
 
         if not l7rule:
             raise exceptions.NotFound(
-                resource='L7 rule',
+                resource='L7Rule',
                 id=id)
 
         return l7rule
+
+    def find_flavor(self, context, id, is_parallel=True):
+        flavor = driver_invocation(
+            context, 'flavor_get', is_parallel, id
+        )
+
+        if not flavor:
+            raise exceptions.NotFound(
+                resource='Flavor',
+                id=id)
+
+        return flavor
 
     @staticmethod
     def _validate_protocol(listener_protocol, pool_protocol):
