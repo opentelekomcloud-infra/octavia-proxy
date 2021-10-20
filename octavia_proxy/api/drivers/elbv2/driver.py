@@ -190,10 +190,22 @@ class ELBv2Driver(driver_base.ProviderDriver):
         # TODO: do this differently
         attrs.pop('l7policies', None)
 
-        res = session.elb.create_listener(**attrs)
+        tags = []
+        if 'tags' in attrs:
+            tags = self._resource_tags(attrs.pop('tags'))
+
+        ls = session.elb.create_listener(**attrs)
+
+        for tag in tags:
+            LOG.debug('Create tag %s for listener %s' % (tag, ls.id))
+            try:
+                session.elb.create_listener_tag(ls.id, **tag)
+                ls.tags.append(self._normalize_tag(tag))
+            except Exception as ex:
+                LOG.exception('Tag cannot be created: %s' % ex)
 
         result_data = _listener.ListenerResponse.from_sdk_object(
-            res)
+            self._normalize_lb(ls))
         result_data.provider = PROVIDER
         return result_data
 
