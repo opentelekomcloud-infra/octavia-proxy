@@ -32,6 +32,22 @@ class ELBv2Driver(driver_base.ProviderDriver):
             resource.tags = tags
         return resource
 
+    def _normalize_tag(self, tag):
+        return "=".join(str(val) for val in tag.values())
+
+    def _resource_tags(self, tags):
+        result = []
+        for tag in tags:
+            try:
+                tag = tag.split('=')
+                result.append({
+                    'key': tag[0],
+                    'value': tag[1]
+                })
+            except IndexError:
+                result.append({'key': tag[0], 'value': ''})
+        return result
+
     def get_supported_flavor_metadata(self):
         LOG.debug('Provider %s elbv2, get_supported_flavor_metadata',
                   self.__class__.__name__)
@@ -96,10 +112,22 @@ class ELBv2Driver(driver_base.ProviderDriver):
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs.pop('vip_network_id', None)
 
+        tags = []
+        if 'tags' in lb_attrs:
+            tags = self._resource_tags(lb_attrs.pop('tags'))
+
         lb = session.elb.create_load_balancer(**lb_attrs)
 
+        for tag in tags:
+            LOG.debug('Create tag %s for load balancer %s' % (tag, lb.id))
+            try:
+                session.elb.create_load_balancer_tag(lb.id, **tag)
+                lb.tags.append(self._normalize_tag(tag))
+            except Exception as ex:
+                LOG.exception('Tag cannot be created: %s' % ex)
+
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-            lb)
+            self._normalize_lb(lb))
         lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
