@@ -91,13 +91,6 @@ class LoadBalancersController(base.BaseController):
         """Decide on the provider for this load balancer."""
 
         provider = None
-        if not isinstance(load_balancer.flavor_id, wtypes.UnsetType):
-            try:
-                provider = self.repositories.flavor.get_flavor_provider(
-                    session, load_balancer.flavor_id)
-            except Exception as e:
-                raise exceptions.ValidationException(
-                    detail=("Invalid flavor_id.")) from e
 
         # No provider specified and no flavor specified, use conf default
         if (isinstance(load_balancer.provider, wtypes.UnsetType) and
