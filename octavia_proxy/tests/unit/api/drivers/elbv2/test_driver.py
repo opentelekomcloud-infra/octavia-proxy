@@ -139,7 +139,7 @@ class TestElbv2Driver(base.TestCase):
             call for call in self.sess.method_calls
             if 'create_load_balancer_tag' in call[0]
         ]
-        for i, val in enumerate(tag_calls):
+        for i, _ in enumerate(tag_calls):
             tag_calls[i].assert_called_with(
                 self.lb.id,
                 **self.normalized_tags[i])
@@ -256,7 +256,7 @@ class TestElbv2ListenerDriver(base.TestCase):
             call for call in self.sess.method_calls
             if 'create_listener_tag' in call[0]
         ]
-        for i, val in enumerate(tag_calls):
+        for i, _ in enumerate(tag_calls):
             tag_calls[i].assert_called_with(
                 self.lsnr.id,
                 **self.normalized_tags[i])
