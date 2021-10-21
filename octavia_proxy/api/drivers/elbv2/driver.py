@@ -24,11 +24,14 @@ class ELBv2Driver(driver_base.ProviderDriver):
         if otc_tags:
             tags = []
             for tag in otc_tags:
-                tag_list = tag.split('=')
-                if not tag_list[1]:
-                    tags.append(tag_list[0])
-                else:
-                    tags.append(tag)
+                tl = tag.split('=')
+                try:
+                    if tl[1]:
+                        tags.append(tag)
+                    else:
+                        tags.append(tl[0])
+                except IndexError:
+                    tags.append(tl[0])
             resource.tags = tags
         return resource
 

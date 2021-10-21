@@ -47,7 +47,7 @@ class TestElbv2Driver(base.TestCase):
         'name': 'test',
         'availability_zone': 'eu-nl-01',
         'admin_state_up': True,
-        'tags': [],
+        'tags': ["tag1=val", 'tag2=', 'tag3'],
         'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'created_at': '2021-08-10T09:39:24+00:00',
         'updated_at': '2021-08-10T09:39:24+00:00',
@@ -80,8 +80,11 @@ class TestElbv2Driver(base.TestCase):
         'vip_port_id': None,
         'vip_qos_policy_id': None,
         'vip_subnet_id': None,
-        'tags': [],
     }
+    normalized_tags = [
+        {'key': 'tag1', 'value': 'val'},
+        {'key': 'tag2', 'value': ''},
+        {'key': 'tag3', 'value': ''}]
 
     def setUp(self):
         super().setUp()
@@ -132,6 +135,14 @@ class TestElbv2Driver(base.TestCase):
         self.driver.loadbalancer_create(self.sess, self.lb)
         self.sess.elb.create_load_balancer.assert_called_with(
             **self.fake_call_create)
+        tag_calls = [
+            call for call in self.sess.method_calls
+            if 'create_load_balancer_tag' in call[0]
+        ]
+        for i, val in enumerate(tag_calls):
+            tag_calls[i].assert_called_with(
+                self.lb.id,
+                **self.normalized_tags[i])
 
     def test_loadbalancer_update(self):
         attrs = {
@@ -166,7 +177,7 @@ class TestElbv2ListenerDriver(base.TestCase):
         'insert_headers': {'X-Forwarded-ELB-IP': True},
         'name': 'test',
         'admin_state_up': True,
-        'tags': [],
+        'tags': ["tag1=val", 'tag2=', 'tag3'],
         'timeout_client_data': 10,
         'timeout_member_data': 10,
         'timeout_member_connect': 10,
@@ -198,7 +209,6 @@ class TestElbv2ListenerDriver(base.TestCase):
         'protocol_port': 80,
         'provisioning_status': None,
         'sni_container_refs': None,
-        'tags': [],
         'timeout_client_data': 10,
         'timeout_member_connect': 10,
         'timeout_member_data': 10,
@@ -207,6 +217,10 @@ class TestElbv2ListenerDriver(base.TestCase):
         'tls_versions': None,
         'updated_at': '2021-08-10T09:39:24+00:00'
     }
+    normalized_tags = [
+        {'key': 'tag1', 'value': 'val'},
+        {'key': 'tag2', 'value': ''},
+        {'key': 'tag3', 'value': ''}]
 
     def setUp(self):
         super().setUp()
@@ -238,6 +252,14 @@ class TestElbv2ListenerDriver(base.TestCase):
         self.driver.listener_create(self.sess, self.lsnr)
         self.sess.elb.create_listener.assert_called_with(
             **self.fake_call_create)
+        tag_calls = [
+            call for call in self.sess.method_calls
+            if 'create_listener_tag' in call[0]
+        ]
+        for i, val in enumerate(tag_calls):
+            tag_calls[i].assert_called_with(
+                self.lsnr.id,
+                **self.normalized_tags[i])
 
     def test_listener_delete(self):
         self.driver.listener_delete(self.sess, self.lsnr)
