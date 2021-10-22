@@ -9,7 +9,8 @@ from octavia_proxy.api.v2.types import (
     listener as _listener,
     load_balancer,
     member as _member,
-    pool as _pool
+    pool as _pool,
+    availability_zones as _az
 )
 from octavia_proxy.common.utils import (
     elbv3_backmapping, loadbalancer_cascade_delete
@@ -612,3 +613,21 @@ class ELBv3Driver(driver_base.ProviderDriver):
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
             fl_data.provider = PROVIDER
             return fl_data
+
+    def availability_zones(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching availability zones')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+        for az in session.vlb.availability_zones(**query_filter):
+            az.name = az.pop('code')
+            az.enabled = False
+            if az.state == 'ACTIVE':
+                az.enabled = True
+            az_data = _az.AvailabilityZoneResponse.from_sdk_object(
+                az
+            )
+            az_data.provider = PROVIDER
+            result.append(az_data)
+        return result
