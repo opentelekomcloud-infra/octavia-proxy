@@ -102,7 +102,7 @@ class ListenerResponse(BaseListenerType):
             'project_id', 'protocol', 'protocol_port', 'provisioning_status',
             'sni_container_refs',
             'tags',
-            'timeout_client_data', 'timeout_memeber_connect',
+            'timeout_client_data', 'timeout_member_connect',
             'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
         ]:
             if hasattr(sdk_entity, key):
@@ -136,35 +136,31 @@ class ListenerResponse(BaseListenerType):
     def to_full_response(self, l7policies=None):
         full_response = ListenerFullResponse()
 
-        full_response.id = self.id
-        full_response.name = self.name
-        full_response.description = self.description
-        full_response.provisioning_status = self.provisioning_status
-        full_response.operating_status = self.operating_status
+        for key in [
+            'id', 'name',
+            'client_authentication', 'client_ca_tls_container_ref',
+            'client_crl_container_ref', 'connection_limit', 'default_pool_id',
+            'default_tls_container_ref', 'description', 'operation_status',
+            'project_id', 'protocol', 'protocol_port', 'provisioning_status',
+            'sni_container_refs',
+            'tags',
+            'timeout_client_data', 'timeout_member_connect',
+            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
         full_response.admin_state_up = self.admin_state_up
-        full_response.protocol = self.protocol
-        full_response.protocol_port = self.protocol_port
         full_response.connection_limit = self.connection_limit
-        full_response.default_tls_container_ref =\
-            self.default_tls_container_ref
-        full_response.sni_container_refs = self.sni_container_refs
-        full_response.project_id = self.project_id
         full_response.default_pool_id = self.default_pool_id
         full_response.insert_headers = self.insert_headers
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
         full_response.loadbalancers = self.loadbalancers
-        full_response.timeout_client_data = self.timeout_client_data
-        full_response.timeout_member_connect = self. timeout_member_connect
-        full_response.timeout_member_data = self.timeout_member_data
-        full_response.timeout_tcp_inspect = self.timeout_tcp_inspect
-        full_response.tags = self.tags
-        full_response.client_ca_tls_container_ref\
-            = self.client_ca_tls_container_ref
-        full_response.client_authentication = self.client_authentication
         full_response.client_crl_container_ref = self.client_crl_container_ref
         full_response.allowed_cidrs = self.allowed_cidrs
-        full_response.tls_ciphers = self.tls_ciphers
         full_response.tls_versions = self.tls_versions
         full_response.alpn_protocols = self.alpn_protocols
 
@@ -349,69 +345,34 @@ class ListenerSingleCreate(BaseListenerType):
                          default_pool_id=None):
         listener_post = ListenerPOST()
 
-        if self.name:
-            setattr(listener_post, 'name', self.name)
+        for key in [
+            'name',
+            'client_authentication', 'client_ca_tls_container_ref',
+            'client_crl_container_ref', 'connection_limit',
+            'default_tls_container_ref', 'description',
+            'protocol', 'protocol_port', 'provisioning_status',
+            'sni_container_refs', 'tags',
+            'timeout_client_data', 'timeout_member_connect',
+            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(listener_post, key, v)
 
-        if self.description:
-            setattr(listener_post, 'description', self.description)
-        if self.admin_state_up:
-            setattr(listener_post, 'admin_state_up', self.admin_state_up)
-        if self.protocol:
-            setattr(listener_post, 'protocol', self.protocol)
-        if self.protocol_port:
-            setattr(listener_post, 'protocol_port', self.protocol_port)
-        if self.connection_limit:
-            setattr(listener_post, 'connection_limit', self.connection_limit)
-        if self.default_tls_container_ref:
-            setattr(listener_post, 'protocol_port', self.protocol_port)
-        if self.sni_container_refs:
-            setattr(listener_post, 'connection_limit', self.connection_limit)
-        if self.l7policies:
-            setattr(listener_post, 'l7policies', self.l7policies)
-        if self.insert_headers:
-            setattr(listener_post, 'insert_headers', self.insert_headers)
-        if self.timeout_client_data:
-            setattr(listener_post, 'timeout_client_data',
-                    self.timeout_client_data)
-        if self.timeout_member_connect:
-            setattr(listener_post, 'timeout_member_connect',
-                    self.timeout_member_connect)
-        if self.timeout_member_data:
-            setattr(listener_post, 'timeout_member_data',
-                    self.timeout_member_data)
-        if self.timeout_tcp_inspect:
-            setattr(listener_post, 'timeout_tcp_inspect',
-                    self.timeout_tcp_inspect)
-        if self.tags:
-            setattr(listener_post, 'tags',
-                    self.tags)
-        if self.client_ca_tls_container_ref:
-            setattr(listener_post, 'client_ca_tls_container_ref',
-                    self.client_ca_tls_container_ref)
-        if self.client_authentication:
-            setattr(listener_post, 'client_authentication',
-                    self.client_authentication)
-        if self.client_crl_container_ref:
-            setattr(listener_post, 'client_crl_container_ref',
-                    self.client_crl_container_ref)
-        if self.allowed_cidrs:
-            setattr(listener_post, 'allowed_cidrs',
-                    self.allowed_cidrs)
-        if self.tls_ciphers:
-            setattr(listener_post, 'tls_ciphers',
-                    self.tls_ciphers)
-        if self.tls_versions:
-            setattr(listener_post, 'tls_versions',
-                    self.tls_versions)
-        if self.alpn_protocols:
-            setattr(listener_post, 'alpn_protocols',
-                    self.alpn_protocols)
+        listener_post.description = self.description
+        listener_post.admin_state_up = self.admin_state_up
+        listener_post.l7policies = self.l7policies
+        listener_post.insert_headers = self.insert_headers
+        listener_post.allowed_cidrs = self.allowed_cidrs
+        listener_post.tls_versions = self.tls_versions
+        listener_post.alpn_protocols = self.alpn_protocols
         if project_id:
-            setattr(listener_post, 'project_id', project_id)
+            listener_post.project_id = project_id
         if loadbalancer_id:
-            setattr(listener_post, 'loadbalancer_id', loadbalancer_id)
+            listener_post.loadbalancer_id = loadbalancer_id
         if default_pool_id:
-            setattr(listener_post, 'default_pool_id', default_pool_id)
+            listener_post.default_pool_id = default_pool_id
         return listener_post
 
 

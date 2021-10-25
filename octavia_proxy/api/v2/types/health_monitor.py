@@ -86,26 +86,24 @@ class HealthMonitorResponse(BaseHealthMonitorType):
 
     def to_full_response(self):
         full_response = HealthMonitorResponse()
-        full_response.id = self.id
-        full_response.name = self.name
-        full_response.type = self.type
-        full_response.delay = self.delay
-        full_response.timeout = self.timeout
-        full_response.max_retries = self.max_retries
-        full_response.max_retries_down = self.max_retries_down
-        full_response.http_method = self.http_method
-        full_response.url_path = self.url_path
-        full_response.expected_codes = self.expected_codes
+
+        for key in [
+            'id', 'name',
+            'type', 'delay', 'timeout', 'max_retries', 'max_retries_down',
+            'http_method', 'url_path', 'expected_codes', 'project_id',
+            'provisioning_status', 'operating_status',
+            'tags',
+            'http_version', 'domain_name',
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
         full_response.admin_state_up = self.admin_state_up
-        full_response.project_id = self.project_id
         full_response.pools = self.pools
-        full_response.provisioning_status = self.provisioning_status
-        full_response.operating_status = self.operating_status
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
-        full_response.tags = self.tags
-        full_response.http_version = self.http_version
-        full_response.domain_name = self.domain_name
 
         return full_response
 
@@ -224,36 +222,23 @@ class HealthMonitorSingleCreate(BaseHealthMonitorType):
     def to_hm_post(self, pool_id=None, project_id=None):
         hm_post = HealthMonitorPOST()
 
-        if self.name:
-            setattr(hm_post, 'name', self.name)
-        if self.type:
-            setattr(hm_post, 'type', self.type)
-        if self.delay:
-            setattr(hm_post, 'delay', self.delay)
-        if self.timeout:
-            setattr(hm_post, 'timeout', self.timeout)
-        if self.max_retries_down:
-            setattr(hm_post, 'max_retries_down', self.max_retries_down)
-        if self.max_retries:
-            setattr(hm_post, 'max_retries', self.max_retries)
-        if self.http_method:
-            setattr(hm_post, 'http_method', self.http_method)
-        if self.url_path:
-            setattr(hm_post, 'url_path', self.url_path)
-        if self.expected_codes:
-            setattr(hm_post, 'expected_codes', self.expected_codes)
+        for key in [
+            'name',
+            'type', 'delay', 'timeout', 'max_retries', 'max_retries_down',
+            'http_method', 'url_path', 'expected_codes',
+            'tags', 'http_version', 'domain_name',
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(hm_post, key, v)
+
         if self.admin_state_up:
-            setattr(hm_post, 'admin_state_up', self.admin_state_up)
-        if self.tags:
-            setattr(hm_post, 'tags', self.tags)
-        if self.http_version:
-            setattr(hm_post, 'http_version', self.http_version)
-        if self.domain_name:
-            setattr(hm_post, 'domain_name', self.domain_name)
+            hm_post.admin_state_up = self.admin_state_up
+        if project_id:
+            hm_post.project_id = project_id
         if pool_id:
             setattr(hm_post, 'pool_id', pool_id)
-        if project_id:
-            setattr(hm_post, 'project_id', project_id)
         return hm_post
 
 

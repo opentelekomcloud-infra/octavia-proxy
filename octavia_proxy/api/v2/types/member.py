@@ -72,22 +72,21 @@ class MemberResponse(BaseMemberType):
 
     def to_full_response(self):
         full_response = MemberFullResponse()
-        full_response.id = self.id
-        full_response.name = self.name
-        full_response.operating_status = self.operating_status
-        full_response.provisioning_status = self.provisioning_status
+
+        for key in [
+            'id', 'name', 'operating_status', 'provisioning_status',
+            'address', 'protocol_port', 'weight', 'backup',
+            'subnet_id', 'project_id', 'monitor_address',
+            'monitor_port', 'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
         full_response.admin_state_up = self.admin_state_up
-        full_response.address = self.address
-        full_response.protocol_port = self.protocol_port
-        full_response.weight = self.weight
-        full_response.backup = self.backup
-        full_response.subnet_id = self.subnet_id
-        full_response.project_id = self.project_id
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
-        full_response.monitor_address = self.monitor_address
-        full_response.monitor_port = self.monitor_port
-        full_response.tags = self.tags
         return full_response
 
 
@@ -174,28 +173,20 @@ class MemberSingleCreate(BaseMemberType):
     def to_member_post(self, project_id=None):
         member_post = MemberPOST()
 
-        if self.name:
-            setattr(member_post, 'name', self.name)
-        if self.admin_state_up:
-            setattr(member_post, 'admin_state_up', self.admin_state_up)
-        if self.address:
-            setattr(member_post, 'address', self.address)
-        if self.protocol_port:
-            setattr(member_post, 'protocol_port', self.protocol_port)
-        if self.weight:
-            setattr(member_post, 'weight', self.weight)
-        if self.backup:
-            setattr(member_post, 'backup', self.backup)
-        if self.subnet_id:
-            setattr(member_post, 'subnet_id', self.subnet_id)
-        if self.monitor_port:
-            setattr(member_post, 'monitor_port', self.monitor_port)
-        if self.monitor_address:
-            setattr(member_post, 'monitor_address', self.monitor_address)
-        if self.tags:
-            setattr(member_post, 'tags', self.tags)
-        if project_id:
-            setattr(member_post, 'project_id', project_id)
+        for key in [
+            'name',
+            'address', 'protocol_port', 'weight', 'backup',
+            'subnet_id', 'project_id', 'monitor_address',
+            'monitor_port', 'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(member_post, key, v)
+
+        member_post.admin_state_up = self.admin_state_up
+        member_post.project_id = project_id
+
         return member_post
 
 

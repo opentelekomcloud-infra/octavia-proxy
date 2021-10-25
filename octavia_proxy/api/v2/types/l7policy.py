@@ -85,23 +85,21 @@ class L7PolicyResponse(BaseL7PolicyType):
     def to_full_response(self, rules=None):
         full_response = L7PolicyFullResponse()
 
-        full_response.id = self.id
-        full_response.name = self.name
-        full_response.description = self.description
-        full_response.provisioning_status = self.provisioning_status
-        full_response.operating_status = self.operating_status
+        for key in [
+            'id', 'name',
+            'action', 'description', 'listener_id', 'operating_status',
+            'position', 'project_id', 'redirect_pool_id', 'redirect_url',
+            'provisioning_status', 'redirect_prefix', 'redirect_http_code',
+            'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
         full_response.admin_state_up = self.admin_state_up
-        full_response.project_id = self.project_id
-        full_response.action = self.action
-        full_response.listener_id = self.listener_id
-        full_response.redirect_pool_id = self.redirect_pool_id
-        full_response.redirect_url = self.redirect_url
-        full_response.redirect_prefix = self.redirect_prefix
-        full_response.position = self.position
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
-        full_response.tags = self.tags
-        full_response.redirect_http_code = self.redirect_http_code
 
         if rules:
             full_response.rules = rules
@@ -199,29 +197,23 @@ class L7PolicySingleCreate(BaseL7PolicyType):
                          listener_id=None):
         l7policy_post = L7PolicyPOST()
 
-        if self.name:
-            setattr(l7policy_post, 'name', self.name)
-        if self.description:
-            setattr(l7policy_post, 'description', self.description)
-        if self.admin_state_up:
-            setattr(l7policy_post, 'admin_state_up', self.admin_state_up)
-        if self.action:
-            setattr(l7policy_post, 'action', self.action)
-        if self.redirect_url:
-            setattr(l7policy_post, 'redirect_url', self.redirect_url)
-        if self.redirect_prefix:
-            setattr(l7policy_post, 'redirect_prefix', self.redirect_prefix)
-        if self.position:
-            setattr(l7policy_post, 'position', self.position)
-        if self.tags:
-            setattr(l7policy_post, 'tags', self.tags)
-        if self.redirect_http_code:
-            setattr(l7policy_post, 'redirect_http_code',
-                    self.redirect_http_code)
+        for key in [
+            'name',
+            'action', 'description', 'listener_id',
+            'position', 'redirect_pool', 'redirect_url',
+            'redirect_prefix', 'redirect_http_code',
+            'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(l7policy_post, key, v)
+
+        l7policy_post.admin_state_up = self.admin_state_up
         if project_id:
-            setattr(l7policy_post, 'project_id', project_id)
+            l7policy_post.project_id = project_id
         if listener_id:
-            setattr(l7policy_post, 'listener_id', listener_id)
+            l7policy_post.listener_id = listener_id
         if redirect_pool_id:
-            setattr(l7policy_post, 'redirect_pool_id', redirect_pool_id)
+            l7policy_post.redirect_pool_id = redirect_pool_id
         return l7policy_post

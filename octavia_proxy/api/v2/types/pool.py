@@ -157,21 +157,27 @@ class PoolResponse(BasePoolType):
 
     def to_full_response(self, members=None, healthmonitor=None):
         full_response = PoolFullResponse()
-        full_response.id = self.id
-        full_response.name = self.name
-        full_response.description = self.description
+
+        for key in [
+            'id', 'name',
+            'availability_zone', 'description',
+            'protocol', 'lb_algorithm',
+            'session_persistence', 'project_id', 'provider',
+            'healthmonitor_id'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
         full_response.provisioning_status = self.provisioning_status
         full_response.operating_status = self.operating_status
         full_response.admin_state_up = self.admin_state_up
-        full_response.protocol = self.protocol
-        full_response.lb_algorithm = self.lb_algorithm
-        full_response.session_persistence = self.session_persistence
-        full_response.project_id = self.project_id
         full_response.loadbalancers = self.loadbalancers
         full_response.listeners = self.listeners
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
-        full_response.healthmonitor_id = self.healthmonitor_id
         full_response.tags = self.tags
         full_response.tls_container_ref = self.tls_container_ref
         full_response.ca_tls_container_ref = self.ca_tls_container_ref
@@ -288,43 +294,33 @@ class PoolSingleCreate(BasePoolType):
     def to_pool_post(self, project_id=None, loadbalancer_id=None,
                      listener_id=None):
         pool_post = PoolPOST()
-        if self.name:
-            setattr(pool_post, 'name', self.name)
-        if self.description:
-            setattr(pool_post, 'description', self.description)
-        if self.admin_state_up:
-            setattr(pool_post, 'admin_state_up', self.admin_state_up)
-        if self.protocol:
-            setattr(pool_post, 'protocol', self.protocol)
-        if self.lb_algorithm:
-            setattr(pool_post, 'lb_algorithm', self.lb_algorithm)
-        if self.session_persistence:
-            setattr(pool_post, 'session_persistence', self.session_persistence)
-        if self.healthmonitor:
-            setattr(pool_post, 'healthmonitor', self.healthmonitor)
-        if self.tags:
-            setattr(pool_post, 'tags', self.tags)
-        if self.tls_container_ref:
-            setattr(pool_post, 'tls_container_ref', self.tls_container_ref)
-        if self.ca_tls_container_ref:
-            setattr(pool_post, 'ca_tls_container_ref',
-                    self.ca_tls_container_ref)
-        if self.crl_container_ref:
-            setattr(pool_post, 'crl_container_ref', self.crl_container_ref)
-        if self.tls_enabled:
-            setattr(pool_post, 'tls_enabled', self.tls_enabled)
-        if self.tls_ciphers:
-            setattr(pool_post, 'tls_ciphers', self.tls_ciphers)
-        if self.tls_versions:
-            setattr(pool_post, 'ttls_versions', self.tls_versions)
-        if self.alpn_protocols:
-            setattr(pool_post, 'alpn_protocols', self.alpn_protocols)
+
+        for key in [
+            'name', 'description', 'protocol', 'lb_algorithm',
+            'session_persistence'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(pool_post, key, v)
+
+        pool_post.admin_state_up = self.admin_state_up
+        pool_post.healthmonitor = self.healthmonitor
+        pool_post.tags = self.tags
+        pool_post.tls_container_ref = self.tls_container_ref
+        pool_post.ca_tls_container_ref = self.ca_tls_container_ref
+        pool_post.crl_container_ref = self.crl_container_ref
+        pool_post.tls_enabled = self.tls_enabled
+        pool_post.tls_ciphers = self.tls_ciphers
+        pool_post.tls_versions = self.tls_versions
+        pool_post.alpn_protocols = self.alpn_protocols
         if loadbalancer_id:
-            setattr(pool_post, 'loadbalancer_id', loadbalancer_id)
+            pool_post.loadbalancer_id = loadbalancer_id
         if listener_id:
-            setattr(pool_post, 'listener_id', listener_id)
+            pool_post.listener_id = listener_id
         if project_id:
-            setattr(pool_post, 'project_id', project_id)
+            pool_post.project_id = project_id
         return pool_post
 
 
