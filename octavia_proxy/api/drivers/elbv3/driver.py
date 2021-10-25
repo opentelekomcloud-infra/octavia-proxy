@@ -620,8 +620,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
             query_filter = {}
 
         result = []
+
         for az in session.vlb.availability_zones(**query_filter):
             az.name = az.pop('code')
+            # availability_zones not filtering in SDK by region
+            # to not shown wrong info in eu-de
+            # simply pop the az's from nl
+            if session.config.region_name == 'eu-de' and 'eu-nl' in az.name:
+                continue
             az.enabled = False
             if az.state == 'ACTIVE':
                 az.enabled = True
