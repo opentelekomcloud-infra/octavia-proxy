@@ -20,7 +20,7 @@ from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
 from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
                                         load_balancer, health_monitor,
-                                        l7_rule)
+                                        l7_rule, availability_zone)
 
 
 class FakeResponse:
@@ -821,3 +821,23 @@ class TestElbv2L7RuleDriver(base.TestCase):
         self.driver.l7rule_delete(self.sess, l7policy_id='pid',
                                   l7rule=self.l7rule)
         self.sess.elb.delete_l7_rule.assert_called_with(self.l7rule.id, 'pid')
+
+
+class TestElbv2AzDriver(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+
+    def test_availability_zones_no_qp(self):
+        self.driver.availability_zones(self.sess, 'pid')
+        self.sess.elb.availability_zones.assert_called()
+
+    def test_availability_zones_qp(self):
+        self.driver.availability_zones(
+            self.sess, 'pid',
+            query_filter={'a': 'b'})
+        self.sess.elb.availability_zones.assert_called_with(
+            a='b'
+        )
