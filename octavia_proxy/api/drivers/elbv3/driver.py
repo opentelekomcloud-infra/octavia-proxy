@@ -9,7 +9,8 @@ from octavia_proxy.api.v2.types import (
     listener as _listener,
     load_balancer,
     member as _member,
-    pool as _pool
+    pool as _pool,
+    quotas as _quotas
 )
 from octavia_proxy.common.utils import (
     elbv3_backmapping, loadbalancer_cascade_delete
@@ -612,3 +613,16 @@ class ELBv3Driver(driver_base.ProviderDriver):
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
             fl_data.provider = PROVIDER
             return fl_data
+
+    def quota_get(self, session, project_id, param):
+        LOG.debug('Searching for quotas')
+
+        quota = session.vlb.get_quotas()
+        LOG.debug('quotas is %s' % quota)
+
+        if quota:
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            return quota_data

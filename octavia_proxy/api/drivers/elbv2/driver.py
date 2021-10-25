@@ -4,7 +4,7 @@ from oslo_log import log as logging
 from octavia_proxy.api.v2.types import (
     health_monitor as _hm, listener as _listener, load_balancer,
     pool as _pool, member as _member, l7policy as _l7policy,
-    l7rule as _l7rule
+    l7rule as _l7rule, quotas as _quotas
 )
 
 LOG = logging.getLogger(__name__)
@@ -552,3 +552,16 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
+
+    def quota_get(self, session, project_id, param):
+        LOG.debug('Searching for quotas')
+
+        quota = session.elb.get_quotas()
+        LOG.debug('quotas is %s' % quota)
+
+        if quota:
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            return quota_data

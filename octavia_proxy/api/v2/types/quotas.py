@@ -61,6 +61,25 @@ class QuotaResponse(base.BaseType):
         quotas.quota = QuotaBase.from_data_model(data_model)
         return quotas
 
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        quota = QuotaBase()
+        for key in [
+            'loadbalancer', 'load_balancer', 'listener', 'member',
+            'pool', 'healthmonitor', 'health_monitor', 'l7policy',
+            'l7rule'
+        ]:
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(quota, key, v)
+        if hasattr(quota, 'loadbalancer'):
+            quota.load_balancer = quota.loadbalancer
+        if hasattr(quota, 'healthmonitor'):
+            quota.health_monitor = quota.healthmonitor
+
+        return quota
+
 
 class QuotaAllBase(base.BaseType):
     """Wrapper object for get all quotas responses."""
