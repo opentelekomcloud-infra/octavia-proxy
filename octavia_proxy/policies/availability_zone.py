@@ -28,7 +28,7 @@ rules = [
         '{rbac_obj}{action}'.format(rbac_obj=constants.RBAC_AVAILABILITY_ZONE,
                                     action=constants.RBAC_GET_ALL_GLOBAL),
         constants.RULE_API_READ_GLOBAL,
-        "List Flavors including resources owned by others",
+        "List Availability Zones including resources owned by others",
         [{'method': 'GET', 'path': '/v2/lbaas/availabilityzones'}]
     ),
     policy.DocumentedRuleDefault(
