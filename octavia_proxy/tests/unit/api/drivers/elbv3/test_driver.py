@@ -913,8 +913,8 @@ class TestElbv3AzDriver(base.TestCase):
             a='b'
         )
 
-    def test_availability_zones_region(self):
-        self.sess.config.region_name = 'eu-nl'
+    def test_availability_zones_de_region(self):
+        self.sess.config.region_name = 'eu-de'
         self.sess.vlb.availability_zones = mock.MagicMock(
             return_value=[
                 availability_zone.AvailabilityZone(
