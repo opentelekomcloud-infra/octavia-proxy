@@ -560,6 +560,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         result = []
         for az in session.elb.availability_zones(**query_filter):
+            az.enabled = az.is_enabled
             az_data = _az.AvailabilityZoneResponse.from_sdk_object(
                 az
             )

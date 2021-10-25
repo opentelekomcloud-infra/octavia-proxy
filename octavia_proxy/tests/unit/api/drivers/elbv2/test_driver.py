@@ -15,12 +15,12 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
+from openstack.load_balancer.v2 import (
+    listener, pool, member, l7_policy, load_balancer, health_monitor,
+    l7_rule, availability_zone)
 
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
-from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
-                                        load_balancer, health_monitor,
-                                        l7_rule, availability_zone)
 
 
 class FakeResponse:
@@ -824,15 +824,32 @@ class TestElbv2L7RuleDriver(base.TestCase):
 
 
 class TestElbv2AzDriver(base.TestCase):
+    attrs = {
+        "name": "eu-de-01",
+        "description": 'Test',
+        "enabled": True,
+        "availability_zone_profile_id": "6abba291-db52-4fe7-b568-a96bed73c643"
+    }
 
     def setUp(self):
         super().setUp()
         self.driver = driver.ELBv2Driver()
         self.sess = mock.MagicMock()
+        self.az = availability_zone.AvailabilityZone(**self.attrs)
+        self.sess.elb.availability_zones = mock.MagicMock(
+            return_value=[self.az]
+        )
 
     def test_availability_zones_no_qp(self):
-        self.driver.availability_zones(self.sess, 'pid')
+        az = self.driver.availability_zones(self.sess, 'pid')
         self.sess.elb.availability_zones.assert_called()
+        self.assertEquals(az[0].name, self.attrs['name'])
+        self.assertEquals(az[0].description, self.attrs['description'])
+        self.assertEquals(az[0].enabled, self.attrs['enabled'])
+        self.assertEquals(
+            az[0].availability_zone_profile_id,
+            self.attrs['availability_zone_profile_id']
+        )
 
     def test_availability_zones_qp(self):
         self.driver.availability_zones(

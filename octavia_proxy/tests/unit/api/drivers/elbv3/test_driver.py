@@ -15,9 +15,10 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
-                                      member, health_monitor,
-                                      l7_policy, l7_rule, flavor)
+from otcextensions.sdk.vlb.v3 import (
+    load_balancer, listener, pool, member, health_monitor,
+    l7_policy, l7_rule, flavor, availability_zone
+)
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.api.v2.types import (
@@ -881,3 +882,55 @@ class TestElbv3DriverRequests(base.TestCase):
         self.assertEquals(result.is_admin_state_up, expected["admin_state_up"])
         self.assertEquals(result.id, expected["id"])
         self.assertEquals(result.vip_address, expected["vip_address"])
+
+
+class TestElbv3AzDriver(base.TestCase):
+    attrs = {
+        "code": "eu-nl-01",
+        "state": 'ACTIVE'
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.az = availability_zone.AvailabilityZone(**self.attrs)
+        self.sess.vlb.availability_zones = mock.MagicMock(
+            return_value=[self.az]
+        )
+
+    def test_availability_zones_no_qp(self):
+        az = self.driver.availability_zones(self.sess, 'pid')
+        self.sess.vlb.availability_zones.assert_called()
+        self.assertEquals(az[0].name, self.attrs['code'])
+        self.assertEquals(az[0].enabled, True)
+
+    def test_availability_zones_qp(self):
+        self.driver.availability_zones(
+            self.sess, 'pid',
+            query_filter={'a': 'b'})
+        self.sess.vlb.availability_zones.assert_called_with(
+            a='b'
+        )
+
+    def test_availability_zones_region(self):
+        self.sess.config.region_name = 'eu-nl'
+        self.sess.vlb.availability_zones = mock.MagicMock(
+            return_value=[
+                availability_zone.AvailabilityZone(
+                    **{
+                        "code": "eu-nl-01",
+                        "state": 'ACTIVE'
+                    }),
+                availability_zone.AvailabilityZone(
+                    **{
+                        "code": "eu-de-01",
+                        "state": 'ACTIVE'
+                    }),
+            ]
+        )
+        az = self.driver.availability_zones(self.sess, 'pid')
+        self.sess.vlb.availability_zones.assert_called()
+        self.assertEquals(len(az), 1)
+        self.assertEquals(az[0].name, 'eu-de-01')
+        self.assertEquals(az[0].enabled, True)
