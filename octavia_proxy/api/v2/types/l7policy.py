@@ -89,8 +89,8 @@ class L7PolicyResponse(BaseL7PolicyType):
             'id', 'name',
             'action', 'description', 'listener_id', 'operating_status',
             'position', 'project_id', 'redirect_pool_id', 'redirect_url',
-            'provisioning_status', 'redirect_prefix', 'redirect_http_code',
-            'tags'
+            'provisioning_status', 'redirect_prefix',
+            'redirect_http_code', 'tags'
         ]:
             if hasattr(self, key):
                 v = getattr(self, key)
@@ -198,9 +198,8 @@ class L7PolicySingleCreate(BaseL7PolicyType):
         l7policy_post = L7PolicyPOST()
 
         for key in [
-            'name',
-            'action', 'description', 'listener_id',
-            'position', 'redirect_pool', 'redirect_url',
+            'name', 'description',
+            'position', 'redirect_url',
             'redirect_prefix', 'redirect_http_code',
             'tags'
         ]:
@@ -210,6 +209,7 @@ class L7PolicySingleCreate(BaseL7PolicyType):
                     setattr(l7policy_post, key, v)
 
         l7policy_post.admin_state_up = self.admin_state_up
+        l7policy_post.action = self.action
         if project_id:
             l7policy_post.project_id = project_id
         if listener_id:

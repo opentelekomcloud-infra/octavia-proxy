@@ -218,9 +218,6 @@ class PoolsController(base.BaseController):
 
         driver = driver_factory.get_driver(provider)
 
-        # if pool.listener_id and listener:
-        #     self._validate_protocol(listener.protocol, pool.protocol)
-
         if pool.protocol in constants.PROTOCOL_UDP:
             self._validate_pool_request_for_tcp_udp(pool)
 

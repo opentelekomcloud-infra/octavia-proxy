@@ -171,11 +171,10 @@ class ListenersController(base.BaseController):
             rules = l7p.rules
             if l7p.redirect_pool:
                 pool_name = l7p.redirect_pool.name
-                pool_id = pool_name_ids.get(pool_name)
-                if not pool_id:
+                if not pool_name:
                     raise exceptions.SingleCreateDetailsMissing(
                         type='Pool', name=pool_name)
-                redirect_pool_id = pool_id
+                redirect_pool_id = pool_name_ids.get(pool_name)
                 l7policy_post = l7p.to_l7policy_post(
                     project_id=project_id, listener_id=listener_id,
                     redirect_pool_id=redirect_pool_id)

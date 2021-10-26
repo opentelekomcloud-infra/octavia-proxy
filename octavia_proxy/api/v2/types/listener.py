@@ -100,10 +100,9 @@ class ListenerResponse(BaseListenerType):
             'client_crl_container_ref', 'connection_limit', 'default_pool_id',
             'default_tls_container_ref', 'description', 'operation_status',
             'project_id', 'protocol', 'protocol_port', 'provisioning_status',
-            'sni_container_refs',
-            'tags',
-            'timeout_client_data', 'timeout_member_connect',
-            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+            'sni_container_refs', 'tags', 'timeout_client_data',
+            'timeout_member_connect', 'timeout_member_data',
+            'timeout_tcp_inspect', 'tls_ciphers'
         ]:
             if hasattr(sdk_entity, key):
                 v = getattr(sdk_entity, key)
@@ -142,8 +141,7 @@ class ListenerResponse(BaseListenerType):
             'client_crl_container_ref', 'connection_limit', 'default_pool_id',
             'default_tls_container_ref', 'description', 'operation_status',
             'project_id', 'protocol', 'protocol_port', 'provisioning_status',
-            'sni_container_refs',
-            'tags',
+            'sni_container_refs', 'tags',
             'timeout_client_data', 'timeout_member_connect',
             'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
         ]:
@@ -153,16 +151,13 @@ class ListenerResponse(BaseListenerType):
                     setattr(full_response, key, v)
 
         full_response.admin_state_up = self.admin_state_up
-        full_response.connection_limit = self.connection_limit
-        full_response.default_pool_id = self.default_pool_id
+        full_response.allowed_cidrs = self.allowed_cidrs
+        full_response.alpn_protocols = self.alpn_protocols
         full_response.insert_headers = self.insert_headers
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
         full_response.loadbalancers = self.loadbalancers
-        full_response.client_crl_container_ref = self.client_crl_container_ref
-        full_response.allowed_cidrs = self.allowed_cidrs
         full_response.tls_versions = self.tls_versions
-        full_response.alpn_protocols = self.alpn_protocols
 
         if l7policies:
             full_response.l7policies = l7policies
@@ -346,12 +341,10 @@ class ListenerSingleCreate(BaseListenerType):
         listener_post = ListenerPOST()
 
         for key in [
-            'name',
-            'client_authentication', 'client_ca_tls_container_ref',
+            'name', 'client_ca_tls_container_ref',
             'client_crl_container_ref', 'connection_limit',
             'default_tls_container_ref', 'description',
-            'protocol', 'protocol_port', 'provisioning_status',
-            'sni_container_refs', 'tags',
+            'protocol_port', 'sni_container_refs', 'tags',
             'timeout_client_data', 'timeout_member_connect',
             'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
         ]:
@@ -360,13 +353,14 @@ class ListenerSingleCreate(BaseListenerType):
                 if v:
                     setattr(listener_post, key, v)
 
-        listener_post.description = self.description
         listener_post.admin_state_up = self.admin_state_up
+        listener_post.allowed_cidrs = self.allowed_cidrs
         listener_post.l7policies = self.l7policies
         listener_post.insert_headers = self.insert_headers
-        listener_post.allowed_cidrs = self.allowed_cidrs
+        listener_post.protocol = self.protocol
         listener_post.tls_versions = self.tls_versions
         listener_post.alpn_protocols = self.alpn_protocols
+        listener_post.client_authentication = self.client_authentication
         if project_id:
             listener_post.project_id = project_id
         if loadbalancer_id:

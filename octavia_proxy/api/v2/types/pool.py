@@ -160,10 +160,11 @@ class PoolResponse(BasePoolType):
 
         for key in [
             'id', 'name',
-            'availability_zone', 'description',
-            'protocol', 'lb_algorithm',
-            'session_persistence', 'project_id', 'provider',
-            'healthmonitor_id'
+            'operating_status', 'provisioning_status',
+            'description', 'protocol', 'lb_algorithm',
+            'session_persistence', 'project_id',
+            'healthmonitor_id', 'tags', 'tls_container_ref',
+            'tls_ciphers', 'ca_tls_container_ref', 'crl_container_ref'
         ]:
 
             if hasattr(self, key):
@@ -171,19 +172,12 @@ class PoolResponse(BasePoolType):
                 if v:
                     setattr(full_response, key, v)
 
-        full_response.provisioning_status = self.provisioning_status
-        full_response.operating_status = self.operating_status
         full_response.admin_state_up = self.admin_state_up
         full_response.loadbalancers = self.loadbalancers
         full_response.listeners = self.listeners
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
-        full_response.tags = self.tags
-        full_response.tls_container_ref = self.tls_container_ref
-        full_response.ca_tls_container_ref = self.ca_tls_container_ref
-        full_response.crl_container_ref = self.crl_container_ref
         full_response.tls_enabled = self.tls_enabled
-        full_response.tls_ciphers = self.tls_ciphers
         full_response.tls_versions = self.tls_versions
         full_response.alpn_protocols = self.alpn_protocols
 
@@ -297,7 +291,8 @@ class PoolSingleCreate(BasePoolType):
 
         for key in [
             'name', 'description', 'protocol', 'lb_algorithm',
-            'session_persistence'
+            'tls_container_ref', 'ca_tls_container_ref',
+            'crl_container_ref', 'tls_ciphers', 'tags'
         ]:
 
             if hasattr(self, key):
@@ -306,13 +301,9 @@ class PoolSingleCreate(BasePoolType):
                     setattr(pool_post, key, v)
 
         pool_post.admin_state_up = self.admin_state_up
+        pool_post.session_persistence = self.session_persistence
         pool_post.healthmonitor = self.healthmonitor
-        pool_post.tags = self.tags
-        pool_post.tls_container_ref = self.tls_container_ref
-        pool_post.ca_tls_container_ref = self.ca_tls_container_ref
-        pool_post.crl_container_ref = self.crl_container_ref
         pool_post.tls_enabled = self.tls_enabled
-        pool_post.tls_ciphers = self.tls_ciphers
         pool_post.tls_versions = self.tls_versions
         pool_post.alpn_protocols = self.alpn_protocols
         if loadbalancer_id:

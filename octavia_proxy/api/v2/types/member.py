@@ -75,7 +75,7 @@ class MemberResponse(BaseMemberType):
 
         for key in [
             'id', 'name', 'operating_status', 'provisioning_status',
-            'address', 'protocol_port', 'weight', 'backup',
+            'address', 'protocol_port', 'weight',
             'subnet_id', 'project_id', 'monitor_address',
             'monitor_port', 'tags'
         ]:
@@ -85,6 +85,7 @@ class MemberResponse(BaseMemberType):
                     setattr(full_response, key, v)
 
         full_response.admin_state_up = self.admin_state_up
+        full_response.backup = self.backup
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
         return full_response
@@ -175,7 +176,7 @@ class MemberSingleCreate(BaseMemberType):
 
         for key in [
             'name',
-            'address', 'protocol_port', 'weight', 'backup',
+            'address', 'protocol_port', 'weight',
             'subnet_id', 'project_id', 'monitor_address',
             'monitor_port', 'tags'
         ]:
@@ -185,6 +186,7 @@ class MemberSingleCreate(BaseMemberType):
                     setattr(member_post, key, v)
 
         member_post.admin_state_up = self.admin_state_up
+        member_post.backup = self.backup
         member_post.project_id = project_id
 
         return member_post

@@ -143,7 +143,8 @@ class LoadBalancerResponse(BaseLoadBalancerType):
                 if v:
                     setattr(full_response, key, v)
 
-        full_response.provider = self.provider
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
         full_response.admin_state_up = self.admin_state_up
         if listeners:
             full_response.listeners = listeners

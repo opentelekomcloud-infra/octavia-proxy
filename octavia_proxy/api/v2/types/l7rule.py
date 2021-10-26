@@ -80,9 +80,10 @@ class L7RuleResponse(BaseL7Type):
                 if v:
                     setattr(full_response, key, v)
 
+        full_response.admin_state_up = self.admin_state_up
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
-        full_response.admin_state_up = self.admin_state_up
+        full_response.invert = self.invert
 
         return full_response
 
@@ -160,7 +161,7 @@ class L7RuleSingleCreate(BaseL7Type):
         l7rule_post = L7RulePOST()
 
         for key in [
-            'name', 'compare_type', 'invert', 'key', 'project_id',
+            'compare_type', 'key', 'project_id',
             'type', 'tags', 'value'
         ]:
             if hasattr(self, key):
@@ -169,5 +170,6 @@ class L7RuleSingleCreate(BaseL7Type):
                     setattr(l7rule_post, key, v)
 
         l7rule_post.admin_state_up = self.admin_state_up
+        l7rule_post.invert = self.invert
 
         return l7rule_post
