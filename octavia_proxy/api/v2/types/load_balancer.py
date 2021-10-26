@@ -129,23 +129,21 @@ class LoadBalancerResponse(BaseLoadBalancerType):
 
     def to_full_response(self, pools=None, listeners=None):
         full_response = LoadBalancerFullResponse()
-        full_response.id = self.id
-        full_response.name = self.name
-        full_response.description = self.description
-        full_response.provisioning_status = self.provisioning_status
-        full_response.operating_status = self.operating_status
-        full_response.project_id = self.project_id
-        full_response.created_at = self.created_at
-        full_response.updated_at = self.updated_at
-        full_response.vip_address = self.vip_address
-        full_response.vip_port_id = self.vip_port_id
-        full_response.vip_subnet_id = self.vip_subnet_id
-        full_response.vip_network_id = self.vip_network_id
+
+        for key in [
+            'id', 'name',
+            'availability_zone', 'description', 'flavor_id',
+            'operating_status', 'project_id', 'provider',
+            'provisioning_status', 'tags', 'vip_address', 'vip_network_id',
+            'vip_port_id', 'vip_qos_policy_id', 'vip_subnet_id'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
         full_response.provider = self.provider
-        full_response.flavor_id = self.flavor_id
-        full_response.vip_qos_policy_id = self.vip_qos_policy_id
-        full_response.tags = self.tags
-        full_response.availability_zone = self.availability_zone
         full_response.admin_state_up = self.admin_state_up
         if listeners:
             full_response.listeners = listeners

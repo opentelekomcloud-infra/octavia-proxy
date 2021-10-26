@@ -89,7 +89,7 @@ class TestLoadBalancer(base.BaseAPITest):
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
     def test_complex_create_v2_0(self, **optionals):
-        lb_json = {'name': 'test2',
+        lb_json = {'name': 'test4',
                    'vip_subnet_id': self._network['subnet_id'],
                    'project_id': self.project_id,
                    "listeners": [{"name": "fav_listener", "protocol": "HTTP",
@@ -101,8 +101,8 @@ class TestLoadBalancer(base.BaseAPITest):
         self.api_lb = response.json.get(self.root_tag)
         listeners = self.api_lb['listeners']
         self.assertTrue(listeners)
-        self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id'),
-                                        cascade=True))
+        self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')
+                                        ), params={'cascade': True})
 
     def test_create_without_vip(self):
         lb_json = {'name': 'test1',

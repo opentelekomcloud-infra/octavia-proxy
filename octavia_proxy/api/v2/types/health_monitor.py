@@ -85,7 +85,7 @@ class HealthMonitorResponse(BaseHealthMonitorType):
         return healthmonitor
 
     def to_full_response(self):
-        full_response = HealthMonitorResponse()
+        full_response = HealthMonitorFullResponse()
 
         for key in [
             'id', 'name',
