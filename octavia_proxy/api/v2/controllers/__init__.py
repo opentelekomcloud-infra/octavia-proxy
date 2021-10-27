@@ -10,6 +10,7 @@ from octavia_proxy.api.v2.controllers import pool
 from octavia_proxy.api.v2.controllers import provider
 from octavia_proxy.api.v2.controllers import health_monitor
 from octavia_proxy.api.v2.controllers import quotas
+from octavia_proxy.api.v2.controllers import availability_zones
 
 
 class BaseV2Controller(base.BaseController):
@@ -31,8 +32,8 @@ class BaseV2Controller(base.BaseController):
         self.providers = provider.ProviderController()
         self.flavors = flavors.FlavorsController()
 #        self.flavorprofiles = flavor_profiles.FlavorProfileController()
-#        self.availabilityzones = (
-#            availability_zones.AvailabilityZonesController())
+        self.availabilityzones = (
+            availability_zones.AvailabilityZonesController())
 #        self.availabilityzoneprofiles = (
 #            availability_zone_profiles.AvailabilityZoneProfileController())
 

@@ -15,12 +15,12 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
+from openstack.load_balancer.v2 import (
+    listener, pool, member, l7_policy, load_balancer, health_monitor,
+    l7_rule, availability_zone)
 
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
-from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
-                                        load_balancer, health_monitor,
-                                        l7_rule)
 
 
 class FakeResponse:
@@ -821,3 +821,40 @@ class TestElbv2L7RuleDriver(base.TestCase):
         self.driver.l7rule_delete(self.sess, l7policy_id='pid',
                                   l7rule=self.l7rule)
         self.sess.elb.delete_l7_rule.assert_called_with(self.l7rule.id, 'pid')
+
+
+class TestElbv2AzDriver(base.TestCase):
+    attrs = {
+        "name": "eu-de-01",
+        "description": 'Test',
+        "enabled": True,
+        "availability_zone_profile_id": "6abba291-db52-4fe7-b568-a96bed73c643"
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.az = availability_zone.AvailabilityZone(**self.attrs)
+        self.sess.elb.availability_zones = mock.MagicMock(
+            return_value=[self.az]
+        )
+
+    def test_availability_zones_no_qp(self):
+        az = self.driver.availability_zones(self.sess, 'pid')
+        self.sess.elb.availability_zones.assert_called()
+        self.assertEquals(az[0].name, self.attrs['name'])
+        self.assertEquals(az[0].description, self.attrs['description'])
+        self.assertEquals(az[0].enabled, self.attrs['enabled'])
+        self.assertEquals(
+            az[0].availability_zone_profile_id,
+            self.attrs['availability_zone_profile_id']
+        )
+
+    def test_availability_zones_qp(self):
+        self.driver.availability_zones(
+            self.sess, 'pid',
+            query_filter={'a': 'b'})
+        self.sess.elb.availability_zones.assert_called_with(
+            a='b'
+        )
