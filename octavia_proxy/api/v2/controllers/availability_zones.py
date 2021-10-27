@@ -16,7 +16,9 @@ from oslo_log import log as logging
 from pecan import abort as pecan_abort
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
+from pecan import request as pecan_request
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import availability_zones as az_types
 from octavia_proxy.common import constants
@@ -37,8 +39,23 @@ class AvailabilityZonesController(base.BaseController):
         """Gets an Availability Zone's detail."""
         pecan_abort(501)
 
-    @wsme_pecan.wsexpose(az_types.AvailabilityZonesRootResponse,
+    @wsme_pecan.wsexpose(az_types.AvailabilityZonesRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
-    def get_all(self, fields=None):
+    def get_all(self, project_id=None, fields=None):
         """Lists all Availability Zones."""
-        pecan_abort(501)
+        pcontext = pecan_request.context
+        context = pcontext.get('octavia_context')
+
+        query_filter = self._auth_get_all(context, project_id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        query_filter.update(query_params)
+        is_parallel = query_filter.pop('is_parallel', True)
+
+        links = []
+        result = driver_invocation(
+            context, 'availability_zones', is_parallel, query_filter
+        )
+        if fields is not None:
+            result = self._filter_fields(result, fields)
+        return az_types.AvailabilityZonesRootResponse(
+            availability_zones=result, availability_zones_links=links)

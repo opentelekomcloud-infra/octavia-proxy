@@ -4,7 +4,7 @@ from oslo_log import log as logging
 from octavia_proxy.api.v2.types import (
     health_monitor as _hm, listener as _listener, load_balancer,
     pool as _pool, member as _member, l7policy as _l7policy,
-    l7rule as _l7rule
+    l7rule as _l7rule, availability_zones as _az
 )
 
 LOG = logging.getLogger(__name__)
@@ -552,3 +552,18 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
+
+    def availability_zones(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching availability zones')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+        for az in session.elb.availability_zones(**query_filter):
+            az.enabled = az.is_enabled
+            az_data = _az.AvailabilityZoneResponse.from_sdk_object(
+                az
+            )
+            az_data.provider = PROVIDER
+            result.append(az_data)
+        return result
