@@ -17,7 +17,7 @@ import requests
 from keystoneauth1 import adapter
 from otcextensions.sdk.vlb.v3 import (
     load_balancer, listener, pool, member, health_monitor,
-    l7_policy, l7_rule, flavor, availability_zone
+    l7_policy, l7_rule, flavor, availability_zone, quota
 )
 
 from octavia_proxy.api.drivers.elbv3 import driver
@@ -934,3 +934,36 @@ class TestElbv3AzDriver(base.TestCase):
         self.assertEquals(len(az), 1)
         self.assertEquals(az[0].name, 'eu-de-01')
         self.assertEquals(az[0].enabled, True)
+
+
+class TestElbv3QuotaDriver(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.sess.vlb.get_quotas = mock.MagicMock(
+            return_value=quota.Quota(**{
+                "member": 500,
+                "members_per_pool": 500,
+                "certificate": 120,
+                "l7policy": 500,
+                "listener": 100,
+                "loadbalancer": 50,
+                "healthmonitor": -1,
+                "pool": 500,
+                "ipgroup": 50,
+                "project_id": "c742c92afd8d46b1b3083d004afffd70"
+            })
+        )
+
+    def test_quota_get(self):
+        quotas = self.driver.quota_get(
+            self.sess, 'test', 'c742c92afd8d46b1b3083d004afffd70'
+        )
+        self.sess.vlb.get_quotas.assert_called()
+        self.assertEquals(quotas.member, 500)
+        self.assertEquals(quotas.pool, 500)
+        self.assertEquals(quotas.l7policy, 500)
+        self.assertEquals(quotas.listener, 100)
+        self.assertEquals(quotas.healthmonitor, -1)
