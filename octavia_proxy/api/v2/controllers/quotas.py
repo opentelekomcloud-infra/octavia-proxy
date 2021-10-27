@@ -33,8 +33,8 @@ class QuotasController(base.BaseController):
     def __init__(self):
         super().__init__()
 
-    @wsme_pecan.wsexpose(q_types.QuotaResponse,
-                         wtypes.text, [wtypes.text], ignore_extra_args=True)
+    @wsme_pecan.wsexpose(q_types.QuotaResponse, wtypes.text,
+                         [wtypes.text], ignore_extra_args=True)
     def get_one(self, project_id, fields=None):
         """Gets an Quota's detail."""
         pcontext = pecan_request.context
@@ -44,15 +44,13 @@ class QuotasController(base.BaseController):
 
         quota = driver_invocation(
             context, 'quota_get', is_parallel, project_id
-        )[0]
-
-        LOG.debug(f'#################### {quota.__dict__} ###########################')
+        )
 
         if not quota:
             raise exceptions.NotFound(
                 resource='Quota',
                 id=id)
-
+        quota = quota[0]
         if fields is not None:
             quota = self._filter_fields([quota], fields)[0]
         return q_types.QuotaResponse(quota=quota)

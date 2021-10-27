@@ -614,13 +614,15 @@ class ELBv3Driver(driver_base.ProviderDriver):
             fl_data.provider = PROVIDER
             return fl_data
 
-    def quota_get(self, session, project_id, param):
+    def quota_get(self, session, project_id, req_project):
         LOG.debug('Searching for quotas')
 
         quota = session.vlb.get_quotas()
         LOG.debug('quotas is %s' % quota)
 
         if quota:
+            if quota.project_id != req_project:
+                return
             quota_data = _quotas.QuotaResponse.from_sdk_object(
                 quota
             )
