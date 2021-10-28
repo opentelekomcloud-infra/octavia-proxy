@@ -17,7 +17,7 @@ import requests
 from keystoneauth1 import adapter
 from openstack.load_balancer.v2 import (
     listener, pool, member, l7_policy, load_balancer, health_monitor,
-    l7_rule, availability_zone)
+    l7_rule, availability_zone, quota)
 
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
@@ -858,3 +858,29 @@ class TestElbv2AzDriver(base.TestCase):
         self.sess.elb.availability_zones.assert_called_with(
             a='b'
         )
+
+
+class TestElbv2QuotaDriver(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.sess.elb.get_quotas = mock.MagicMock(
+            return_value=quota.Quota(**{
+                "member": 500,
+                "members_per_pool": 500,
+                "certificate": 120,
+                "l7policy": 500,
+                "listener": 100,
+                "loadbalancer": 50,
+                "healthmonitor": -1,
+                "pool": 500,
+                "ipgroup": 50,
+                "project_id": "c742c92afd8d46b1b3083d004afffd70"
+            })
+        )
+
+    def test_quota_get(self):
+        self.driver.quota_get(self.sess, 'test', 'pid')
+        self.sess.elb.get_quotas.assert_called()

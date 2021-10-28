@@ -10,6 +10,7 @@ from octavia_proxy.api.v2.types import (
     load_balancer,
     member as _member,
     pool as _pool,
+    quotas as _quotas,
     availability_zones as _az
 )
 from octavia_proxy.common.utils import (
@@ -637,3 +638,18 @@ class ELBv3Driver(driver_base.ProviderDriver):
             az_data.provider = PROVIDER
             result.append(az_data)
         return result
+
+    def quota_get(self, session, project_id, req_project):
+        LOG.debug('Searching for quotas')
+
+        quota = session.vlb.get_quotas()
+        LOG.debug('quotas is %s' % quota)
+
+        if quota:
+            if quota.project_id != req_project:
+                return
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            return quota_data
