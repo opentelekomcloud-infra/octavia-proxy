@@ -33,7 +33,7 @@ class QuotasController(base.BaseController):
     def __init__(self):
         super().__init__()
 
-    @wsme_pecan.wsexpose(q_types.QuotaResponse, wtypes.text,
+    @wsme_pecan.wsexpose(q_types.QuotaRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, project_id, fields=None):
         """Gets an Quota's detail."""
@@ -45,7 +45,6 @@ class QuotasController(base.BaseController):
         quota = driver_invocation(
             context, 'quota_get', is_parallel, project_id
         )
-
         if not quota:
             raise exceptions.NotFound(
                 resource='Quota',
@@ -53,10 +52,25 @@ class QuotasController(base.BaseController):
         quota = quota[0]
         if fields is not None:
             quota = self._filter_fields([quota], fields)[0]
-        return q_types.QuotaResponse(quota=quota)
+        return q_types.QuotaRootResponse(quota=quota)
 
-    @wsme_pecan.wsexpose(q_types.QuotaAllResponse, wtypes.text,
+    @wsme_pecan.wsexpose(q_types.QuotasRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_all(self, project_id=None, fields=None):
         """Lists all Quotas."""
-        pecan_abort(501)
+        pcontext = pecan_request.context
+        context = pcontext.get('octavia_context')
+
+        query_filter = self._auth_get_all(context, project_id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        query_filter.update(query_params)
+        is_parallel = query_filter.pop('is_parallel', True)
+
+        links = []
+        result = driver_invocation(
+            context, 'quotas', is_parallel, query_filter
+        )
+        if fields is not None:
+            result = self._filter_fields(result, fields)
+        return q_types.QuotasRootResponse(
+            quotas=result, quotas_links=links)

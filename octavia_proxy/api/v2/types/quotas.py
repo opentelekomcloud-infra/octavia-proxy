@@ -17,9 +17,17 @@ from wsme import types as wtypes
 from octavia_proxy.api.common import types as base
 from octavia_proxy.common import constants as consts
 
+from oslo_log import log as logging
+LOG = logging.getLogger(__name__)
 
 class QuotaBase(base.BaseType):
+    _type_to_model_map = {}
+    _child_map = {}
+
+
+class QuotaResponse(QuotaBase):
     """Individual quota definitions."""
+    project_id = wtypes.wsattr(wtypes.UuidType())
     loadbalancer = wtypes.wsattr(wtypes.IntegerType(
         minimum=consts.MIN_QUOTA, maximum=consts.MAX_QUOTA))
     # Misspelled version, deprecated in Rocky
@@ -49,11 +57,6 @@ class QuotaBase(base.BaseType):
             quota_dict['health_monitor'] = quota_dict.pop('healthmonitor')
         return quota_dict
 
-
-class QuotaResponse(base.BaseType):
-    """Wrapper object for quotas responses."""
-    quota = wtypes.wsattr(QuotaBase)
-
     @classmethod
     def from_data_model(cls, data_model, children=False):
         quotas = super(QuotaResponse, cls).from_data_model(
@@ -63,12 +66,13 @@ class QuotaResponse(base.BaseType):
 
     @classmethod
     def from_sdk_object(cls, sdk_entity):
-        quota = QuotaBase()
+        quota = cls()
         for key in [
             'loadbalancer', 'load_balancer', 'listener', 'member',
             'pool', 'healthmonitor', 'health_monitor', 'l7policy',
-            'l7rule'
+            'l7rule', 'project_id'
         ]:
+
             if hasattr(sdk_entity, key):
                 v = getattr(sdk_entity, key)
                 if v:
@@ -77,7 +81,6 @@ class QuotaResponse(base.BaseType):
             quota.load_balancer = quota.loadbalancer
         if hasattr(quota, 'healthmonitor'):
             quota.health_monitor = quota.healthmonitor
-
         return quota
 
 
@@ -110,18 +113,13 @@ class QuotaAllBase(base.BaseType):
         quotas.health_monitor = quotas.healthmonitor
         return quotas
 
+class QuotaRootResponse(base.BaseType):
+    quota = wtypes.wsattr(QuotaResponse)
 
-class QuotaAllResponse(base.BaseType):
-    quotas = wtypes.wsattr([QuotaAllBase])
+
+class QuotasRootResponse(base.BaseType):
+    quotas = wtypes.wsattr([QuotaResponse])
     quotas_links = wtypes.wsattr([base.PageType])
-
-    @classmethod
-    def from_data_model(cls, data_model, children=False):
-        quotalist = QuotaAllResponse()
-        quotalist.quotas = [
-            QuotaAllBase.from_data_model(obj)
-            for obj in data_model]
-        return quotalist
 
 
 class QuotaPUT(base.BaseType):
