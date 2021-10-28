@@ -881,6 +881,11 @@ class TestElbv2QuotaDriver(base.TestCase):
             })
         )
 
+    def test_quotas_no_qp(self):
+        self.driver.quotas(
+            self.sess, 'pid')
+        self.sess.elb.get_quotas.assert_called()
+
     def test_quota_get(self):
         self.driver.quota_get(self.sess, 'test', 'pid')
         self.sess.elb.get_quotas.assert_called()

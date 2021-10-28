@@ -957,6 +957,11 @@ class TestElbv3QuotaDriver(base.TestCase):
             })
         )
 
+    def test_quotas_no_qp(self):
+        self.driver.quotas(
+            self.sess, 'pid')
+        self.sess.vlb.get_quotas.assert_called()
+
     def test_quota_get(self):
         quotas = self.driver.quota_get(
             self.sess, 'test', 'c742c92afd8d46b1b3083d004afffd70'
