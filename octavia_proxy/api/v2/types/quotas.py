@@ -111,6 +111,7 @@ class QuotaAllBase(base.BaseType):
         quotas.health_monitor = quotas.healthmonitor
         return quotas
 
+
 class QuotaRootResponse(base.BaseType):
     quota = wtypes.wsattr(QuotaResponse)
 
