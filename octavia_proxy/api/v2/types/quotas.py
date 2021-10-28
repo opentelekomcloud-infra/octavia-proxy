@@ -17,8 +17,6 @@ from wsme import types as wtypes
 from octavia_proxy.api.common import types as base
 from octavia_proxy.common import constants as consts
 
-from oslo_log import log as logging
-LOG = logging.getLogger(__name__)
 
 class QuotaBase(base.BaseType):
     _type_to_model_map = {}
