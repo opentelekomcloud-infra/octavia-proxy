@@ -639,12 +639,26 @@ class ELBv3Driver(driver_base.ProviderDriver):
             result.append(az_data)
         return result
 
+    def quotas(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching quotas')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+        quota = session.vlb.get_quotas()
+        if quota:
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            result.append(quota_data)
+        return result
+
     def quota_get(self, session, project_id, req_project):
         LOG.debug('Searching for quotas')
 
         quota = session.vlb.get_quotas()
         LOG.debug('quotas is %s' % quota)
-
         if quota:
             if quota.project_id != req_project:
                 return
