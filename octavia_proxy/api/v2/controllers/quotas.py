@@ -13,7 +13,6 @@
 #    under the License.
 
 from oslo_log import log as logging
-from pecan import abort as pecan_abort
 from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
