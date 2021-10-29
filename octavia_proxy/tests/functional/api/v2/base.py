@@ -119,6 +119,9 @@ class BaseAPITest(base.TestCase):
         self.conf.config(
             group='api_settings',
             auth_strategy=constants.KEYSTONE_EXT)
+        self.conf.config(
+            group='validatetoken',
+            www_authenticate_uri='https://iam.eu-de.otc.t-systems.com')
         self.app = self._make_app()
         self._lb = self._create_lb()
 

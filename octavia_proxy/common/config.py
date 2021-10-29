@@ -7,6 +7,8 @@ from oslo_log import log as logging
 
 import openstack
 
+from validatetoken.middleware import validatetoken
+
 from octavia_proxy.common import constants
 from octavia_proxy.common import utils
 from octavia_proxy.i18n import _
@@ -26,13 +28,6 @@ core_opts = [
                     help=_("The hostname Octavia is running on")),
     cfg.StrOpt('octavia_plugins', default='hot_plug_plugin',
                help=_("Name of the controller plugin to use")),
-]
-
-validatetoken_opts = [
-    cfg.StrOpt('auth_url', default='https://iam.eu-de.otc.t-systems.com',
-               help=_('Keystone URL to verify the token')),
-    cfg.StrOpt('log_name', default='validatetoken',
-               help=_("logname")),
 ]
 
 api_opts = [
@@ -126,7 +121,8 @@ core_cli_opts = []
 # Register the configuration options
 cfg.CONF.register_opts(core_opts)
 cfg.CONF.register_opts(api_opts, group='api_settings')
-cfg.CONF.register_opts(validatetoken_opts, group='validatetoken')
+cfg.CONF.register_opts(validatetoken._VALIDATETOKEN_OPTS,
+                       group=validatetoken.VALIDATETOKEN_MIDDLEWARE_GROUP)
 cfg.CONF.register_opts(networking_opts, group='networking')
 
 

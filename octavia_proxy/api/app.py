@@ -62,7 +62,7 @@ def _wrap_app(app):
 
     if cfg.CONF.api_settings.auth_strategy == constants.KEYSTONE_EXT:
         app = validatetoken_middleware.ValidateToken(
-            app, cfg.CONF.validatetoken)
+            app, cfg.CONF)
 
     app = http_proxy_to_wsgi.HTTPProxyToWSGI(app)
 
