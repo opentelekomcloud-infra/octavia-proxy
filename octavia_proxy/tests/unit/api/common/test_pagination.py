@@ -12,85 +12,142 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from unittest import mock
+
 from octavia_proxy.tests.unit import base
 from octavia_proxy.api.common import pagination
 from octavia_proxy.common import exceptions
 
-DEFAULT_SORTS = [('id', 'asc')]
+DEFAULT_SORTS = [('created_at', 'asc'), ('id', 'asc')]
 EXAMPLE = [
     {
-        "admin_state_up": True,
-        "listeners": [],
-        "vip_subnet_id": "08dce793-daef-411d-a896-d389cd45b1ea",
-        "pools": [],
-        "provider": "octavia",
-        "description": "Best App load balancer 1",
-        "name": "aabestapp1",
-        "operating_status": "ONLINE",
-        "id": "34d5f4a5-cbbc-43a0-878f-b8a26370e6e7",
+        "name": "lb_test1",
+        "id": "147f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test",
         "provisioning_status": "ACTIVE",
-        "vip_port_id": "1e20d91d-8df9-4c15-9778-28bc89226c19",
-        "vip_address": "203.0.113.10",
-        "project_id": "bf325b04-e7b1-4002-9b10-f4984630367f"
+        "provider": "vlb",
+        "operating_status": "ONLINE",
+        "vip_address": "192.168.241.33",
+        "listeners": [],
+        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "created_at": "2021-10-13T11:01:08",
+        "tags": [],
+        "pools": [],
+        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "updated_at": "2021-10-13T11:01:09",
+        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
+        "admin_state_up": True,
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a9"
     },
     {
-        "admin_state_up": True,
-        "listeners": [],
-        "vip_subnet_id": "08dce793-daef-411d-a896-d389cd45b1ea",
-        "pools": [],
-        "provider": "octavia",
-        "description": "Second Best App load balancer 1",
-        "name": "bbbestapp2",
-        "operating_status": "ONLINE",
-        "id": "0fdb0ca7-0a38-4aea-891c-daaed40bcafe",
+        "name": "lb_test2",
+        "id": "123f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test 2",
         "provisioning_status": "ACTIVE",
-        "vip_port_id": "21f7ac04-6824-4222-93cf-46e0d70607f9",
-        "vip_address": "203.0.113.20",
-        "project_id": "bf325b04-e7b1-4002-9b10-f4984630367f"
+        "provider": "vlb",
+        "operating_status": "ONLINE",
+        "vip_address": "192.168.241.32",
+        "listeners": [],
+        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "created_at": "2021-10-13T11:02:08",
+        "tags": [],
+        "pools": [],
+        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "updated_at": "2021-10-13T11:02:09",
+        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
+        "admin_state_up": True,
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a8"
     },
     {
-        "admin_state_up": True,
-        "listeners": [],
-        "vip_subnet_id": "08dce793-daef-411d-a896-d389cd45b1ea",
-        "pools": [],
-        "provider": "octavia",
-        "description": "Third best App load balancer 1",
-        "name": "acbestapp3",
-        "operating_status": "ONLINE",
-        "id": "1fdb0ca7-0a38-4aea-891c-daaed40bcawe",
+        "name": "lb_test3",
+        "id": "345f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test 3",
         "provisioning_status": "ACTIVE",
-        "vip_port_id": "21f7ac04-6824-4222-93cf-46e0d70607f9",
-        "vip_address": "203.0.113.20",
-        "project_id": "bf325b04-e7b1-4002-9b10-f4984630367f"
+        "provider": "vlb",
+        "operating_status": "ONLINE",
+        "vip_address": "192.168.241.31",
+        "listeners": [],
+        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "created_at": "2021-10-13T11:03:08",
+        "tags": [],
+        "pools": [],
+        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "updated_at": "2021-10-13T11:03:09",
+        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
+        "admin_state_up": True,
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a7"
     },
     {
-        "admin_state_up": True,
-        "listeners": [],
-        "vip_subnet_id": "08dce793-daef-411d-a896-d389cd45b1ea",
-        "pools": [],
-        "provider": "octavia",
-        "description": "Another Best App load balancer 1",
-        "name": "ddbestapp4",
-        "operating_status": "ONLINE",
-        "id": "2fdb0ca7-0a38-4aea-891c-daaed40bcadc",
+        "name": "lb_test4",
+        "id": "456f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test 4",
         "provisioning_status": "ACTIVE",
-        "vip_port_id": "21f7ac04-6824-4222-93cf-46e0d70607f9",
-        "vip_address": "203.0.113.20",
-        "project_id": "bf325b04-e7b1-4002-9b10-f4984630367f"
-    }
+        "provider": "vlb",
+        "operating_status": "ONLINE",
+        "vip_address": "192.168.241.31",
+        "listeners": [],
+        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "created_at": "2021-10-13T11:04:08",
+        "tags": [],
+        "pools": [],
+        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "updated_at": "2021-10-13T11:05:09",
+        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
+        "admin_state_up": True,
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a6"
+    },
+    {
+        "name": "lb_test5",
+        "id": "567f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test 5",
+        "provisioning_status": "ACTIVE",
+        "provider": "vlb",
+        "operating_status": "ONLINE",
+        "vip_address": "192.168.241.30",
+        "listeners": [],
+        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "created_at": "2021-10-13T11:05:08",
+        "tags": [],
+        "pools": [],
+        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "updated_at": "2021-10-13T11:05:09",
+        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
+        "admin_state_up": True,
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a5"
+    },
+    {
+        "name": "lb_test6",
+        "id": "123f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test 6",
+        "provisioning_status": "ACTIVE",
+        "provider": "vlb",
+        "operating_status": "ONLINE",
+        "vip_address": "192.168.241.29",
+        "listeners": [],
+        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "created_at": "2021-10-13T11:06:08",
+        "tags": [],
+        "pools": [],
+        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "updated_at": "2021-10-13T11:06:09",
+        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
+        "admin_state_up": True,
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a4"
+    },
 ]
 
 
 class TestPaginationHelper(base.TestCase):
 
-    def test_no_param(self):
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_no_param(self, request_mock):
         params = {}
         helper = pagination.PaginationHelper(params)
 
         helper.apply(EXAMPLE)
         self.assertEqual(DEFAULT_SORTS, helper.sort_keys_dirs)
         self.assertIsNone(helper.marker)
-        self.assertEqual(1000, helper.limit)
+        self.assertEqual(4, helper.limit)
 
     def test_sort_empty(self):
         sort_params = ""
@@ -133,7 +190,7 @@ class TestPaginationHelper(base.TestCase):
         self.assertEqual(marker, helper.marker)
 
     def test_limit(self):
-        limit = 100
+        limit = 4
         params = {'limit': limit}
         helper = pagination.PaginationHelper(params)
         self.assertEqual(limit, helper.limit)
