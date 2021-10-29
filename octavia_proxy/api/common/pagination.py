@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 from operator import itemgetter
 
 from oslo_log import log as logging
@@ -27,8 +28,6 @@ LOG = logging.getLogger(__name__)
 
 class PaginationHelper(object):
     """Class helping to interact with pagination functionality
-
-    Pass this class to `db.repositories` to apply it on query
     """
     _auxiliary_arguments = ('limit', 'marker',
                             'sort', 'sort_key', 'sort_dir',
@@ -151,7 +150,7 @@ class PaginationHelper(object):
             if marker:
                 link_attr.append("marker={}".format(marker))
             if self.page_reverse:
-                link_attr.append("page_reverse=True")
+                link_attr.append("page_reverse={}".format(self.page_reverse))
             if self.sort:
                 link_attr.append("sort={}".format(self.sort))
             if self.sort_key:
@@ -165,16 +164,13 @@ class PaginationHelper(object):
             }
         return link
 
-    def _make_link_list(*links):
-        return [link for link in links]
-
     def _multikeysort(self, entities_list, sort_keys_dirs):
         """Sort a list of dictionary objects or objects by multiple keys.
 
         :param entities_list: A list of dictionary objects or objects
         :type entities_list: list
         :param sort_keys_dirs: A list of entities fields and directions
-         to sort by.
+            to sort by.
         :type sort_keys_dirs: list
         :return: Sorted list of entities.
         :rtype: list
@@ -233,58 +229,57 @@ class PaginationHelper(object):
                 marker_i = self._marker_index(entities_list=entities_list)
                 if marker_i is None and self.limit is None:
                     result.extend(entities_list)
-                elif marker_i is None and self.limit:
+                elif marker_i is None and self.limit <= list_len:
                     result.extend(entities_list[0: local_limit])
-                    links.extend(self._make_link_list(self._make_link(
+                    links.append(self._make_link(
                         entities_list=entities_list,
                         rel="next",
                         limit=self.limit,
-                        marker=entities_list[local_limit].get('id')
-                    )))
+                        marker=entities_list[local_limit - 1].get('id')
+                    ))
                 elif marker_i == list_len - 1:
                     result.extend(entities_list[marker_i: list_len])
-                    links.extend(self._make_link_list(self._make_link(
+                    links.append(self._make_link(
                         entities_list=entities_list,
                         rel="previous",
                         limit=self.limit,
                         marker=self.marker
-                    )))
+                    ))
                 elif marker_i + local_limit < list_len - 1:
                     result.extend(entities_list[
                                   marker_i + 1: marker_i + 1 + local_limit])
-                    links.extend(self._make_link_list(
-                        self._make_link(
-                            entities_list=entities_list,
-                            rel="previous",
-                            limit=self.limit,
-                            marker=self.marker
-                        ),
-                        self._make_link(
-                            entities_list=entities_list,
-                            rel="next",
-                            limit=self.limit,
-                            marker=entities_list[local_limit + 1].get('id')
-                        )
-                    )
-                    )
-                else:
-                    result.extend(entities_list[marker_i + 1: list_len])
-                    links.extend(self._make_link_list(self._make_link(
+                    links.append(self._make_link(
                         entities_list=entities_list,
                         rel="previous",
                         limit=self.limit,
                         marker=self.marker
-                    )))
+                    )),
+                    links.append(self._make_link(
+                        entities_list=entities_list,
+                        rel="next",
+                        limit=self.limit,
+                        marker=entities_list[local_limit + 1 +
+                                             local_limit].get('id')
+                    ))
+                else:
+                    result.extend(entities_list[marker_i + 1: list_len])
+                    links.append(self._make_link(
+                        entities_list=entities_list,
+                        rel="previous",
+                        limit=self.limit,
+                        marker=self.marker
+                    ))
             elif self.limit <= list_len:
                 result.extend(entities_list[0: local_limit])
-                links.extend(self._make_link_list(self._make_link(
+                links.append(self._make_link(
                     entities_list=entities_list,
                     rel="next",
                     limit=self.limit,
-                    marker=entities_list[local_limit].get('id')
-                )))
+                    marker=entities_list[local_limit - 1].get('id')
+                ))
             else:
                 result.extend(entities_list)
+        links = [types.PageType(**link) for link in links]
         return result, links
 
     def apply(self, entities_list):

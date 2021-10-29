@@ -68,12 +68,14 @@ class LoadBalancersController(base.BaseController):
         context = pcontext.get('octavia_context')
 
         query_filter = self._auth_get_all(context, project_id)
-        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        #Get pagination helper
+        pagination_helper = pcontext.get(constants.PAGINATION_HELPER)
+        query_params = pagination_helper.params
 
         # TODO: fix filtering and sorting, especially for multiple providers
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
-        query_filter.update(query_params)
+        #query_filter.update(query_params)
         is_parallel = query_filter.pop('is_parallel', True)
 
         links = []
@@ -82,6 +84,12 @@ class LoadBalancersController(base.BaseController):
         )
 
         # TODO: pagination
+        if pagination_helper:
+            result_to_dict = [lb_obj.to_dict() for lb_obj in result]
+            temp_result, links = pagination_helper.apply(result_to_dict)
+            result = self._convert_sdk_to_type(
+                temp_result, lb_types.LoadBalancerFullResponse
+            )
         if fields is not None:
             result = self._filter_fields(result, fields)
         return lb_types.LoadBalancersRootResponse(
