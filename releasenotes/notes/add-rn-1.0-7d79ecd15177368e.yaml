@@ -41,6 +41,6 @@ other:
   - |
     Add testcases with ``tags`` in ``loadbalancer/listener`` (`#70 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/70>`_)
   - |
-    Get ``project_id `` from ``context`` (`#68 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/68>`_)
+    Get ``project_id`` from ``context`` (`#68 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/68>`_)
   - |
-    Add ``api-ref `` job template (`#67 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/67>`_)
+    Add ``api-ref`` job template (`#67 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/67>`_)
