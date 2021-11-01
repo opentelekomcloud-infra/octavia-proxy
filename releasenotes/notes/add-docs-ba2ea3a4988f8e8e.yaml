@@ -1,4 +1,4 @@
 ---
 features:
   - |
-    Add project documentation, API-reference and proper release notes.
+    Add project ``documentation`` ``API-reference`` and proper ``release notes``. (`#4 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/4>`_)

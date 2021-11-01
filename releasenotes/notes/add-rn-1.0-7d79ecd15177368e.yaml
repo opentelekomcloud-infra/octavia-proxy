@@ -1,0 +1,46 @@
+---
+features:
+  - |
+    Add ``quota`` list/show handling ``elbv2/elbv3`` (`#89 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/89>`_)
+  - |
+    Add ``az`` list/show handling ``elbv2/elbv3`` (`#88 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/88>`_)
+  - |
+    Add ``tags`` support in ``elbv2`` (`#86 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/86>`_)
+  - |
+    Add ``flavor`` support in ``elbv3`` (`#80 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/80>`_)
+  - |
+    Parallel ``driver`` invocation interface for ``get_one`` and ``get_all`` (`#77 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/77>`_)
+  - |
+    Add ``tags`` support in ``elbv3`` (`#71 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/71>`_)
+  - |
+    Multiple ``driver`` invocation support (`#64 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/64>`_)
+  - |
+    Add ``l7rule`` support in ``elbv3`` (`#61 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/61>`_)
+  - |
+    Add ``l7rule`` support in ``elbv2`` (`#59 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/59>`_)
+  - |
+    Add ``cascade delete`` support in ``elbv3`` (`#58 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/58>`_)
+fixes:
+  - |
+    Make ``quota`` types in ``octavia`` style (`#91 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/91>`_)
+  - |
+    Make ``project_id`` not required for ``loadbalancer`` post (`#84 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/84>`_)
+  - |
+    Fix ``subnet`` validation in ``loadbalancer`` post (`#84 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/84>`_)
+  - |
+    Multiple ``az`` support in ``elbv3`` post (`#78 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/78>`_)
+  - |
+    Fix ``loadbalancer`` creation without ``octavia`` dependencies (`#65 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/65>`_)
+  - |
+    Small refactoring ``provider`` finding in ``health monitor`` and ``member`` (`#60 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/60>`_)
+other:
+  - |
+    Update ``image tag`` in ``propose`` job (`#85 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/85>`_)
+  - |
+    Add ``promote`` jobs for ``zuul`` (`#81 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/81>`_)
+  - |
+    Add testcases with ``tags`` in ``loadbalancer/listener`` (`#70 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/70>`_)
+  - |
+    Get ``project_id`` from ``context`` (`#68 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/68>`_)
+  - |
+    Add ``api-ref`` job template (`#67 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/67>`_)
