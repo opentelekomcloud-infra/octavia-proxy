@@ -258,7 +258,7 @@ class PaginationHelper(object):
                         entities_list=entities_list,
                         rel="next",
                         limit=self.limit,
-                        marker=entities_list[local_limit + 1 +
+                        marker=entities_list[marker_i + 1 +
                                              local_limit].get('id')
                     ))
                 else:
@@ -279,7 +279,7 @@ class PaginationHelper(object):
                 ))
             else:
                 result.extend(entities_list)
-        links = [types.PageType(**link) for link in links]
+        #links = [types.PageType(**link) for link in links]
         return result, links
 
     def apply(self, entities_list):

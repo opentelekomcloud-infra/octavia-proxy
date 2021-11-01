@@ -28,6 +28,7 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import load_balancer as lb_types
+from octavia_proxy.api.common import types
 from octavia_proxy.common import constants, validate, utils
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
@@ -87,6 +88,7 @@ class LoadBalancersController(base.BaseController):
         if pagination_helper:
             result_to_dict = [lb_obj.to_dict() for lb_obj in result]
             temp_result, links = pagination_helper.apply(result_to_dict)
+            links = [types.PageType(**link) for link in links]
             result = self._convert_sdk_to_type(
                 temp_result, lb_types.LoadBalancerFullResponse
             )

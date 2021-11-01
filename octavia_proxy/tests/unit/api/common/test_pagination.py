@@ -117,7 +117,7 @@ EXAMPLE = [
     },
     {
         "name": "lb_test6",
-        "id": "123f018a-f401-48d1-b58a-50fe6600fake",
+        "id": "678f018a-f401-48d1-b58a-50fe6600fake",
         "description": "Best App lb test 6",
         "provisioning_status": "ACTIVE",
         "provider": "vlb",
@@ -143,7 +143,6 @@ class TestPaginationHelper(base.TestCase):
     def test_no_param(self, request_mock):
         params = {}
         helper = pagination.PaginationHelper(params)
-
         helper.apply(EXAMPLE)
         self.assertEqual(DEFAULT_SORTS, helper.sort_keys_dirs)
         self.assertIsNone(helper.marker)
@@ -194,3 +193,22 @@ class TestPaginationHelper(base.TestCase):
         params = {'limit': limit}
         helper = pagination.PaginationHelper(params)
         self.assertEqual(limit, helper.limit)
+
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_sorting_and_links_generation(self, request_mock):
+        params = {
+            'marker': '147f018a-f401-48d1-b58a-50fe6600fake',
+            'limit': 4,
+            'page_reverse': False
+        }
+        expected_link_list = [
+            {'href': 'http://localhost:9876/v2/lbaas/loadbalancers.json'
+                     '?limit=4&marker=147f018a-f401-48d1-b58a-50fe6600fake',
+             'rel': 'previous'},
+            {'href': 'http://localhost:9876/v2/lbaas/loadbalancers.json'
+                     '?limit=4&marker=678f018a-f401-48d1-b58a-50fe6600fake',
+             'rel': 'next'}
+        ]
+        helper = pagination.PaginationHelper(params)
+        entities_list, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_link_list, links)
