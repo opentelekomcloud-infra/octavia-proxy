@@ -15,9 +15,10 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
-from otcextensions.sdk.vlb.v3 import (load_balancer, listener, pool,
-                                      member, health_monitor,
-                                      l7_policy, l7_rule)
+from otcextensions.sdk.vlb.v3 import (
+    load_balancer, listener, pool, member, health_monitor,
+    l7_policy, l7_rule, flavor, availability_zone, quota
+)
 
 from octavia_proxy.api.drivers.elbv3 import driver
 from octavia_proxy.api.v2.types import (
@@ -115,6 +116,18 @@ class TestElbv3Driver(base.TestCase):
         self.sess.vlb.get_load_balancer_statuses = mock.MagicMock(
             return_value=Statuses(**statuses)
         )
+        self.sess.vlb.get_flavor = mock.MagicMock(
+            return_value=flavor.Flavor(**{
+                'id': '9d3ed668-b0ab-4abc-af4a-81458851ef34',
+                'name': 'L7_flavor.elb.s2.medium'
+            })
+        )
+        self.sess.vlb.find_flavor = mock.MagicMock(
+            return_value=flavor.Flavor(**{
+                'id': '232e88a6-e373-49bb-ae8c-830423a37895',
+                'name': 'L4_flavor.elb.s2.medium'
+            })
+        )
 
     def test_get_supported_flavor_metadata(self):
         resp = self.driver.get_supported_flavor_metadata()
@@ -167,6 +180,18 @@ class TestElbv3Driver(base.TestCase):
             **self.fake_call_create
         )
 
+    def test_loadbalancer_create_flavors(self):
+        lb = oct_lb.LoadBalancerPOST(
+            **self.octavia_attrs,
+            flavor_id='9d3ed668-b0ab-4abc-af4a-81458851ef34'
+        )
+        self.driver.loadbalancer_create(self.sess, lb)
+        self.sess.vlb.create_load_balancer.assert_called_with(
+            **self.fake_call_create,
+            l4_flavor_id='232e88a6-e373-49bb-ae8c-830423a37895',
+            l7_flavor_id='9d3ed668-b0ab-4abc-af4a-81458851ef34'
+        )
+
     def test_loadbalancer_update(self):
         attrs = {
             'description': 'New Description',
@@ -205,17 +230,81 @@ class TestElbv3Driver(base.TestCase):
         )
         self.sess.vlb.delete_load_balancer.assert_called_with(self.lb.id)
 
-    def test_flavors_qp(self):
-        self.driver.flavors(
-            self.sess, 'p1',
-            query_filter={'a': 'b'})
-        self.sess.vlb.flavors.assert_called_with(
-            a='b'
+
+class TestElbv3FlavorDriver(base.TestCase):
+    output = [
+        {
+            'id': '5e512bae-950a-4bb3-8e30-3e8d6a9e030e',
+            'name': 'L4_flavor.elb.s2.small'
+        },
+        {
+            'id': '7628a037-c229-4c0c-820b-4ea862743aef',
+            'name': 'L7_flavor.elb.s2.small'
+        },
+        {
+            'id': '95b6c7e0-f0d8-495b-9b14-53df1a8dbd81',
+            'name': 'L4_flavor.elb.s2.medium'
+        },
+        {
+            'id': '9d3ed668-b0ab-4abc-af4a-81458851ef34',
+            'name': 'L7_flavor.elb.s2.medium'
+        }
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.flavors = [flavor.Flavor(**f) for f in self.output]
+        self.sess = mock.MagicMock()
+        self.sess.vlb.flavors = mock.MagicMock(
+            return_value=self.flavors
+        )
+        self.sess.vlb.get_flavor = mock.MagicMock(
+            return_value=flavor.Flavor(**{
+                'id': '7628a037-c229-4c0c-820b-4ea862743aef',
+                'name': 'L7_flavor.elb.s2.small'
+            })
         )
 
     def test_flavors_no_qp(self):
-        self.driver.flavors(self.sess, 'p1')
+        result = self.driver.flavors(self.sess, 'p1')
+        self.assertEquals(2, len(result))
+        self.assertEquals('7628a037-c229-4c0c-820b-4ea862743aef', result[0].id)
+        self.assertEquals('9d3ed668-b0ab-4abc-af4a-81458851ef34', result[1].id)
         self.sess.vlb.flavors.assert_called_with()
+
+    def test_flavors_qp(self):
+        qp = {'id': '7628a037-c229-4c0c-820b-4ea862743aef'}
+        result = self.driver.flavors(
+            self.sess, 'p1',
+            query_filter=qp)
+        self.assertEquals('7628a037-c229-4c0c-820b-4ea862743aef', result[0].id)
+        self.assertEquals('L7_flavor.elb.s2.small'[14:], result[0].name)
+        self.sess.vlb.get_flavor.assert_called_with(
+            qp['id']
+        )
+
+    def test_flavors_short_name(self):
+        qp = {'name': 's2.medium'}
+        self.driver.flavors(
+            self.sess, 'p1',
+            query_filter=qp)
+        self.sess.vlb.flavors.assert_called_with(
+            name='L7_flavor.elb.s2.medium'
+        )
+
+    def test_flavors_full_name(self):
+        qp = {'name': 'L7_flavor.elb.s2.medium'}
+        self.driver.flavors(
+            self.sess, 'p1',
+            query_filter=qp)
+        self.sess.vlb.flavors.assert_called_with(
+            name='L7_flavor.elb.L7_flavor.elb.s2.medium'
+        )
+
+    def test_flavor_get(self):
+        self.driver.flavor_get(self.sess, 'p1', self.flavors[0].id)
+        self.sess.vlb.get_flavor.assert_called_with(self.flavors[0].id)
 
 
 class TestElbv3ListenerDriver(base.TestCase):
@@ -793,3 +882,93 @@ class TestElbv3DriverRequests(base.TestCase):
         self.assertEquals(result.is_admin_state_up, expected["admin_state_up"])
         self.assertEquals(result.id, expected["id"])
         self.assertEquals(result.vip_address, expected["vip_address"])
+
+
+class TestElbv3AzDriver(base.TestCase):
+    attrs = {
+        "code": "eu-nl-01",
+        "state": 'ACTIVE'
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.az = availability_zone.AvailabilityZone(**self.attrs)
+        self.sess.vlb.availability_zones = mock.MagicMock(
+            return_value=[self.az]
+        )
+
+    def test_availability_zones_no_qp(self):
+        az = self.driver.availability_zones(self.sess, 'pid')
+        self.sess.vlb.availability_zones.assert_called()
+        self.assertEquals(az[0].name, self.attrs['code'])
+        self.assertEquals(az[0].enabled, True)
+
+    def test_availability_zones_qp(self):
+        self.driver.availability_zones(
+            self.sess, 'pid',
+            query_filter={'a': 'b'})
+        self.sess.vlb.availability_zones.assert_called_with(
+            a='b'
+        )
+
+    def test_availability_zones_de_region(self):
+        self.sess.config.region_name = 'eu-de'
+        self.sess.vlb.availability_zones = mock.MagicMock(
+            return_value=[
+                availability_zone.AvailabilityZone(
+                    **{
+                        "code": "eu-nl-01",
+                        "state": 'ACTIVE'
+                    }),
+                availability_zone.AvailabilityZone(
+                    **{
+                        "code": "eu-de-01",
+                        "state": 'ACTIVE'
+                    }),
+            ]
+        )
+        az = self.driver.availability_zones(self.sess, 'pid')
+        self.sess.vlb.availability_zones.assert_called()
+        self.assertEquals(len(az), 1)
+        self.assertEquals(az[0].name, 'eu-de-01')
+        self.assertEquals(az[0].enabled, True)
+
+
+class TestElbv3QuotaDriver(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv3Driver()
+        self.sess = mock.MagicMock()
+        self.sess.vlb.get_quotas = mock.MagicMock(
+            return_value=quota.Quota(**{
+                "member": 500,
+                "members_per_pool": 500,
+                "certificate": 120,
+                "l7policy": 500,
+                "listener": 100,
+                "loadbalancer": 50,
+                "healthmonitor": -1,
+                "pool": 500,
+                "ipgroup": 50,
+                "project_id": "c742c92afd8d46b1b3083d004afffd70"
+            })
+        )
+
+    def test_quotas_no_qp(self):
+        self.driver.quotas(
+            self.sess, 'pid')
+        self.sess.vlb.get_quotas.assert_called()
+
+    def test_quota_get(self):
+        quotas = self.driver.quota_get(
+            self.sess, 'test', 'c742c92afd8d46b1b3083d004afffd70'
+        )
+        self.sess.vlb.get_quotas.assert_called()
+        self.assertEquals(quotas.member, 500)
+        self.assertEquals(quotas.pool, 500)
+        self.assertEquals(quotas.l7policy, 500)
+        self.assertEquals(quotas.listener, 100)
+        self.assertEquals(quotas.healthmonitor, -1)

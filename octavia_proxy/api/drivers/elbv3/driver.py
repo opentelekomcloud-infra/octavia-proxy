@@ -9,10 +9,12 @@ from octavia_proxy.api.v2.types import (
     listener as _listener,
     load_balancer,
     member as _member,
-    pool as _pool
+    pool as _pool,
+    quotas as _quotas,
+    availability_zones as _az
 )
 from octavia_proxy.common.utils import (
-    elbv3_backmapping, elbv3_foremapping, loadbalancer_cascade_delete
+    elbv3_backmapping, loadbalancer_cascade_delete
 )
 
 LOG = logging.getLogger(__name__)
@@ -113,10 +115,32 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
+        lb_attrs.pop('loadbalancer_id', None)
+
+        if 'pools' in lb_attrs:
+            lb_attrs.pop('pools')
+        if 'listeners' in lb_attrs:
+            lb_attrs.pop('listeners')
+        if 'vip_subnet_id' in lb_attrs:
+            lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
+        if 'vip_network_id' in lb_attrs:
+            lb_attrs['elb_virsubnet_ids'] = [lb_attrs.pop('vip_network_id')]
+        azs = lb_attrs.pop('availability_zone', 'eu-nl-01')
+        lb_attrs['availability_zone_list'] = azs.replace(' ', '').split(',')
+
         if 'tags' in lb_attrs:
             lb_attrs['tags'] = self._resource_tags(lb_attrs['tags'])
-        lb_attrs.pop('loadbalancer_id', None)
-        lb_attrs = elbv3_foremapping(lb_attrs)
+
+        # According to our decision to show only L7 flavors
+        # here we assign same type of L4 flavor for load balancer instance
+        if 'flavor_id' in lb_attrs:
+            l7_flavor = session.vlb.get_flavor(
+                lb_attrs['flavor_id'])
+            lb_attrs['l7_flavor_id'] = l7_flavor.id
+            lb_attrs['l4_flavor_id'] = session.vlb.find_flavor(
+                name_or_id=l7_flavor.name.replace('L7', 'L4')
+            ).id
+            lb_attrs.pop('flavor_id')
 
         lb = session.vlb.create_load_balancer(**lb_attrs)
         lb = elbv3_backmapping(lb)
@@ -558,21 +582,88 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         query_filter.pop('project_id', None)
 
+        # Shows only L7 flavors in output to not confuse users,
+        # because `create` only support one parameter for flavor
         result = []
-
-        for fl in session.vlb.flavors(**query_filter):
-            fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
-            fl_data.provider = PROVIDER
-            result.append(fl_data)
-
+        if 'name' in query_filter:
+            query_filter['name'] = f'L7_flavor.elb.{query_filter["name"]}'
+        if 'id' in query_filter:
+            fl_data = self.flavor_get(
+                project_id=project_id, session=session,
+                fl_id=query_filter['id']
+            )
+            if fl_data:
+                result.append(fl_data)
+        else:
+            for fl in session.vlb.flavors(**query_filter):
+                if not fl['name'].startswith('L4_flavor.elb'):
+                    fl['name'] = fl['name'][14:]
+                    fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
+                    fl_data.provider = PROVIDER
+                    result.append(fl_data)
         return result
 
-    def flavor_get(self, session, fl_id):
+    def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
+        fl = session.vlb.get_flavor(fl_id)
 
-        fl = session.vlb.find_flavor(
-            name_or_id=fl_id, ignore_missing=True)
-        if fl:
+        # Shows only L7 flavors in output to not confuse users,
+        # because `create` only support one parameter for flavor
+        if fl and not fl['name'].startswith('L4_flavor.elb'):
+            fl['name'] = fl['name'][14:]
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
             fl_data.provider = PROVIDER
             return fl_data
+
+    def availability_zones(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching availability zones')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+
+        for az in session.vlb.availability_zones(**query_filter):
+            az.name = az.pop('code')
+            # availability_zones not filtering in SDK by region
+            # to not shown wrong info in eu-de
+            # simply pop the az's from nl
+            if session.config.region_name == 'eu-de' and 'eu-nl' in az.name:
+                continue
+            az.enabled = False
+            if az.state == 'ACTIVE':
+                az.enabled = True
+            az_data = _az.AvailabilityZoneResponse.from_sdk_object(
+                az
+            )
+            az_data.provider = PROVIDER
+            result.append(az_data)
+        return result
+
+    def quotas(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching quotas')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+        quota = session.vlb.get_quotas()
+        if quota:
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            result.append(quota_data)
+        return result
+
+    def quota_get(self, session, project_id, req_project):
+        LOG.debug('Searching for quotas')
+
+        quota = session.vlb.get_quotas()
+        LOG.debug('quotas is %s' % quota)
+        if quota:
+            if quota.project_id != req_project:
+                return
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            return quota_data

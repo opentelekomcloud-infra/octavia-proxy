@@ -13,36 +13,50 @@
 #    under the License.
 
 from oslo_log import log as logging
-from pecan import abort as pecan_abort
+from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
-from pecan import request as pecan_request
 
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.v2.controllers import base
-from octavia_proxy.api.v2.types import availability_zones as az_types
+from octavia_proxy.api.v2.types import quotas as q_types
 from octavia_proxy.common import constants
-
+from octavia_proxy.common import exceptions
 
 LOG = logging.getLogger(__name__)
 
 
-class AvailabilityZonesController(base.BaseController):
-    RBAC_TYPE = constants.RBAC_AVAILABILITY_ZONE
+class QuotasController(base.BaseController):
+    RBAC_TYPE = constants.RBAC_QUOTA
 
     def __init__(self):
         super().__init__()
 
-    @wsme_pecan.wsexpose(az_types.AvailabilityZoneRootResponse,
-                         wtypes.text, [wtypes.text], ignore_extra_args=True)
-    def get_one(self, name, fields=None):
-        """Gets an Availability Zone's detail."""
-        pecan_abort(501)
+    @wsme_pecan.wsexpose(q_types.QuotaRootResponse, wtypes.text,
+                         [wtypes.text], ignore_extra_args=True)
+    def get_one(self, project_id, fields=None):
+        """Gets an Quota's detail."""
+        pcontext = pecan_request.context
+        context = pecan_request.context.get('octavia_context')
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', True)
 
-    @wsme_pecan.wsexpose(az_types.AvailabilityZonesRootResponse, wtypes.text,
+        quota = driver_invocation(
+            context, 'quota_get', is_parallel, project_id
+        )
+        if not quota:
+            raise exceptions.NotFound(
+                resource='Quota',
+                id=id)
+        quota = quota[0]
+        if fields is not None:
+            quota = self._filter_fields([quota], fields)[0]
+        return q_types.QuotaRootResponse(quota=quota)
+
+    @wsme_pecan.wsexpose(q_types.QuotasRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
     def get_all(self, project_id=None, fields=None):
-        """Lists all Availability Zones."""
+        """Lists all Quotas."""
         pcontext = pecan_request.context
         context = pcontext.get('octavia_context')
 
@@ -53,9 +67,9 @@ class AvailabilityZonesController(base.BaseController):
 
         links = []
         result = driver_invocation(
-            context, 'availability_zones', is_parallel, query_filter
+            context, 'quotas', is_parallel, query_filter
         )
         if fields is not None:
             result = self._filter_fields(result, fields)
-        return az_types.AvailabilityZonesRootResponse(
-            availability_zones=result, availability_zones_links=links)
+        return q_types.QuotasRootResponse(
+            quotas=result, quotas_links=links)

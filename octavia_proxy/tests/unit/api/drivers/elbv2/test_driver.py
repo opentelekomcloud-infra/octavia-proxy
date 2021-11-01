@@ -15,12 +15,12 @@ from unittest import mock
 
 import requests
 from keystoneauth1 import adapter
+from openstack.load_balancer.v2 import (
+    listener, pool, member, l7_policy, load_balancer, health_monitor,
+    l7_rule, availability_zone, quota)
 
 from octavia_proxy.api.drivers.elbv2 import driver
 from octavia_proxy.tests.unit import base
-from openstack.load_balancer.v2 import (listener, pool, member, l7_policy,
-                                        load_balancer, health_monitor,
-                                        l7_rule)
 
 
 class FakeResponse:
@@ -47,7 +47,7 @@ class TestElbv2Driver(base.TestCase):
         'name': 'test',
         'availability_zone': 'eu-nl-01',
         'admin_state_up': True,
-        'tags': [],
+        'tags': ["tag1=val", 'tag2=', 'tag3'],
         'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'created_at': '2021-08-10T09:39:24+00:00',
         'updated_at': '2021-08-10T09:39:24+00:00',
@@ -80,8 +80,11 @@ class TestElbv2Driver(base.TestCase):
         'vip_port_id': None,
         'vip_qos_policy_id': None,
         'vip_subnet_id': None,
-        'tags': [],
     }
+    normalized_tags = [
+        {'key': 'tag1', 'value': 'val'},
+        {'key': 'tag2', 'value': ''},
+        {'key': 'tag3', 'value': ''}]
 
     def setUp(self):
         super().setUp()
@@ -132,6 +135,14 @@ class TestElbv2Driver(base.TestCase):
         self.driver.loadbalancer_create(self.sess, self.lb)
         self.sess.elb.create_load_balancer.assert_called_with(
             **self.fake_call_create)
+        tag_calls = [
+            call for call in self.sess.method_calls
+            if 'create_load_balancer_tag' in call[0]
+        ]
+        for i, _ in enumerate(tag_calls):
+            tag_calls[i].assert_called_with(
+                self.lb.id,
+                **self.normalized_tags[i])
 
     def test_loadbalancer_update(self):
         attrs = {
@@ -166,7 +177,7 @@ class TestElbv2ListenerDriver(base.TestCase):
         'insert_headers': {'X-Forwarded-ELB-IP': True},
         'name': 'test',
         'admin_state_up': True,
-        'tags': [],
+        'tags': ["tag1=val", 'tag2=', 'tag3'],
         'timeout_client_data': 10,
         'timeout_member_data': 10,
         'timeout_member_connect': 10,
@@ -198,7 +209,6 @@ class TestElbv2ListenerDriver(base.TestCase):
         'protocol_port': 80,
         'provisioning_status': None,
         'sni_container_refs': None,
-        'tags': [],
         'timeout_client_data': 10,
         'timeout_member_connect': 10,
         'timeout_member_data': 10,
@@ -207,6 +217,10 @@ class TestElbv2ListenerDriver(base.TestCase):
         'tls_versions': None,
         'updated_at': '2021-08-10T09:39:24+00:00'
     }
+    normalized_tags = [
+        {'key': 'tag1', 'value': 'val'},
+        {'key': 'tag2', 'value': ''},
+        {'key': 'tag3', 'value': ''}]
 
     def setUp(self):
         super().setUp()
@@ -238,6 +252,14 @@ class TestElbv2ListenerDriver(base.TestCase):
         self.driver.listener_create(self.sess, self.lsnr)
         self.sess.elb.create_listener.assert_called_with(
             **self.fake_call_create)
+        tag_calls = [
+            call for call in self.sess.method_calls
+            if 'create_listener_tag' in call[0]
+        ]
+        for i, _ in enumerate(tag_calls):
+            tag_calls[i].assert_called_with(
+                self.lsnr.id,
+                **self.normalized_tags[i])
 
     def test_listener_delete(self):
         self.driver.listener_delete(self.sess, self.lsnr)
@@ -799,3 +821,71 @@ class TestElbv2L7RuleDriver(base.TestCase):
         self.driver.l7rule_delete(self.sess, l7policy_id='pid',
                                   l7rule=self.l7rule)
         self.sess.elb.delete_l7_rule.assert_called_with(self.l7rule.id, 'pid')
+
+
+class TestElbv2AzDriver(base.TestCase):
+    attrs = {
+        "name": "eu-de-01",
+        "description": 'Test',
+        "enabled": True,
+        "availability_zone_profile_id": "6abba291-db52-4fe7-b568-a96bed73c643"
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.az = availability_zone.AvailabilityZone(**self.attrs)
+        self.sess.elb.availability_zones = mock.MagicMock(
+            return_value=[self.az]
+        )
+
+    def test_availability_zones_no_qp(self):
+        az = self.driver.availability_zones(self.sess, 'pid')
+        self.sess.elb.availability_zones.assert_called()
+        self.assertEquals(az[0].name, self.attrs['name'])
+        self.assertEquals(az[0].description, self.attrs['description'])
+        self.assertEquals(az[0].enabled, self.attrs['enabled'])
+        self.assertEquals(
+            az[0].availability_zone_profile_id,
+            self.attrs['availability_zone_profile_id']
+        )
+
+    def test_availability_zones_qp(self):
+        self.driver.availability_zones(
+            self.sess, 'pid',
+            query_filter={'a': 'b'})
+        self.sess.elb.availability_zones.assert_called_with(
+            a='b'
+        )
+
+
+class TestElbv2QuotaDriver(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.sess.elb.get_quotas = mock.MagicMock(
+            return_value=quota.Quota(**{
+                "member": 500,
+                "members_per_pool": 500,
+                "certificate": 120,
+                "l7policy": 500,
+                "listener": 100,
+                "loadbalancer": 50,
+                "healthmonitor": -1,
+                "pool": 500,
+                "ipgroup": 50,
+                "project_id": "c742c92afd8d46b1b3083d004afffd70"
+            })
+        )
+
+    def test_quotas_no_qp(self):
+        self.driver.quotas(
+            self.sess, 'pid')
+        self.sess.elb.get_quotas.assert_called()
+
+    def test_quota_get(self):
+        self.driver.quota_get(self.sess, 'test', 'pid')
+        self.sess.elb.get_quotas.assert_called()
