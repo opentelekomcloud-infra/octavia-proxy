@@ -40,25 +40,6 @@ EXAMPLE = [
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a9"
     },
     {
-        "name": "lb_test2",
-        "id": "123f018a-f401-48d1-b58a-50fe6600fake",
-        "description": "Best App lb test 2",
-        "provisioning_status": "ACTIVE",
-        "provider": "vlb",
-        "operating_status": "ONLINE",
-        "vip_address": "192.168.241.32",
-        "listeners": [],
-        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:02:08",
-        "tags": [],
-        "pools": [],
-        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:02:09",
-        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
-        "admin_state_up": True,
-        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a8"
-    },
-    {
         "name": "lb_test3",
         "id": "345f018a-f401-48d1-b58a-50fe6600fake",
         "description": "Best App lb test 3",
@@ -97,23 +78,23 @@ EXAMPLE = [
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a6"
     },
     {
-        "name": "lb_test5",
-        "id": "567f018a-f401-48d1-b58a-50fe6600fake",
-        "description": "Best App lb test 5",
+        "name": "lb_test2",
+        "id": "123f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test 2",
         "provisioning_status": "ACTIVE",
         "provider": "vlb",
         "operating_status": "ONLINE",
-        "vip_address": "192.168.241.30",
+        "vip_address": "192.168.241.32",
         "listeners": [],
         "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:05:08",
+        "created_at": "2021-10-13T11:02:08",
         "tags": [],
         "pools": [],
         "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:05:09",
+        "updated_at": "2021-10-13T11:02:09",
         "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
         "admin_state_up": True,
-        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a5"
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a8"
     },
     {
         "name": "lb_test6",
@@ -134,6 +115,142 @@ EXAMPLE = [
         "admin_state_up": True,
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a4"
     },
+    {
+        "name": "lb_test5",
+        "id": "567f018a-f401-48d1-b58a-50fe6600fake",
+        "description": "Best App lb test 5",
+        "provisioning_status": "ACTIVE",
+        "provider": "vlb",
+        "operating_status": "ONLINE",
+        "vip_address": "192.168.241.30",
+        "listeners": [],
+        "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "created_at": "2021-10-13T11:05:08",
+        "tags": [],
+        "pools": [],
+        "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
+        "updated_at": "2021-10-13T11:05:09",
+        "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
+        "admin_state_up": True,
+        "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a5"
+    }
+]
+
+SORTED_EXAMPLE = [
+    {
+        'admin_state_up': True,
+        'created_at': '2021-10-13T11:01:08',
+        'description': 'Best App lb test',
+        'id': '147f018a-f401-48d1-b58a-50fe6600fake',
+        'listeners': [],
+        'name': 'lb_test1',
+        'operating_status': 'ONLINE',
+        'pools': [],
+        'project_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'provider': 'vlb',
+        'provisioning_status': 'ACTIVE',
+        'tags': [],
+        'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'updated_at': '2021-10-13T11:01:09',
+        'vip_address': '192.168.241.33',
+        'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a9',
+        'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
+    },
+    {
+        'admin_state_up': True,
+        'created_at': '2021-10-13T11:02:08',
+        'description': 'Best App lb test 2',
+        'id': '123f018a-f401-48d1-b58a-50fe6600fake',
+        'listeners': [],
+        'name': 'lb_test2',
+        'operating_status': 'ONLINE',
+        'pools': [],
+        'project_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'provider': 'vlb',
+        'provisioning_status': 'ACTIVE',
+        'tags': [],
+        'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'updated_at': '2021-10-13T11:02:09',
+        'vip_address': '192.168.241.32',
+        'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a8',
+        'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
+    },
+    {
+        'admin_state_up': True,
+        'created_at': '2021-10-13T11:03:08',
+        'description': 'Best App lb test 3',
+        'id': '345f018a-f401-48d1-b58a-50fe6600fake',
+        'listeners': [],
+        'name': 'lb_test3',
+        'operating_status': 'ONLINE',
+        'pools': [],
+        'project_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'provider': 'vlb',
+        'provisioning_status': 'ACTIVE',
+        'tags': [],
+        'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'updated_at': '2021-10-13T11:03:09',
+        'vip_address': '192.168.241.31',
+        'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a7',
+        'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
+    },
+    {
+        'admin_state_up': True,
+        'created_at': '2021-10-13T11:04:08',
+        'description': 'Best App lb test 4',
+        'id': '456f018a-f401-48d1-b58a-50fe6600fake',
+        'listeners': [],
+        'name': 'lb_test4',
+        'operating_status': 'ONLINE',
+        'pools': [],
+        'project_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'provider': 'vlb',
+        'provisioning_status': 'ACTIVE',
+        'tags': [],
+        'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'updated_at': '2021-10-13T11:05:09',
+        'vip_address': '192.168.241.31',
+        'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a6',
+        'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
+    },
+    {
+        'admin_state_up': True,
+        'created_at': '2021-10-13T11:05:08',
+        'description': 'Best App lb test 5',
+        'id': '567f018a-f401-48d1-b58a-50fe6600fake',
+        'listeners': [],
+        'name': 'lb_test5',
+        'operating_status': 'ONLINE',
+        'pools': [],
+        'project_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'provider': 'vlb',
+        'provisioning_status': 'ACTIVE',
+        'tags': [],
+        'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'updated_at': '2021-10-13T11:05:09',
+        'vip_address': '192.168.241.30',
+        'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a5',
+        'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
+    },
+    {
+        'admin_state_up': True,
+        'created_at': '2021-10-13T11:06:08',
+        'description': 'Best App lb test 6',
+        'id': '678f018a-f401-48d1-b58a-50fe6600fake',
+        'listeners': [],
+        'name': 'lb_test6',
+        'operating_status': 'ONLINE',
+        'pools': [],
+        'project_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'provider': 'vlb',
+        'provisioning_status': 'ACTIVE',
+        'tags': [],
+        'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
+        'updated_at': '2021-10-13T11:06:09',
+        'vip_address': '192.168.241.29',
+        'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a4',
+        'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
+    }
 ]
 
 
@@ -146,7 +263,7 @@ class TestPaginationHelper(base.TestCase):
         helper.apply(EXAMPLE)
         self.assertEqual(DEFAULT_SORTS, helper.sort_keys_dirs)
         self.assertIsNone(helper.marker)
-        self.assertEqual(4, helper.limit)
+        self.assertEqual(1000, helper.limit)
 
     def test_sort_empty(self):
         sort_params = ""
@@ -196,12 +313,15 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_sorting_and_links_generation(self, request_mock):
+        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
+                                '/loadbalancers.json'
         params = {
             'marker': '147f018a-f401-48d1-b58a-50fe6600fake',
             'limit': 4,
             'page_reverse': False
         }
-        expected_link_list = [
+        expected_result = SORTED_EXAMPLE[1:5]
+        expected_links = [
             {'href': 'http://localhost:9876/v2/lbaas/loadbalancers.json'
                      '?limit=4&marker=147f018a-f401-48d1-b58a-50fe6600fake',
              'rel': 'previous'},
@@ -210,5 +330,121 @@ class TestPaginationHelper(base.TestCase):
              'rel': 'next'}
         ]
         helper = pagination.PaginationHelper(params)
-        entities_list, links = helper.apply(EXAMPLE)
-        self.assertEqual(expected_link_list, links)
+        result, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(expected_links, links)
+
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_sorting_and_links_generation_reversed(self, request_mock):
+        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
+                                '/loadbalancers.json'
+        params = {
+            'marker': '147f018a-f401-48d1-b58a-50fe6600fake',
+            'limit': 4,
+            'page_reverse': True
+        }
+        expected_result = SORTED_EXAMPLE[0:1]
+        expected_links = [
+            {'href': 'http://localhost:9876/v2/lbaas/loadbalancers.json'
+                     '?limit=4&marker=147f018a-f401-48d1-b58a-50fe6600fake'
+                     '&page_reverse=True',
+             'rel': 'previous'}
+        ]
+        helper = pagination.PaginationHelper(params)
+        result, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(expected_links, links)
+
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_links_generation_reversed(self, request_mock):
+        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
+                                '/loadbalancers.json'
+        params = {
+            'marker': None,
+            'limit': 4,
+            'page_reverse': True
+        }
+        expected_result = SORTED_EXAMPLE[5:1:-1]
+        expected_links = [
+            {'href': 'http://localhost:9876/v2/lbaas/loadbalancers.json'
+                     '?limit=4&marker=123f018a-f401-48d1-b58a-50fe6600fake'
+                     '&page_reverse=True',
+             'rel': 'next'}
+        ]
+        helper = pagination.PaginationHelper(params)
+        result, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(expected_links, links)
+
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_marker_is_last_element_in_list(self, request_mock):
+        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
+                                '/loadbalancers.json'
+        params = {
+            'marker': "678f018a-f401-48d1-b58a-50fe6600fake",
+            'limit': None,
+            'page_reverse': False
+        }
+        expected_result = SORTED_EXAMPLE[5:4:-1]
+        expected_links = [
+            {'href': 'http://localhost:9876/v2/lbaas/loadbalancers.json'
+                     '?marker=678f018a-f401-48d1-b58a-50fe6600fake',
+             'rel': 'previous'}
+        ]
+        helper = pagination.PaginationHelper(params)
+        result, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(expected_links, links)
+
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_marker_is_last_element_in_list_reversed(self, request_mock):
+        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
+                                '/loadbalancers.json'
+        params = {
+            'marker': "147f018a-f401-48d1-b58a-50fe6600fake",
+            'limit': None,
+            'page_reverse': True
+        }
+        expected_result = SORTED_EXAMPLE[0:1]
+        expected_links = [
+            {'href': 'http://localhost:9876/v2/lbaas/loadbalancers.json'
+                     '?marker=147f018a-f401-48d1-b58a-50fe6600fake'
+                     '&page_reverse=True',
+             'rel': 'previous'}
+        ]
+        helper = pagination.PaginationHelper(params)
+        result, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(expected_links, links)
+
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_empty_links(self, request_mock):
+        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
+                                '/loadbalancers.json'
+        params = {
+            'marker': None,
+            'limit': None,
+            'page_reverse': False
+        }
+        expected_result = SORTED_EXAMPLE
+        expected_links = []
+        helper = pagination.PaginationHelper(params)
+        result, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(expected_links, links)
+
+    @mock.patch('octavia_proxy.api.common.pagination.request')
+    def test_empty_links_reversed(self, request_mock):
+        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
+                                '/loadbalancers.json'
+        params = {
+            'marker': None,
+            'limit': None,
+            'page_reverse': True
+        }
+        expected_result = SORTED_EXAMPLE[::-1]
+        expected_links = []
+        helper = pagination.PaginationHelper(params)
+        result, links = helper.apply(EXAMPLE)
+        self.assertEqual(expected_result, result)
+        self.assertEqual(expected_links, links)

@@ -17,7 +17,6 @@ from operator import itemgetter
 from oslo_log import log as logging
 from pecan import request
 
-from octavia_proxy.api.common import types
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 from octavia_proxy.common.config import cfg
@@ -58,7 +57,6 @@ class PaginationHelper(object):
     def _parse_limit(params):
         """Method for limit parsing.
         :param params: Query params.
-        :type params: dict
         :return: Limit value
         :rtype: int
         """
@@ -128,10 +126,8 @@ class PaginationHelper(object):
         """Create links.
 
         :param entities_list: List of resources for pagination
-        :type entities_list: list
         :param rel: Prompt of the previous or next page. Value can be "next" or
-        "previous".
-        :type rel: str
+                    "previous".
         :return: Link on previous or next page.
         :rtype: dict
         """
@@ -168,10 +164,8 @@ class PaginationHelper(object):
         """Sort a list of dictionary objects or objects by multiple keys.
 
         :param entities_list: A list of dictionary objects or objects
-        :type entities_list: list
         :param sort_keys_dirs: A list of entities fields and directions
-            to sort by.
-        :type sort_keys_dirs: list
+                               to sort by.
         :return: Sorted list of entities.
         :rtype: list
         """
@@ -193,11 +187,8 @@ class PaginationHelper(object):
         """Sorting
 
         :param entities_list: List of resources for sorting
-        :type entities_list: list
         :param sort_keys_dirs: List of tuples of sort keys and directions
-        :type sort_keys_dirs: list
         :param sort_dir: Sort direction for default sorting keys
-        :type sort_dir: str
         :return: Sorting list of entities
         :rtype: list
         """
@@ -212,7 +203,6 @@ class PaginationHelper(object):
         """ Pagination
 
         :param entities_list: List of resources for pagination
-        :type entities_list: list
         :return: Pagination page with links.
         :rtype: tuple
         """
@@ -229,13 +219,13 @@ class PaginationHelper(object):
                 marker_i = self._marker_index(entities_list=entities_list)
                 if marker_i is None and self.limit is None:
                     result.extend(entities_list)
-                elif marker_i is None and self.limit <= list_len:
+                elif marker_i is None and self.limit < list_len:
                     result.extend(entities_list[0: local_limit])
                     links.append(self._make_link(
                         entities_list=entities_list,
                         rel="next",
                         limit=self.limit,
-                        marker=entities_list[local_limit - 1].get('id')
+                        marker=entities_list[local_limit].get('id')
                     ))
                 elif marker_i == list_len - 1:
                     result.extend(entities_list[marker_i: list_len])
@@ -269,29 +259,29 @@ class PaginationHelper(object):
                         limit=self.limit,
                         marker=self.marker
                     ))
-            elif self.limit <= list_len:
+            elif self.limit and self.limit < list_len:
                 result.extend(entities_list[0: local_limit])
                 links.append(self._make_link(
                     entities_list=entities_list,
                     rel="next",
                     limit=self.limit,
-                    marker=entities_list[local_limit - 1].get('id')
+                    marker=entities_list[local_limit].get('id')
                 ))
             else:
                 result.extend(entities_list)
-        #links = [types.PageType(**link) for link in links]
+        # links = [types.PageType(**link) for link in links]
         return result, links
 
     def apply(self, entities_list):
-        #filtering values
-        #sorting values
+        # Filtering values
+        # Sorting values
         if CONF.api_settings.allow_sorting:
             self._make_sorting(
                 entities_list=entities_list,
                 sort_keys_dirs=self.sort_keys_dirs,
                 sort_dir=self.sort_dir
             )
-        #paginating values
+        # Paginating values
         if CONF.api_settings.allow_pagination:
             return self._make_pagination(entities_list=entities_list)
         else:
