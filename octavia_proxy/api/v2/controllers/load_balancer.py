@@ -323,14 +323,18 @@ class LoadBalancersController(base.BaseController):
                                            project_id=lb.project_id)
 
                 new_pool = (pool_controller.PoolsController()._graph_create(
-                    session, pool_post, members=members, provider=lb.provider))
+                    session, lb, pool_post, members=members,
+                    provider=lb.provider))
                 result_pools.append(new_pool)
                 pool_name_ids[new_pool.name] = new_pool.id
 
-            if len(pool_name_ids.keys()) != len(set(pool_name_ids.keys())):
-                raise exceptions.ValidationException(
-                    detail="Pool names must be unique when creating a fully "
-                           "populated loadbalancer.")
+        pool_names = []
+        for pool in pools:
+            pool_names.append(pool.name)
+        if len(pool_names) != len(set(pool_names)):
+            raise exceptions.ValidationException(
+                detail="Pool names must be unique when creating a fully "
+                       "populated loadbalancer.")
 
         if listeners:
             for li in listeners:
@@ -344,7 +348,7 @@ class LoadBalancersController(base.BaseController):
                         project_id=lb.project_id, loadbalancer_id=lb.id)
 
                 result_listener = li_controller.ListenersController()\
-                    ._graph_create(session, listener_post,
+                    ._graph_create(session, lb, listener_post,
                                    pool_name_ids=pool_name_ids,
                                    provider=lb.provider)
                 result_listeners.append(result_listener)

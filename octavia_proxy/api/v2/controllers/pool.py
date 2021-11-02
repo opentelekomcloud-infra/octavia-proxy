@@ -209,7 +209,7 @@ class PoolsController(base.BaseController):
             return member.MembersController(pool_id=pool.id), remainder
         return None
 
-    def _graph_create(self, session, pool, hm=None, members=None,
+    def _graph_create(self, session, lb, pool, hm=None, members=None,
                       provider=None):
         if not hm:
             hm = pool.healthmonitor
@@ -228,12 +228,20 @@ class PoolsController(base.BaseController):
         result_pool = driver_utils.call_provider(
             driver.name, driver.pool_create,
             session, pool)
+        if not result_pool:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception("Pool creation failed")
+
         new_hm = None
         if hm:
             hm_post = hm.to_hm_post(pool_id=result_pool.id,
                                     project_id=result_pool.project_id)
             new_hm = health_monitor.HealthMonitorController()._graph_create(
-                session, hm_post, provider=result_pool.provider)
+                session, lb=lb, hm_dict=hm_post, provider=result_pool.provider)
 
             if result_pool.protocol in (constants.PROTOCOL_UDP):
                 health_monitor.HealthMonitorController(
@@ -254,7 +262,7 @@ class PoolsController(base.BaseController):
                 member_post = m.to_member_post(
                     project_id=result_pool.project_id)
                 new_member = member.MembersController(result_pool.id)\
-                    ._graph_create(session, member_post,
+                    ._graph_create(session, lb, member_post,
                                    provider=result_pool.provider)
                 new_members.append(new_member)
         full_response_pool = result_pool.to_full_response(members=new_members,

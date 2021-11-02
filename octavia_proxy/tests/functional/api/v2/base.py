@@ -23,6 +23,7 @@ _sdk = None
 _lb = None
 _ecs = None
 _keypair = None
+_port = None
 CIDR = '192.168.0.0/16'
 
 
@@ -54,6 +55,8 @@ def _destroy_ecs(self):
         self._sdk_connection = self._get_sdk_connection()
     if _ecs:
         self._sdk_connection.compute.delete_server(_ecs.id)
+    if _port:
+        self._sdk_connection.network.delete_port(_port.id)
     if _keypair:
         self._sdk_connection.compute.delete_keypair(
             _keypair.id)
@@ -223,20 +226,22 @@ class BaseAPITest(base.TestCase):
     def _create_ecs(self):
         global _ecs
         global _keypair
+        global _port
         ecs_name = 'octavia-proxy-test-ecs'
         image = "Standard_CentOS_Stream_latest"
         flavor = "s2.medium.1"
         keyname = "octavia-proxy-test-keypair"
+        portname = "octavia-proxy-test-port"
 
+        if not self._sdk_connection:
+            self._sdk_connection = self._get_sdk_connection()
         if not _keypair:
-            if not self._sdk_connection:
-                self._sdk_connection = self._get_sdk_connection()
             _keypair = self._sdk_connection.compute.\
                 create_keypair(name=keyname)
-
+        if not _port:
+            _port = self._sdk_connection.compute.create_post(
+                name=portname, network_id=self._network["network_id"])
         if not _ecs:
-            if not self._sdk_connection:
-                self._sdk_connection = self._get_sdk_connection()
             flavor = self._sdk_connection.compute.find_flavor(flavor)
             image = self._sdk_connection.compute.find_image(image)
             network_id = self._network["network_id"]
@@ -244,7 +249,8 @@ class BaseAPITest(base.TestCase):
                 create_server(name=ecs_name, image_id=image.id,
                               flavor_id=flavor.id, wait=True,
                               networks=[{"uuid": network_id}],
-                              key_name=_keypair.name)
+                              key_name=_keypair.name,
+                              nics=[{'fixed_ip': _port.address}])
             cr_ecs = self._sdk_connection.compute.find_server(ecs.id)
             _ecs = cr_ecs
         return _ecs

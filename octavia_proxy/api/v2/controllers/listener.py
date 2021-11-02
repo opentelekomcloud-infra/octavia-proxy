@@ -158,12 +158,19 @@ class ListenersController(base.BaseController):
             context.session,
             listener)
 
-    def _graph_create(self, session, listener_dict, pool_name_ids=None,
+    def _graph_create(self, session, lb, listener_dict, pool_name_ids=None,
                       provider=None):
         driver = driver_factory.get_driver(provider)
         l7policies = listener_dict.l7policies
         listener = driver_utils.call_provider(
             driver.name, driver.listener_create, session, listener_dict)
+        if not listener:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception("Listener creation failed")
         new_l7ps = []
         for l7p in l7policies:
             project_id = listener.project_id
@@ -182,7 +189,7 @@ class ListenersController(base.BaseController):
                 l7policy_post = l7p.to_l7policy_post(
                     project_id=project_id, listener_id=listener_id)
             new_l7p = l7policy.L7PoliciesController()._graph_create(
-                session, l7policy_post, rules=rules,
+                session, lb, l7policy_post, rules=rules,
                 provider=listener.provider)
             new_l7ps.append(new_l7p)
         listener_full_response = listener.to_full_response(l7policies=new_l7ps)

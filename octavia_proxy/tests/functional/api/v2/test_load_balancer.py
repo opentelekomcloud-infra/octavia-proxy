@@ -89,7 +89,7 @@ class TestLoadBalancer(base.BaseAPITest):
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
     def test_complex_create_v2_0(self, **optionals):
-        ecs = self._create_ecs()
+        # ecs = self._create_ecs()
         lb_json = {'name': 'test4',
                    'vip_subnet_id': self._network['subnet_id'],
                    'project_id': self.project_id,
