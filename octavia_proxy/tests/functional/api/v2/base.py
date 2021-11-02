@@ -245,7 +245,8 @@ class BaseAPITest(base.TestCase):
                               flavor_id=flavor.id, wait=True,
                               networks=[{"uuid": network_id}],
                               key_name=_keypair.name)
-            _ecs = self._sdk_connection.compute.find_server(ecs.id)
+            cr_ecs = self._sdk_connection.compute.find_server(ecs.id)
+            _ecs = cr_ecs
         return _ecs
 
     def _make_app(self):
