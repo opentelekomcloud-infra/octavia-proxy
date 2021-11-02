@@ -9,7 +9,9 @@ from octavia_proxy.api.v2.types import (
     listener as _listener,
     load_balancer,
     member as _member,
-    pool as _pool
+    pool as _pool,
+    quotas as _quotas,
+    availability_zones as _az
 )
 from octavia_proxy.common.utils import (
     elbv3_backmapping, loadbalancer_cascade_delete
@@ -612,3 +614,56 @@ class ELBv3Driver(driver_base.ProviderDriver):
             fl_data = _flavors.FlavorResponse.from_sdk_object(fl)
             fl_data.provider = PROVIDER
             return fl_data
+
+    def availability_zones(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching availability zones')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+
+        for az in session.vlb.availability_zones(**query_filter):
+            az.name = az.pop('code')
+            # availability_zones not filtering in SDK by region
+            # to not shown wrong info in eu-de
+            # simply pop the az's from nl
+            if session.config.region_name == 'eu-de' and 'eu-nl' in az.name:
+                continue
+            az.enabled = False
+            if az.state == 'ACTIVE':
+                az.enabled = True
+            az_data = _az.AvailabilityZoneResponse.from_sdk_object(
+                az
+            )
+            az_data.provider = PROVIDER
+            result.append(az_data)
+        return result
+
+    def quotas(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching quotas')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+        quota = session.vlb.get_quotas()
+        if quota:
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            result.append(quota_data)
+        return result
+
+    def quota_get(self, session, project_id, req_project):
+        LOG.debug('Searching for quotas')
+
+        quota = session.vlb.get_quotas()
+        LOG.debug('quotas is %s' % quota)
+        if quota:
+            if quota.project_id != req_project:
+                return
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            return quota_data

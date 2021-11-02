@@ -4,7 +4,8 @@ from oslo_log import log as logging
 from octavia_proxy.api.v2.types import (
     health_monitor as _hm, listener as _listener, load_balancer,
     pool as _pool, member as _member, l7policy as _l7policy,
-    l7rule as _l7rule
+    l7rule as _l7rule, quotas as _quotas,
+    availability_zones as _az
 )
 
 LOG = logging.getLogger(__name__)
@@ -15,6 +16,41 @@ PROVIDER = 'elbv2'
 class ELBv2Driver(driver_base.ProviderDriver):
     def __init__(self):
         super().__init__()
+
+    def _normalize_lb(self, res):
+        return self._normalize_tags(res)
+
+    def _normalize_tags(self, resource):
+        otc_tags = resource.tags
+        if otc_tags:
+            tags = []
+            for tag in otc_tags:
+                tl = tag.split('=')
+                try:
+                    if tl[1]:
+                        tags.append(tag)
+                    else:
+                        tags.append(tl[0])
+                except IndexError:
+                    tags.append(tl[0])
+            resource.tags = tags
+        return resource
+
+    def _normalize_tag(self, tag):
+        return "=".join(str(val) for val in tag.values())
+
+    def _resource_tags(self, tags):
+        result = []
+        for tag in tags:
+            try:
+                tag = tag.split('=')
+                result.append({
+                    'key': tag[0],
+                    'value': tag[1]
+                })
+            except IndexError:
+                result.append({'key': tag[0], 'value': ''})
+        return result
 
     def get_supported_flavor_metadata(self):
         LOG.debug('Provider %s elbv2, get_supported_flavor_metadata',
@@ -51,7 +87,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         else:
             for lb in session.elb.load_balancers(**query_filter):
                 lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-                    lb)
+                    self._normalize_lb(lb))
                 lb_data.provider = PROVIDER
                 result.append(lb_data)
         return result
@@ -64,7 +100,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('lb is %s' % lb)
 
         if lb:
-            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(lb)
+            lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
+                self._normalize_lb(lb))
             lb_data.provider = PROVIDER
             return lb_data
 
@@ -79,10 +116,22 @@ class ELBv2Driver(driver_base.ProviderDriver):
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs.pop('vip_network_id', None)
 
+        tags = []
+        if 'tags' in lb_attrs:
+            tags = self._resource_tags(lb_attrs.pop('tags'))
+
         lb = session.elb.create_load_balancer(**lb_attrs)
 
+        for tag in tags:
+            LOG.debug('Create tag %s for load balancer %s' % (tag, lb.id))
+            try:
+                session.elb.create_load_balancer_tag(lb.id, **tag)
+                lb.tags.append(self._normalize_tag(tag))
+            except Exception as ex:
+                LOG.exception('Tag cannot be created: %s' % ex)
+
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
-            lb)
+            self._normalize_lb(lb))
         lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
@@ -121,7 +170,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         else:
             for lsnr in session.elb.listeners(**query_filter):
                 lsnr_data = _listener.ListenerResponse.from_sdk_object(
-                    lsnr)
+                    self._normalize_lb(lsnr))
                 lsnr_data.provider = PROVIDER
                 result.append(lsnr_data)
         return result
@@ -133,7 +182,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
             name_or_id=listener_id, ignore_missing=True)
 
         if lsnr:
-            lsnr_data = _listener.ListenerResponse.from_sdk_object(lsnr)
+            lsnr_data = _listener.ListenerResponse.from_sdk_object(
+                self._normalize_lb(lsnr))
             lsnr_data.provider = PROVIDER
             return lsnr_data
 
@@ -144,10 +194,22 @@ class ELBv2Driver(driver_base.ProviderDriver):
         # TODO: do this differently
         attrs.pop('l7policies', None)
 
-        res = session.elb.create_listener(**attrs)
+        tags = []
+        if 'tags' in attrs:
+            tags = self._resource_tags(attrs.pop('tags'))
+
+        ls = session.elb.create_listener(**attrs)
+
+        for tag in tags:
+            LOG.debug('Create tag %s for listener %s' % (tag, ls.id))
+            try:
+                session.elb.create_listener_tag(ls.id, **tag)
+                ls.tags.append(self._normalize_tag(tag))
+            except Exception as ex:
+                LOG.exception('Tag cannot be created: %s' % ex)
 
         result_data = _listener.ListenerResponse.from_sdk_object(
-            res)
+            self._normalize_lb(ls))
         result_data.provider = PROVIDER
         return result_data
 
@@ -491,3 +553,46 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
+
+    def availability_zones(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching availability zones')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+        for az in session.elb.availability_zones(**query_filter):
+            az.enabled = az.is_enabled
+            az_data = _az.AvailabilityZoneResponse.from_sdk_object(
+                az
+            )
+            az_data.provider = PROVIDER
+            result.append(az_data)
+        return result
+
+    def quotas(self, session, project_id, query_filter=None):
+        LOG.debug('Fetching quotas')
+        if not query_filter:
+            query_filter = {}
+
+        result = []
+        quota = session.elb.get_quotas()
+        if quota:
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            result.append(quota_data)
+        return result
+
+    def quota_get(self, session, project_id, param):
+        LOG.debug('Searching for quotas')
+
+        quota = session.elb.get_quotas()
+        LOG.debug('quotas is %s' % quota)
+
+        if quota:
+            quota_data = _quotas.QuotaResponse.from_sdk_object(
+                quota
+            )
+            quota_data.provider = PROVIDER
+            return quota_data
