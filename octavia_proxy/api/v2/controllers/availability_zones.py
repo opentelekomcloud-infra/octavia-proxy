@@ -61,8 +61,6 @@ class AvailabilityZonesController(base.BaseController):
         if pagination_helper:
             result_to_dict = [az_obj.to_dict() for az_obj in result]
             temp_result, temp_links = pagination_helper.apply(result_to_dict)
-            LOG.debug('RESULT {temp_result}'.format(temp_result=temp_result))
-            LOG.debug('LINKS {temp_links}'.format(temp_links=temp_links))
             links = [types.PageType(**link) for link in temp_links]
             result = self._convert_sdk_to_type(
                 temp_result, az_types.AvailabilityZoneFullResponse

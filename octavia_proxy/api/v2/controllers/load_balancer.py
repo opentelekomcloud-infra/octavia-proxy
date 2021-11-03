@@ -87,8 +87,6 @@ class LoadBalancersController(base.BaseController):
         if pagination_helper:
             result_to_dict = [lb_obj.to_dict() for lb_obj in result]
             temp_result, temp_links = pagination_helper.apply(result_to_dict)
-            LOG.debug('LOADBALANCERS {}'.format(temp_result))
-            LOG.debug('LINKS {}'.format(temp_links))
             links = [types.PageType(**link) for link in temp_links]
             result = self._convert_sdk_to_type(
                 temp_result, lb_types.LoadBalancerFullResponse
