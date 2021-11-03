@@ -89,7 +89,6 @@ class TestLoadBalancer(base.BaseAPITest):
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
     def test_complex_create_v2_0(self, **optionals):
-        # ecs = self._create_ecs()
         lb_json = {'name': 'test4',
                    'vip_subnet_id': self._network['subnet_id'],
                    'project_id': self.project_id,
@@ -114,7 +113,9 @@ class TestLoadBalancer(base.BaseAPITest):
                               "protocol": "HTTP",
                               "healthmonitor": {"type": "HTTP", "delay": "3",
                                                 "max_retries": 2,
-                                                "timeout": 1}
+                                                "timeout": 1},
+                              "members": [{"address": "192.168.115.184",
+                                           "protocol_port": "80"}]
                               }]
                    }
         lb_json.update(optionals)
@@ -125,10 +126,12 @@ class TestLoadBalancer(base.BaseAPITest):
         pools = self.api_lb['pools']
         hm = pools[0]['healthmonitor']
         default_pool = listeners[0]["default_pool_id"]
+        members = pools[0]['members']
         self.assertTrue(listeners)
         self.assertTrue(pools)
         self.assertTrue(hm)
         self.assertTrue(default_pool)
+        self.assertTrue(members)
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')),
                     params={'cascade': True})
 

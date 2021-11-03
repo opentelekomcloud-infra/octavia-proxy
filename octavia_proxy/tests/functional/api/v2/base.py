@@ -21,10 +21,6 @@ from octavia_proxy.api import config as pconfig
 _network = None
 _sdk = None
 _lb = None
-_ecs = None
-_keypair = None
-_port = None
-CIDR = '192.168.0.0/16'
 
 
 def _destroy_lb(_lb: dict):
@@ -47,19 +43,6 @@ def _destroy_lb(_lb: dict):
     else:
         # TODO implement cleanup for elbv3 _sdk.vlb.delete_
         pass
-
-
-def _destroy_ecs(self):
-
-    if not self._sdk_connection:
-        self._sdk_connection = self._get_sdk_connection()
-    if _ecs:
-        self._sdk_connection.compute.delete_server(_ecs.id)
-    if _port:
-        self._sdk_connection.network.delete_port(_port.id)
-    if _keypair:
-        self._sdk_connection.compute.delete_keypair(
-            _keypair.id)
 
 
 class BaseAPITest(base.TestCase):
@@ -155,10 +138,6 @@ class BaseAPITest(base.TestCase):
     @classmethod
     def tearDownClass(cls):
         try:
-            _destroy_ecs()
-        except Exception:
-            pass
-        try:
             _destroy_lb(_lb)
         except Exception:
             pass
@@ -171,7 +150,7 @@ class BaseAPITest(base.TestCase):
 
     def _create_network(self):
         global _network
-        cidr = CIDR
+        cidr = '192.168.0.0/16'
         ipv4 = 4
         router_name = 'octavia-proxy-test-router'
         net_name = 'octavia-proxy-test-net'
@@ -222,38 +201,6 @@ class BaseAPITest(base.TestCase):
             response = self.post(self.LBS_PATH, body)
             _lb = response.json.get('loadbalancer')
         return _lb
-
-    def _create_ecs(self):
-        global _ecs
-        global _keypair
-        global _port
-        ecs_name = 'octavia-proxy-test-ecs'
-        image = "Standard_CentOS_Stream_latest"
-        flavor = "s2.medium.1"
-        keyname = "octavia-proxy-test-keypair"
-        portname = "octavia-proxy-test-port"
-
-        if not self._sdk_connection:
-            self._sdk_connection = self._get_sdk_connection()
-        if not _keypair:
-            _keypair = self._sdk_connection.compute.\
-                create_keypair(name=keyname)
-        if not _port:
-            _port = self._sdk_connection.compute.create_post(
-                name=portname, network_id=self._network["network_id"])
-        if not _ecs:
-            flavor = self._sdk_connection.compute.find_flavor(flavor)
-            image = self._sdk_connection.compute.find_image(image)
-            network_id = self._network["network_id"]
-            ecs = self._sdk_connection.compute.\
-                create_server(name=ecs_name, image_id=image.id,
-                              flavor_id=flavor.id, wait=True,
-                              networks=[{"uuid": network_id}],
-                              key_name=_keypair.name,
-                              nics=[{'fixed_ip': _port.address}])
-            cr_ecs = self._sdk_connection.compute.find_server(ecs.id)
-            _ecs = cr_ecs
-        return _ecs
 
     def _make_app(self):
         # Note: we need to set argv=() to stop the wsgi setup_app from

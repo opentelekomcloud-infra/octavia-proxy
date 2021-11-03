@@ -234,7 +234,8 @@ class PoolsController(base.BaseController):
                 driver.name, driver.loadbalancer_delete,
                 context.session,
                 lb, cascade=True)
-            raise Exception("Pool creation failed")
+            raise Exception('Pool {pool} creation failed'.format(
+                pool=pool.name))
 
         new_hm = None
         if hm:
