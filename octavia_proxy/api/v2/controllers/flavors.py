@@ -77,7 +77,7 @@ class FlavorsController(base.BaseController):
             LOG.debug('LINKS {temp_links}'.format(temp_links = temp_links))
             links = [types.PageType(**link) for link in temp_links]
             result = self._convert_sdk_to_type(
-                temp_result, flavor_types.FlavorRootResponse
+                temp_result, flavor_types.FlavorFullResponse
             )
 
         if fields is not None:
