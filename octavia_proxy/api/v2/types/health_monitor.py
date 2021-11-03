@@ -101,6 +101,7 @@ class HealthMonitorResponse(BaseHealthMonitorType):
                     setattr(full_response, key, v)
 
         full_response.admin_state_up = self.admin_state_up
+        full_response.url_path = self.url_path
         full_response.pools = self.pools
         full_response.created_at = self.created_at
         full_response.updated_at = self.updated_at
@@ -225,7 +226,7 @@ class HealthMonitorSingleCreate(BaseHealthMonitorType):
         for key in [
             'name',
             'type', 'delay', 'timeout', 'max_retries', 'max_retries_down',
-            'http_method', 'url_path', 'expected_codes',
+            'http_method', 'expected_codes',
             'tags', 'http_version', 'domain_name',
         ]:
             if hasattr(self, key):
@@ -234,6 +235,8 @@ class HealthMonitorSingleCreate(BaseHealthMonitorType):
                     setattr(hm_post, key, v)
 
         if self.admin_state_up:
+            hm_post.admin_state_up = self.admin_state_up
+        if self.url_path:
             hm_post.admin_state_up = self.admin_state_up
         if project_id:
             hm_post.project_id = project_id

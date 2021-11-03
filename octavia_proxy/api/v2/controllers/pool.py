@@ -239,22 +239,26 @@ class PoolsController(base.BaseController):
 
         new_hm = None
         if hm:
-            hm_post = hm.to_hm_post(pool_id=result_pool.id,
-                                    project_id=result_pool.project_id)
-            new_hm = health_monitor.HealthMonitorController()._graph_create(
-                session, lb=lb, hm_dict=hm_post, provider=result_pool.provider)
+            if not hm.delay or not hm.type:
+                raise exceptions.ValidationException(
+                    detail="Mandatory parameter is missing for healthmonitor.")
 
             if result_pool.protocol in (constants.PROTOCOL_UDP):
                 health_monitor.HealthMonitorController(
                 )._validate_healthmonitor_request_for_udp(
-                    new_hm, result_pool.protocol)
+                    hm, result_pool.protocol)
             else:
-                if new_hm.type in (constants.HEALTH_MONITOR_UDP_CONNECT):
+                if hm.type in (constants.HEALTH_MONITOR_UDP_CONNECT):
                     raise exceptions.ValidationException(detail=_(
                         "The %(type)s type is only supported for pools of "
                         "type %(protocol)s.") % {
-                            'type': new_hm.type,
+                            'type': hm.type,
                             'protocol': '/'.join((constants.PROTOCOL_UDP))})
+
+            hm_post = hm.to_hm_post(pool_id=result_pool.id,
+                                    project_id=result_pool.project_id)
+            new_hm = health_monitor.HealthMonitorController()._graph_create(
+                session, lb=lb, hm_dict=hm_post, provider=result_pool.provider)
 
         # Now create members
         new_members = []

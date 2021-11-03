@@ -317,24 +317,27 @@ class LoadBalancersController(base.BaseController):
                                    'populated loadbalancer.')
                     pools.append(default_pool)
 
-            for p in pools:
-                members = p.members
-                pool_post = p.to_pool_post(loadbalancer_id=lb.id,
-                                           project_id=lb.project_id)
-
-                new_pool = (pool_controller.PoolsController()._graph_create(
-                    session, lb, pool_post, members=members,
-                    provider=lb.provider))
-                result_pools.append(new_pool)
-                pool_name_ids[new_pool.name] = new_pool.id
-
         pool_names = []
         for pool in pools:
+            if not pool.protocol or not pool.lb_algorithm:
+                raise exceptions.ValidationException(
+                    detail="'protocol' or 'lb_algorithm' is missing for pool")
             pool_names.append(pool.name)
         if len(pool_names) != len(set(pool_names)):
             raise exceptions.ValidationException(
                 detail="Pool names must be unique when creating a fully "
                        "populated loadbalancer.")
+
+        for p in pools:
+            members = p.members
+            pool_post = p.to_pool_post(loadbalancer_id=lb.id,
+                                       project_id=lb.project_id)
+
+            new_pool = (pool_controller.PoolsController()._graph_create(
+                session, lb, pool_post, members=members,
+                provider=lb.provider))
+            result_pools.append(new_pool)
+            pool_name_ids[new_pool.name] = new_pool.id
 
         if listeners:
             for li in listeners:
