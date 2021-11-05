@@ -201,7 +201,7 @@ class ListenerPOST(BaseListenerType):
     project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
     default_pool_id = wtypes.wsattr(wtypes.UuidType())
     default_pool = wtypes.wsattr(pool.PoolSingleCreate)
-    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=[])
+    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=None)
     insert_headers = wtypes.wsattr(
         wtypes.DictType(str, wtypes.StringType(max_length=255)))
     loadbalancer_id = wtypes.wsattr(wtypes.UuidType(), mandatory=True)
@@ -301,7 +301,7 @@ class ListenerSingleCreate(BaseListenerType):
     sni_container_refs = [wtypes.StringType(max_length=255)]
     default_pool_id = wtypes.wsattr(wtypes.UuidType())
     default_pool = wtypes.wsattr(pool.PoolSingleCreate)
-    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=[])
+    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=None)
     insert_headers = wtypes.wsattr(
         wtypes.DictType(str, wtypes.StringType(max_length=255)))
     timeout_client_data = wtypes.wsattr(

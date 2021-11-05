@@ -162,6 +162,8 @@ class ListenersController(base.BaseController):
                       provider=None):
         driver = driver_factory.get_driver(provider)
         l7policies = listener_dict.l7policies
+        if l7policies is None:
+            l7policies = []
         listener = driver_utils.call_provider(
             driver.name, driver.listener_create, session, listener_dict)
         if not listener:

@@ -306,6 +306,10 @@ class LoadBalancersController(base.BaseController):
         result_pools = []
         result_listeners = []
         pool_name_ids = {}
+        if pools is None:
+            pools = []
+        if listeners is None:
+            listeners = []
 
         if listeners:
             for li in listeners:
