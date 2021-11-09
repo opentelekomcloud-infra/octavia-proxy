@@ -252,6 +252,7 @@ SORTED_EXAMPLE = [
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
     }
 ]
+PATH_URL = 'http://localhost:9876/v2/lbaas/loadbalancers.json'
 
 
 class TestPaginationHelper(base.TestCase):
@@ -313,8 +314,7 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_sorting_and_links_generation(self, request_mock):
-        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
-                                '/loadbalancers.json'
+        request_mock.path_url = PATH_URL
         params = {
             'marker': '147f018a-f401-48d1-b58a-50fe6600fake',
             'limit': 4,
@@ -336,8 +336,7 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_sorting_and_links_generation_reversed(self, request_mock):
-        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
-                                '/loadbalancers.json'
+        request_mock.path_url = PATH_URL
         params = {
             'marker': '147f018a-f401-48d1-b58a-50fe6600fake',
             'limit': 4,
@@ -357,8 +356,7 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_links_generation_reversed(self, request_mock):
-        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
-                                '/loadbalancers.json'
+        request_mock.path_url = PATH_URL
         params = {
             'marker': None,
             'limit': 4,
@@ -378,8 +376,7 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_marker_is_last_element_in_list(self, request_mock):
-        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
-                                '/loadbalancers.json'
+        request_mock.path_url = PATH_URL
         params = {
             'marker': "678f018a-f401-48d1-b58a-50fe6600fake",
             'limit': None,
@@ -398,8 +395,7 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_marker_is_last_element_in_list_reversed(self, request_mock):
-        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
-                                '/loadbalancers.json'
+        request_mock.path_url = PATH_URL
         params = {
             'marker': "147f018a-f401-48d1-b58a-50fe6600fake",
             'limit': None,
@@ -419,8 +415,7 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_empty_links(self, request_mock):
-        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
-                                '/loadbalancers.json'
+        request_mock.path_url = PATH_URL
         params = {
             'marker': None,
             'limit': None,
@@ -435,8 +430,7 @@ class TestPaginationHelper(base.TestCase):
 
     @mock.patch('octavia_proxy.api.common.pagination.request')
     def test_empty_links_reversed(self, request_mock):
-        request_mock.path_url = 'http://localhost:9876/v2/lbaas' \
-                                '/loadbalancers.json'
+        request_mock.path_url = PATH_URL
         params = {
             'marker': None,
             'limit': None,
