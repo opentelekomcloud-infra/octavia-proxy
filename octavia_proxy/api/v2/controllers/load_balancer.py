@@ -23,6 +23,7 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from openstack import exceptions as openstack_exceptions
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
@@ -204,13 +205,19 @@ class LoadBalancersController(base.BaseController):
         self._validate_vip_request_object(load_balancer, context=context)
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
-
+        result = None
         # Dispatch to the driver
-        result = driver_utils.call_provider(
-            driver.name, driver.loadbalancer_create,
-            context.session,
-            load_balancer)
-
+        try:
+            result = driver_utils.call_provider(
+                driver.name, driver.loadbalancer_create,
+                context.session,
+                load_balancer)
+        except openstack_exceptions.ConflictException:
+            raise exceptions.IPAddressInUse(
+                network_id=load_balancer.vip_network_id,
+                vip_address=load_balancer.vip_address)
+        except Exception as e:
+            raise e
         return lb_types.LoadBalancerRootResponse(loadbalancer=result)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerRootResponse,

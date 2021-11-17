@@ -15,6 +15,7 @@
 
 import copy
 
+from openstack import exceptions as openstack_exceptions
 from octavia_lib.api.drivers import exceptions as lib_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -64,6 +65,8 @@ def call_provider(provider, driver_method, *args, **kwargs):
                  "%s", provider, e.operator_fault_string)
         raise exceptions.ProviderUnsupportedOptionError(
             prov=provider, user_msg=e.user_fault_string)
+    except openstack_exceptions.ConflictException as e:
+        raise e
     except Exception as e:
         LOG.exception("Provider '%s' raised an unknown error: %s",
                       provider, str(e))
