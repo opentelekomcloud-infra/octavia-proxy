@@ -100,10 +100,9 @@ class ListenerResponse(BaseListenerType):
             'client_crl_container_ref', 'connection_limit', 'default_pool_id',
             'default_tls_container_ref', 'description', 'operation_status',
             'project_id', 'protocol', 'protocol_port', 'provisioning_status',
-            'sni_container_refs',
-            'tags',
-            'timeout_client_data', 'timeout_memeber_connect',
-            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+            'sni_container_refs', 'tags', 'timeout_client_data',
+            'timeout_member_connect', 'timeout_member_data',
+            'timeout_tcp_inspect', 'tls_ciphers'
         ]:
             if hasattr(sdk_entity, key):
                 v = getattr(sdk_entity, key)
@@ -132,6 +131,37 @@ class ListenerResponse(BaseListenerType):
         ]
         listener.tls_versions = []
         return listener
+
+    def to_full_response(self, l7policies=None):
+        full_response = ListenerFullResponse()
+
+        for key in [
+            'id', 'name',
+            'client_authentication', 'client_ca_tls_container_ref',
+            'client_crl_container_ref', 'connection_limit', 'default_pool_id',
+            'default_tls_container_ref', 'description', 'operation_status',
+            'project_id', 'protocol', 'protocol_port', 'provisioning_status',
+            'sni_container_refs', 'tags',
+            'timeout_client_data', 'timeout_member_connect',
+            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.admin_state_up = self.admin_state_up
+        full_response.allowed_cidrs = self.allowed_cidrs
+        full_response.alpn_protocols = self.alpn_protocols
+        full_response.insert_headers = self.insert_headers
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.loadbalancers = self.loadbalancers
+        full_response.tls_versions = self.tls_versions
+
+        if l7policies:
+            full_response.l7policies = l7policies
+        return full_response
 
 
 class ListenerFullResponse(ListenerResponse):
@@ -171,7 +201,7 @@ class ListenerPOST(BaseListenerType):
     project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
     default_pool_id = wtypes.wsattr(wtypes.UuidType())
     default_pool = wtypes.wsattr(pool.PoolSingleCreate)
-    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=[])
+    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=None)
     insert_headers = wtypes.wsattr(
         wtypes.DictType(str, wtypes.StringType(max_length=255)))
     loadbalancer_id = wtypes.wsattr(wtypes.UuidType(), mandatory=True)
@@ -271,7 +301,7 @@ class ListenerSingleCreate(BaseListenerType):
     sni_container_refs = [wtypes.StringType(max_length=255)]
     default_pool_id = wtypes.wsattr(wtypes.UuidType())
     default_pool = wtypes.wsattr(pool.PoolSingleCreate)
-    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=[])
+    l7policies = wtypes.wsattr([l7policy.L7PolicySingleCreate], default=None)
     insert_headers = wtypes.wsattr(
         wtypes.DictType(str, wtypes.StringType(max_length=255)))
     timeout_client_data = wtypes.wsattr(
@@ -305,6 +335,39 @@ class ListenerSingleCreate(BaseListenerType):
     tls_versions = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(
         max_length=32)))
     alpn_protocols = wtypes.wsattr(wtypes.ArrayType(types.AlpnProtocolType()))
+
+    def to_listener_post(self, project_id=None, loadbalancer_id=None,
+                         default_pool_id=None):
+        listener_post = ListenerPOST()
+
+        for key in [
+            'name', 'client_ca_tls_container_ref',
+            'client_crl_container_ref', 'connection_limit',
+            'default_tls_container_ref', 'description',
+            'protocol_port', 'sni_container_refs', 'tags',
+            'timeout_client_data', 'timeout_member_connect',
+            'timeout_member_data', 'timeout_tcp_inspect', 'tls_ciphers'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(listener_post, key, v)
+
+        listener_post.admin_state_up = self.admin_state_up
+        listener_post.allowed_cidrs = self.allowed_cidrs
+        listener_post.l7policies = self.l7policies
+        listener_post.insert_headers = self.insert_headers
+        listener_post.protocol = self.protocol
+        listener_post.tls_versions = self.tls_versions
+        listener_post.alpn_protocols = self.alpn_protocols
+        listener_post.client_authentication = self.client_authentication
+        if project_id:
+            listener_post.project_id = project_id
+        if loadbalancer_id:
+            listener_post.loadbalancer_id = loadbalancer_id
+        if default_pool_id:
+            listener_post.default_pool_id = default_pool_id
+        return listener_post
 
 
 class ListenerStatusResponse(BaseListenerType):

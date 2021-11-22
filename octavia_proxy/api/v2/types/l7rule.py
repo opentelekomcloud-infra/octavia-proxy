@@ -66,6 +66,27 @@ class L7RuleResponse(BaseL7Type):
                 setattr(l7rule, attr, parser.parse(v) or None)
         return l7rule
 
+    def to_full_response(self):
+        full_response = L7RuleFullResponse()
+
+        for key in [
+            'id', 'name', 'rules_links', 'compare_type',
+            'invert', 'key', 'operating_status', 'project_id',
+            'provisioning_status', 'type',
+            'tags', 'value'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.admin_state_up = self.admin_state_up
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.invert = self.invert
+
+        return full_response
+
 
 class L7RuleFullResponse(L7RuleResponse):
     @classmethod
@@ -135,3 +156,20 @@ class L7RuleSingleCreate(BaseL7Type):
     invert = wtypes.wsattr(bool, default=False)
     admin_state_up = wtypes.wsattr(bool, default=True)
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
+
+    def to_l7rule_post(self, project_id=None):
+        l7rule_post = L7RulePOST()
+
+        for key in [
+            'compare_type', 'key', 'project_id',
+            'type', 'tags', 'value'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(l7rule_post, key, v)
+
+        l7rule_post.admin_state_up = self.admin_state_up
+        l7rule_post.invert = self.invert
+
+        return l7rule_post

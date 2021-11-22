@@ -127,6 +127,31 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             ]
         return load_balancer
 
+    def to_full_response(self, pools=None, listeners=None):
+        full_response = LoadBalancerFullResponse()
+
+        for key in [
+            'id', 'name',
+            'availability_zone', 'description', 'flavor_id',
+            'operating_status', 'project_id', 'provider',
+            'provisioning_status', 'tags', 'vip_address', 'vip_network_id',
+            'vip_port_id', 'vip_qos_policy_id', 'vip_subnet_id'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.admin_state_up = self.admin_state_up
+        if listeners:
+            full_response.listeners = listeners
+        if pools:
+            full_response.pools = pools
+        return full_response
+
 
 class LoadBalancerFullResponse(LoadBalancerResponse):
     @classmethod
@@ -162,8 +187,8 @@ class LoadBalancerPOST(BaseLoadBalancerType):
     vip_network_id = wtypes.wsattr(wtypes.UuidType())
     vip_qos_policy_id = wtypes.wsattr(wtypes.UuidType())
     project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
-    listeners = wtypes.wsattr([listener.ListenerSingleCreate], default=[])
-    pools = wtypes.wsattr([pool.PoolSingleCreate], default=[])
+    listeners = wtypes.wsattr([listener.ListenerSingleCreate], default=None)
+    pools = wtypes.wsattr([pool.PoolSingleCreate], default=None)
     provider = wtypes.wsattr(wtypes.StringType(max_length=64))
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
     flavor_id = wtypes.wsattr(wtypes.UuidType())
