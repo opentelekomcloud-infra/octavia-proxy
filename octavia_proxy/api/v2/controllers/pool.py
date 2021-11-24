@@ -27,7 +27,6 @@ from octavia_proxy.api.v2.controllers import base, member, health_monitor
 from octavia_proxy.api.v2.types import pool as pool_types
 from octavia_proxy.api.common import types
 from octavia_proxy.common import constants, validate, exceptions
-from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
