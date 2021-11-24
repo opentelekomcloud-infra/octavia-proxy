@@ -260,5 +260,19 @@ class HealthMonitorController(base.BaseController):
 
         driver_utils.call_provider(
             driver.name, driver.health_monitor_delete,
-            context.session,
-            hm)
+            context.session, hm)
+
+    def _graph_create(self, session, lb, hm_dict, provider=None):
+        driver = driver_factory.get_driver(provider)
+        hm_response = driver_utils.call_provider(
+            driver.name, driver.health_monitor_create,
+            session, hm_dict)
+        if not hm_response:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception("Healthmonitor creation failed")
+        hm_full_response = hm_response.to_full_response()
+        return hm_full_response

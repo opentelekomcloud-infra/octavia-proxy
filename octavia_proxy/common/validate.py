@@ -18,7 +18,7 @@ Several handy validation functions that go beyond simple type checking.
 Defined here so these can also be used at deeper levels than the API.
 """
 import re
-
+import rfc3986
 import netaddr
 from oslo_config import cfg
 
@@ -26,6 +26,25 @@ from octavia_proxy.common import constants, exceptions
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
+
+
+def url_path(url_path):
+    """Raises an error if the url_path doesn't look like a URL Path."""
+    try:
+        p_url = rfc3986.urlparse(rfc3986.normalize_uri(url_path))
+
+        invalid_path = (
+            p_url.scheme or p_url.userinfo or p_url.host or
+            p_url.port or
+            p_url.path is None or
+            not p_url.path.startswith('/')
+        )
+
+        if invalid_path:
+            raise exceptions.InvalidURLPath(url_path=url_path)
+    except Exception as e:
+        raise exceptions.InvalidURLPath(url_path=url_path) from e
+    return True
 
 
 def check_session_persistence(SP_dict):

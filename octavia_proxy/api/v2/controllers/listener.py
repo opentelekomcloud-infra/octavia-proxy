@@ -21,12 +21,12 @@ from wsmeext import pecan as wsme_pecan
 
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.common import constants
-
+from octavia_proxy.common import exceptions
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.drivers import driver_factory
 
 from octavia_proxy.api.v2.types import listener as listener_types
-from octavia_proxy.api.v2.controllers import base
+from octavia_proxy.api.v2.controllers import base, l7policy
 from octavia_proxy.api.common import types
 
 
@@ -166,3 +166,42 @@ class ListenersController(base.BaseController):
             driver.name, driver.listener_delete,
             context.session,
             listener)
+
+    def _graph_create(self, session, lb, listener_dict, pool_name_ids=None,
+                      provider=None):
+        driver = driver_factory.get_driver(provider)
+        l7policies = listener_dict.l7policies
+        if l7policies is None:
+            l7policies = []
+        listener = driver_utils.call_provider(
+            driver.name, driver.listener_create, session, listener_dict)
+        if not listener:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception("Listener creation failed")
+        new_l7ps = []
+        for l7p in l7policies:
+            project_id = listener.project_id
+            listener_id = listener.id
+            rules = l7p.rules
+            if l7p.redirect_pool:
+                pool_name = l7p.redirect_pool.name
+                if not pool_name:
+                    raise exceptions.SingleCreateDetailsMissing(
+                        type='Pool', name=pool_name)
+                redirect_pool_id = pool_name_ids.get(pool_name)
+                l7policy_post = l7p.to_l7policy_post(
+                    project_id=project_id, listener_id=listener_id,
+                    redirect_pool_id=redirect_pool_id)
+            else:
+                l7policy_post = l7p.to_l7policy_post(
+                    project_id=project_id, listener_id=listener_id)
+            new_l7p = l7policy.L7PoliciesController()._graph_create(
+                session, lb, l7policy_post, rules=rules,
+                provider=listener.provider)
+            new_l7ps.append(new_l7p)
+        listener_full_response = listener.to_full_response(l7policies=new_l7ps)
+        return listener_full_response

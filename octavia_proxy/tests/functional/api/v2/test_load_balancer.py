@@ -88,6 +88,53 @@ class TestLoadBalancer(base.BaseAPITest):
         self._assert_request_matches_response(lb_json, self.api_lb)
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')))
 
+    def test_complex_create_v2_0(self, **optionals):
+        lb_json = {'name': 'test4',
+                   'vip_subnet_id': self._network['subnet_id'],
+                   'project_id': self.project_id,
+                   "listeners": [{"name": "listener-4",
+                                  "protocol": "HTTP",
+                                  "protocol_port": "483",
+                                 "default_pool": {"name": "default-pool-4",
+                                                  "lb_algorithm":
+                                                      "ROUND_ROBIN",
+                                                  "protocol": "HTTP"},
+                                  "l7policies": [{"name": "policy-4",
+                                                  "rules": [{
+                                                      "compare_type":
+                                                          "EQUAL_TO",
+                                                      "type": "PATH",
+                                                      "value": "/bbb.html"}],
+                                                  "action": "REDIRECT_TO_POOL",
+                                                  "redirect_pool":
+                                                      {"name": "pool-4"}}]}],
+                   "pools": [{"name": "pool-4",
+                              "lb_algorithm": "ROUND_ROBIN",
+                              "protocol": "HTTP",
+                              "healthmonitor": {"type": "HTTP", "delay": "3",
+                                                "max_retries": 2,
+                                                "timeout": 1},
+                              "members": [{"address": "192.168.115.184",
+                                           "protocol_port": "80"}]
+                              }]
+                   }
+        lb_json.update(optionals)
+        body = self._build_body(lb_json)
+        response = self.post(self.LBS_PATH, body, use_v2_0=True)
+        self.api_lb = response.json.get(self.root_tag)
+        listeners = self.api_lb['listeners']
+        pools = self.api_lb['pools']
+        hm = pools[0]['healthmonitor']
+        default_pool = listeners[0]["default_pool_id"]
+        members = pools[0]['members']
+        self.assertTrue(listeners)
+        self.assertTrue(pools)
+        self.assertTrue(hm)
+        self.assertTrue(default_pool)
+        self.assertTrue(members)
+        self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')),
+                    params={'cascade': True})
+
     def test_create_without_vip(self):
         lb_json = {'name': 'test1',
                    'project_id': self.project_id}
