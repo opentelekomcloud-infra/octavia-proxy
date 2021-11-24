@@ -68,27 +68,41 @@ class ListenerResponse(BaseListenerType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
+        loadbalancers = data_model.get('loadbalancers', None)
+        l7policies = data_model.get('l7policies', None)
+        sni_container_refs = data_model.get('sni_container_refs', None)
+        allowed_cidrs = data_model.get('allowed_cidrs', None)
+        tls_versions = data_model.get('tls_versions', None)
+        alpn_protocols = data_model.get('alpn_protocols', None)
+        data_model['loadbalancers'] = []
+        data_model['l7policies'] = []
+        data_model['sni_container_refs'] = []
+        data_model['allowed_cidrs'] = []
+        data_model['tls_versions'] = []
+        data_model['alpn_protocols'] = []
         listener = super(ListenerResponse, cls).from_data_model(
             data_model, children=children)
 
-        listener.sni_container_refs = [
-            sni_c.tls_container_id for sni_c in data_model.sni_container_refs]
-        listener.allowed_cidrs = [
-            c.cidr for c in data_model.allowed_cidrs] or None
+        if sni_container_refs:
+            listener.sni_container_refs = [
+                sni_c.tls_container_id for sni_c in sni_container_refs]
+        if allowed_cidrs:
+            listener.allowed_cidrs = [
+                c.cidr for c in allowed_cidrs]
         if cls._full_response():
             del listener.loadbalancers
             l7policy_type = l7policy.L7PolicyFullResponse
         else:
             listener.loadbalancers = [
-                types.IdOnlyType.from_data_model(data_model.load_balancer)]
+                types.IdOnlyType.from_data_model(loadbalancers)]
             l7policy_type = types.IdOnlyType
 
-        listener.l7policies = [
-            l7policy_type.from_data_model(i) for i in data_model.l7policies]
+        if l7policies:
+            listener.l7policies = [
+                l7policy_type.from_data_model(i) for i in l7policies]
 
-        listener.tls_versions = data_model.tls_versions
-        listener.alpn_protocols = data_model.alpn_protocols
-
+        listener.tls_versions = tls_versions
+        listener.alpn_protocols = alpn_protocols
         return listener
 
     @classmethod

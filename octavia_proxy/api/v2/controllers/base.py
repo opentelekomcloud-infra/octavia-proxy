@@ -22,7 +22,7 @@ class BaseController(pecan_rest.RestController):
     @staticmethod
     def _convert_sdk_to_type(sdk_entity, to_type, children=False):
         """Converts a data model into an Octavia WSME type
-        :param db_entity: data model to convert
+        :param sdk_entity: data model to convert
         :param to_type: converts db_entity to this type
         """
         LOG.debug('Converting %s' % sdk_entity)
