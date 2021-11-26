@@ -27,7 +27,8 @@ from openstack import exceptions as openstack_exceptions
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.v2.controllers import base
+from octavia_proxy.api.v2.controllers import (base, pool as pool_controller,
+                                              listener as li_controller)
 from octavia_proxy.api.v2.types import load_balancer as lb_types
 from octavia_proxy.common import constants, validate
 from octavia_proxy.common import exceptions
@@ -297,3 +298,62 @@ class LoadBalancersController(base.BaseController):
 
     def _validate_availability_zone(self, session, load_balancer):
         pass
+
+    def _graph_create(self, session, lb, pools, listeners):
+        result_pools = []
+        result_listeners = []
+        pool_name_ids = {}
+        if pools is None:
+            pools = []
+        if listeners is None:
+            listeners = []
+
+        if listeners:
+            for li in listeners:
+                default_pool = li.default_pool
+                if not isinstance(default_pool, wtypes.UnsetType):
+                    if not default_pool.name:
+                        raise exceptions.ValidationException(
+                            detail='Pools must be named when creating a fully '
+                                   'populated loadbalancer.')
+                    pools.append(default_pool)
+
+        pool_names = []
+        for pool in pools:
+            if not pool.protocol or not pool.lb_algorithm:
+                raise exceptions.ValidationException(
+                    detail="'protocol' or 'lb_algorithm' is missing for pool")
+            pool_names.append(pool.name)
+        if len(pool_names) != len(set(pool_names)):
+            raise exceptions.ValidationException(
+                detail="Pool names must be unique when creating a fully "
+                       "populated loadbalancer.")
+
+        for p in pools:
+            members = p.members
+            pool_post = p.to_pool_post(loadbalancer_id=lb.id,
+                                       project_id=lb.project_id)
+
+            new_pool = (pool_controller.PoolsController()._graph_create(
+                session, lb, pool_post, members=members,
+                provider=lb.provider))
+            result_pools.append(new_pool)
+            pool_name_ids[new_pool.name] = new_pool.id
+
+        if listeners:
+            for li in listeners:
+                if li.default_pool:
+                    name = li.default_pool.name
+                    listener_post = li.to_listener_post(
+                        project_id=lb.project_id, loadbalancer_id=lb.id,
+                        default_pool_id=pool_name_ids[name])
+                else:
+                    listener_post = li.to_listener_post(
+                        project_id=lb.project_id, loadbalancer_id=lb.id)
+
+                result_listener = li_controller.ListenersController()\
+                    ._graph_create(session, lb, listener_post,
+                                   pool_name_ids=pool_name_ids,
+                                   provider=lb.provider)
+                result_listeners.append(result_listener)
+        return result_pools, result_listeners

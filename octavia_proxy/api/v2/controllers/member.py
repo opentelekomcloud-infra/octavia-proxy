@@ -156,6 +156,23 @@ class MemberController(base.BaseController):
             self.pool_id,
             member)
 
+    def _graph_create(self, session, lb, member_dict, provider=None):
+        driver = driver_factory.get_driver(provider)
+
+        new_member_response = driver_utils.call_provider(
+            driver.name, driver.member_create,
+            session, self.pool_id, member_dict)
+        if not new_member_response:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception("Member creation failed")
+        new_member_full_response = new_member_response.to_full_response()
+
+        return new_member_full_response
+
 
 class MembersController(MemberController):
 

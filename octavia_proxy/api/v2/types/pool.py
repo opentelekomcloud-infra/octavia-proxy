@@ -155,6 +155,38 @@ class PoolResponse(BasePoolType):
             ]
         return pool
 
+    def to_full_response(self, members=None, healthmonitor=None):
+        full_response = PoolFullResponse()
+
+        for key in [
+            'id', 'name',
+            'operating_status', 'provisioning_status',
+            'description', 'protocol', 'lb_algorithm',
+            'session_persistence', 'project_id',
+            'healthmonitor_id', 'tags', 'tls_container_ref',
+            'tls_ciphers', 'ca_tls_container_ref', 'crl_container_ref'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.admin_state_up = self.admin_state_up
+        full_response.loadbalancers = self.loadbalancers
+        full_response.listeners = self.listeners
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.tls_enabled = self.tls_enabled
+        full_response.tls_versions = self.tls_versions
+        full_response.alpn_protocols = self.alpn_protocols
+
+        if members:
+            full_response.members = members
+        if healthmonitor:
+            full_response.healthmonitor = healthmonitor
+        return full_response
+
 
 class PoolFullResponse(PoolResponse):
     @classmethod
@@ -252,6 +284,35 @@ class PoolSingleCreate(BasePoolType):
     tls_versions = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(
         max_length=32)))
     alpn_protocols = wtypes.wsattr(wtypes.ArrayType(types.AlpnProtocolType()))
+
+    def to_pool_post(self, project_id=None, loadbalancer_id=None,
+                     listener_id=None):
+        pool_post = PoolPOST()
+
+        for key in [
+            'name', 'description', 'protocol', 'lb_algorithm',
+            'tls_container_ref', 'ca_tls_container_ref',
+            'crl_container_ref', 'tls_ciphers', 'tags'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(pool_post, key, v)
+
+        pool_post.admin_state_up = self.admin_state_up
+        pool_post.session_persistence = self.session_persistence
+        pool_post.healthmonitor = self.healthmonitor
+        pool_post.tls_enabled = self.tls_enabled
+        pool_post.tls_versions = self.tls_versions
+        pool_post.alpn_protocols = self.alpn_protocols
+        if loadbalancer_id:
+            pool_post.loadbalancer_id = loadbalancer_id
+        if listener_id:
+            pool_post.listener_id = listener_id
+        if project_id:
+            pool_post.project_id = project_id
+        return pool_post
 
 
 class PoolStatusResponse(BasePoolType):
