@@ -205,10 +205,10 @@ class LoadBalancersController(base.BaseController):
         self._validate_vip_request_object(load_balancer, context=context)
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
-        result = None
+        lb_response = None
         # Dispatch to the driver
         try:
-            result = driver_utils.call_provider(
+            lb_response = driver_utils.call_provider(
                 driver.name, driver.loadbalancer_create,
                 context.session,
                 load_balancer)
@@ -218,7 +218,19 @@ class LoadBalancersController(base.BaseController):
                 vip_address=load_balancer.vip_address)
         except Exception as e:
             raise e
-        return lb_types.LoadBalancerRootResponse(loadbalancer=result)
+
+        pools = None
+        listeners = None
+        if load_balancer.pools or load_balancer.listeners:
+            pools = load_balancer.pools
+            listeners = load_balancer.listeners
+            pools, listeners = self._graph_create(
+                context.session, lb_response, pools, listeners)
+
+        lb_full_response = lb_response.to_full_response(pools=pools,
+                                                        listeners=listeners)
+
+        return lb_types.LoadBalancerRootResponse(loadbalancer=lb_full_response)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerRootResponse,
                          wtypes.text, status_code=200,
