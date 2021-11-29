@@ -86,7 +86,7 @@ class HealthMonitorController(base.BaseController):
         if fields is not None:
             result = self._filter_fields(result, fields)
         return hm_types.HealthMonitorsRootResponse(
-            healthmonitors=result, pools_links=links)
+            healthmonitors=result, healthmonitors_links=links)
 
     def _validate_create_hm(self, hm):
         """Validate creating health monitor on pool."""

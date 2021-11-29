@@ -68,12 +68,12 @@ class ListenerResponse(BaseListenerType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
-        loadbalancers = data_model.get('loadbalancers', None)
-        l7policies = data_model.get('l7policies', None)
-        sni_container_refs = data_model.get('sni_container_refs', None)
-        allowed_cidrs = data_model.get('allowed_cidrs', None)
-        tls_versions = data_model.get('tls_versions', None)
-        alpn_protocols = data_model.get('alpn_protocols', None)
+        loadbalancers = data_model.get('loadbalancers', [])
+        l7policies = data_model.get('l7policies', [])
+        sni_container_refs = data_model.get('sni_container_refs', [])
+        allowed_cidrs = data_model.get('allowed_cidrs', [])
+        tls_versions = data_model.get('tls_versions', [])
+        alpn_protocols = data_model.get('alpn_protocols', [])
         data_model['loadbalancers'] = []
         data_model['l7policies'] = []
         data_model['sni_container_refs'] = []
@@ -86,9 +86,12 @@ class ListenerResponse(BaseListenerType):
         if sni_container_refs:
             listener.sni_container_refs = [
                 sni_c.tls_container_id for sni_c in sni_container_refs]
+        else:
+            listener.sni_container_refs = []
         if allowed_cidrs:
-            listener.allowed_cidrs = [
-                c.cidr for c in allowed_cidrs]
+            listener.allowed_cidrs = [c.cidr for c in allowed_cidrs]
+        else:
+            listener.allowed_cidrs = []
         if cls._full_response():
             del listener.loadbalancers
             l7policy_type = l7policy.L7PolicyFullResponse
@@ -100,6 +103,8 @@ class ListenerResponse(BaseListenerType):
         if l7policies:
             listener.l7policies = [
                 l7policy_type.from_data_model(i) for i in l7policies]
+        else:
+            listener.l7policies = []
 
         listener.tls_versions = tls_versions
         listener.alpn_protocols = alpn_protocols

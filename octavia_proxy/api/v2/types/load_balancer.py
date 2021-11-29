@@ -32,7 +32,7 @@ class BaseLoadBalancerType(types.BaseType):
         # 'vip_port_id': 'vip.port_id',
         # 'vip_network_id': 'vip.network_id',
         # 'vip_qos_policy_id': 'vip.qos_policy_id',
-        # 'admin_state_up': 'enabled'
+        'admin_state_up': 'enabled'
     }
 #    _child_map = {'vip': {
 #        'ip_address': 'vip_address',
@@ -69,10 +69,10 @@ class LoadBalancerResponse(BaseLoadBalancerType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
-        listeners = data_model.get('listeners', None)
-        pools = data_model.get('pools', None)
-        data_model['listeners'] = None
-        data_model['pools'] = None
+        listeners = data_model.get('listeners', [])
+        pools = data_model.get('pools', [])
+        data_model['listeners'] = []
+        data_model['pools'] = []
 
         result = super(LoadBalancerResponse, cls).from_data_model(
             data_model, children=children)
@@ -92,7 +92,6 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             listener_model(id=i['id']) for i in listeners]
         result.pools = [
             pool_model(id=i['id']) for i in pools]
-        result.admin_state_up = data_model.get('admin_state_up')
 
         if not result.provider:
             result.provider = "octavia"

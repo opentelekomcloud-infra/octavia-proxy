@@ -19,6 +19,9 @@ from octavia_proxy.api.common import types
 from octavia_proxy.api.v2.types import health_monitor
 from octavia_proxy.api.v2.types import member
 from octavia_proxy.common import constants
+from oslo_log import log as logging
+
+LOG = logging.getLogger(__name__)
 
 
 class SessionPersistenceResponse(types.BaseType):
@@ -90,12 +93,25 @@ class PoolResponse(BasePoolType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
+        LOG.debug('DATA_MODEL {}'.format(data_model))
+        loadbalancers = data_model.get('loadbalancers', [])
+        listeners = data_model.get('listeners', [])
+        members = data_model.get('members', [])
+        tls_versions = data_model.get('tls_versions', [])
+        alpn_protocols = data_model.get('alpn_protocols', [])
+        session_persistence = data_model.get('session_persistence')
+        healthmonitor = data_model.get('health_monitor')
+        data_model['loadbalancers'] = []
+        data_model['listeners'] = []
+        data_model['members'] = []
+        data_model['tls_versions'] = []
+        data_model['alpn_protocols'] = []
         pool = super(PoolResponse, cls).from_data_model(
             data_model, children=children)
-        if data_model.session_persistence:
+        if session_persistence:
             pool.session_persistence = (
                 SessionPersistenceResponse.from_data_model(
-                    data_model.session_persistence))
+                    session_persistence))
 
         if cls._full_response():
             del pool.loadbalancers
@@ -103,23 +119,29 @@ class PoolResponse(BasePoolType):
             if pool.healthmonitor:
                 pool.healthmonitor = (
                     health_monitor.HealthMonitorFullResponse
-                    .from_data_model(data_model.health_monitor))
+                    .from_data_model(healthmonitor))
         else:
-            if data_model.load_balancer:
+            if loadbalancers:
                 pool.loadbalancers = [
-                    types.IdOnlyType.from_data_model(data_model.load_balancer)]
+                    types.IdOnlyType.from_data_model(loadbalancers)]
             else:
                 pool.loadbalancers = []
             member_model = types.IdOnlyType
-            if data_model.health_monitor:
-                pool.healthmonitor_id = data_model.health_monitor.id
-        pool.listeners = [
-            types.IdOnlyType.from_data_model(i) for i in data_model.listeners]
-        pool.members = [
-            member_model.from_data_model(i) for i in data_model.members]
+            if health_monitor:
+                pool.healthmonitor_id = healthmonitor.id
+        if listeners:
+            pool.listeners = [
+                types.IdOnlyType.from_data_model(i) for i in listeners]
+        else:
+            pool.listeners = []
+        if members:
+            pool.members = [member_model.from_data_model(i) for i in members]
+        else:
+            pool.members = []
 
-        pool.tls_versions = data_model.tls_versions
-        pool.alpn_protocols = data_model.alpn_protocols
+        pool.tls_versions = tls_versions
+        pool.alpn_protocols = alpn_protocols
+        LOG.debug('POOL_TO_DICT {}'.format(pool.to_dict()))
 
         return pool
 
