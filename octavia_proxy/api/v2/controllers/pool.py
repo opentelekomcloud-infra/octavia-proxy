@@ -23,10 +23,9 @@ from wsmeext import pecan as wsme_pecan
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.v2.controllers import base, member
+from octavia_proxy.api.v2.controllers import base, member, health_monitor
 from octavia_proxy.api.v2.types import pool as pool_types
-from octavia_proxy.common import constants, validate
-from octavia_proxy.common import exceptions
+from octavia_proxy.common import constants, validate, exceptions
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
@@ -209,3 +208,68 @@ class PoolsController(base.BaseController):
                 return member.MemberController(pool_id=pool.id), remainder
             return member.MembersController(pool_id=pool.id), remainder
         return None
+
+    def _graph_create(self, session, lb, pool, hm=None, members=None,
+                      provider=None):
+        if not hm:
+            hm = pool.healthmonitor
+        if not members:
+            members = pool.members
+
+        driver = driver_factory.get_driver(provider)
+
+        if pool.protocol in constants.PROTOCOL_UDP:
+            self._validate_pool_request_for_tcp_udp(pool)
+
+        if pool.session_persistence:
+            sp_dict = pool.session_persistence.to_dict(render_unsets=False)
+            validate.check_session_persistence(sp_dict)
+
+        result_pool = driver_utils.call_provider(
+            driver.name, driver.pool_create,
+            session, pool)
+        if not result_pool:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception('Pool {pool} creation failed'.format(
+                pool=pool.name))
+
+        new_hm = None
+        if hm:
+            if not hm.delay or not hm.type:
+                raise exceptions.ValidationException(
+                    detail="Mandatory parameter is missing for healthmonitor.")
+
+            if result_pool.protocol in (constants.PROTOCOL_UDP):
+                health_monitor.HealthMonitorController(
+                )._validate_healthmonitor_request_for_udp(
+                    hm, result_pool.protocol)
+            else:
+                if hm.type in (constants.HEALTH_MONITOR_UDP_CONNECT):
+                    raise exceptions.ValidationException(detail=_(
+                        "The %(type)s type is only supported for pools of "
+                        "type %(protocol)s.") % {
+                            'type': hm.type,
+                            'protocol': '/'.join((constants.PROTOCOL_UDP))})
+
+            hm_post = hm.to_hm_post(pool_id=result_pool.id,
+                                    project_id=result_pool.project_id)
+            new_hm = health_monitor.HealthMonitorController()._graph_create(
+                session, lb=lb, hm_dict=hm_post, provider=result_pool.provider)
+
+        # Now create members
+        new_members = []
+        if members:
+            for m in members:
+                member_post = m.to_member_post(
+                    project_id=result_pool.project_id)
+                new_member = member.MembersController(result_pool.id)\
+                    ._graph_create(session, lb, member_post,
+                                   provider=result_pool.provider)
+                new_members.append(new_member)
+        full_response_pool = result_pool.to_full_response(members=new_members,
+                                                          healthmonitor=new_hm)
+        return full_response_pool

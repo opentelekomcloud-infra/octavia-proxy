@@ -174,3 +174,28 @@ class L7PoliciesController(base.BaseController):
             return l7rule.L7RuleController(
                 l7policy_id=l7policy.id), remainder
         return None
+
+    def _graph_create(self, session, lb, policy, rules=None, provider=None):
+        driver = driver_factory.get_driver(provider)
+        policy_response = driver_utils.call_provider(
+            driver.name, driver.l7policy_create, session, policy)
+        if not policy_response:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception("Policy creation failed")
+        new_rules = []
+        if not rules:
+            rules = policy.rules
+        if rules:
+            for r in rules:
+                rule_post = r.to_l7rule_post(
+                    project_id=policy_response.project_id)
+                new_rule = l7rule.L7RuleController(policy_response.id).\
+                    _graph_create(session, lb, rule_post, provider=provider)
+                new_rules.append(new_rule)
+        policy_full_response = policy_response.to_full_response(
+            rules=new_rules)
+        return policy_full_response

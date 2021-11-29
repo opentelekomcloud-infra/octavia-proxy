@@ -82,6 +82,29 @@ class L7PolicyResponse(BaseL7PolicyType):
             ]
         return l7_policy
 
+    def to_full_response(self, rules=None):
+        full_response = L7PolicyFullResponse()
+
+        for key in [
+            'id', 'name',
+            'action', 'description', 'listener_id', 'operating_status',
+            'position', 'project_id', 'redirect_pool_id', 'redirect_url',
+            'provisioning_status', 'redirect_prefix',
+            'redirect_http_code', 'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.admin_state_up = self.admin_state_up
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+
+        if rules:
+            full_response.rules = rules
+        return full_response
+
 
 class L7PolicyFullResponse(L7PolicyResponse):
     @classmethod
@@ -169,3 +192,28 @@ class L7PolicySingleCreate(BaseL7PolicyType):
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
     redirect_http_code = wtypes.wsattr(
         wtypes.Enum(int, *constants.SUPPORTED_L7POLICY_REDIRECT_HTTP_CODES))
+
+    def to_l7policy_post(self, project_id=None, redirect_pool_id=None,
+                         listener_id=None):
+        l7policy_post = L7PolicyPOST()
+
+        for key in [
+            'name', 'description',
+            'position', 'redirect_url',
+            'redirect_prefix', 'redirect_http_code',
+            'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(l7policy_post, key, v)
+
+        l7policy_post.admin_state_up = self.admin_state_up
+        l7policy_post.action = self.action
+        if project_id:
+            l7policy_post.project_id = project_id
+        if listener_id:
+            l7policy_post.listener_id = listener_id
+        if redirect_pool_id:
+            l7policy_post.redirect_pool_id = redirect_pool_id
+        return l7policy_post
