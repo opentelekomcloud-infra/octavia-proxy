@@ -47,8 +47,8 @@ class L7PolicyResponse(BaseL7PolicyType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
-        rules = data_model.get('l7rules', [])
-        data_model['l7rules'] = []
+        rules = data_model.get('rules', [])
+        data_model['rules'] = []
         policy = super(L7PolicyResponse, cls).from_data_model(
             data_model, children=children)
 
@@ -58,6 +58,8 @@ class L7PolicyResponse(BaseL7PolicyType):
             rule_model = types.IdOnlyType
         if rules:
             policy.rules = [rule_model.from_data_model(i) for i in rules]
+        else:
+            policy.rules = []
         return policy
 
     @classmethod
