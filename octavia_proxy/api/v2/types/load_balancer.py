@@ -92,6 +92,7 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             listener_model(id=i['id']) for i in listeners]
         result.pools = [
             pool_model(id=i['id']) for i in pools]
+        result.admin_state_up = data_model.is_admin_state_up
 
         if not result.provider:
             result.provider = "octavia"

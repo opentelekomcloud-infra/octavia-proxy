@@ -69,13 +69,14 @@ class HealthMonitorController(base.BaseController):
         # query_params = pagination_helper.params
         # query_filter.update(query_params)
         is_parallel = query_filter.pop('is_parallel', True)
+        allow_pagination = CONF.api_settings.allow_pagination
 
         links = []
         result = driver_invocation(
             context, 'health_monitors', is_parallel, query_filter
         )
 
-        if pagination_helper:
+        if allow_pagination:
             result_to_dict = [hlth_mntr.to_dict() for hlth_mntr in result]
             temp_result, temp_links = pagination_helper.apply(result_to_dict)
             links = [types.PageType(**link) for link in temp_links]

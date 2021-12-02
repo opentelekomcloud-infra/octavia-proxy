@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
 from oslo_log import log as logging
 from pecan import request as pecan_request
 from wsme import types as wtypes
@@ -24,6 +25,7 @@ from octavia_proxy.api.common import types
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 
+CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
@@ -66,13 +68,14 @@ class QuotasController(base.BaseController):
         # query_params = pagination_helper.params
         # query_filter.update(query_params)
         is_parallel = query_filter.pop('is_parallel', True)
+        allow_pagination = CONF.api_settings.allow_pagination
 
         links = []
         result = driver_invocation(
             context, 'quotas', is_parallel, query_filter
         )
 
-        if pagination_helper:
+        if allow_pagination:
             result_to_dict = [qt_obj.to_dict() for qt_obj in result]
             temp_result, temp_links = pagination_helper.apply(result_to_dict)
             links = [types.PageType(**link) for link in temp_links]

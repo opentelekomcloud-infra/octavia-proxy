@@ -68,13 +68,14 @@ class MemberController(base.BaseController):
         # query_params = pagination_helper.params
         # query_filter.update(query_params)
         is_parallel = query_filter.pop('is_parallel', True)
+        allow_pagination = CONF.api_settings.allow_pagination
 
         links = []
         result = driver_invocation(
             context, 'members', is_parallel, self.pool_id, query_filter
         )
 
-        if pagination_helper:
+        if allow_pagination:
             result_to_dict = [mmbr_obj.to_dict() for mmbr_obj in result]
             temp_result, temp_links = pagination_helper.apply(result_to_dict)
             links = [types.PageType(**link) for link in temp_links]
