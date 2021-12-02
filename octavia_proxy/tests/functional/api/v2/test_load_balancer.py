@@ -135,6 +135,16 @@ class TestLoadBalancer(base.BaseAPITest):
         self.delete(self.LB_PATH.format(lb_id=self.api_lb.get('id')),
                     params={'cascade': True})
 
+    def test_create_get_all_delete(self):
+        lb = self.create_load_balancer(
+            self._network['subnet_id'], name='lb'
+        ).get(self.root_tag)
+        lbs = self.get(self.LBS_PATH).json.get(self.root_tag_list)
+        # One lb already created according setUp() in base.py
+        self.assertIsInstance(lbs, list)
+        self.assertEqual(2, len(lbs))
+        self.delete(self.LB_PATH.format(lb_id=lb.get('id')))
+
     def test_create_without_vip(self):
         lb_json = {'name': 'test1',
                    'project_id': self.project_id}
