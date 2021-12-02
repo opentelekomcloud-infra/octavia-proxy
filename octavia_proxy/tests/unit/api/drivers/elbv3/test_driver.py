@@ -87,7 +87,7 @@ class TestElbv3Driver(base.TestCase):
         'tags': ["tag1=val", 'tag2=', 'tag3'],
     }
     fake_call_create = {
-        'admin_state_up': True,
+        'enabled': True,
         'availability_zone_list': ['eu-nl-01'],
         'description': 'Test',
         'elb_virsubnet_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
