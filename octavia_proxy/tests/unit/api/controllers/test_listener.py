@@ -23,7 +23,10 @@ class TestListenersController(base.TestCase):
 
     def test_basic(self):
         controller = listener.ListenersController
-        self.assertEqual(controller.RBAC_TYPE, 'os_load-balancer_api:listener:')
+        self.assertEqual(
+            controller.RBAC_TYPE,
+            'os_load-balancer_api:listener:'
+        )
         self.assertEqual(getattr(controller, 'get_one').exposed, True)
         self.assertEqual(getattr(controller, 'get_all').exposed, True)
         self.assertEqual(getattr(controller, 'post').exposed, True)

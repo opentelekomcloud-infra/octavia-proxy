@@ -34,9 +34,15 @@ class TestBaseController(base.TestCase):
         self.assertIsNotNone(getattr(controller, 'find_flavor'))
         self.assertIsNotNone(getattr(controller, '_convert_sdk_to_type'))
         self.assertIsNotNone(getattr(controller, '_validate_protocol'))
-        self.assertIsNotNone(getattr(controller, '_is_only_specified_in_request'))
-        self.assertIsNotNone(getattr(controller, '_validate_pool_request_for_tcp_udp'))
-        self.assertIsNotNone(getattr(controller, '_validate_healthmonitor_request_for_udp'))
+        self.assertIsNotNone(
+            getattr(controller, '_is_only_specified_in_request')
+        )
+        self.assertIsNotNone(
+            getattr(controller, '_validate_pool_request_for_tcp_udp')
+        )
+        self.assertIsNotNone(
+            getattr(controller, '_validate_healthmonitor_request_for_udp')
+        )
         self.assertIsNotNone(getattr(controller, '_auth_get_all'))
         self.assertIsNotNone(getattr(controller, '_auth_validate_action'))
         self.assertIsNotNone(getattr(controller, '_filter_fields'))

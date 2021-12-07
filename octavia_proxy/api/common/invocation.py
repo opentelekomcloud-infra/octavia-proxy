@@ -16,6 +16,7 @@ try:
 except NoSuchOptError:
     ENABLED_PROVIDERS = []
 
+
 def driver_call(provider, context=None, function=None, *params):
     result = []
     driver = driver_factory.get_driver(provider)
