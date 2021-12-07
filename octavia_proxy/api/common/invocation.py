@@ -1,6 +1,7 @@
 import concurrent.futures
 
 from oslo_config import cfg
+from oslo_config.cfg import NoSuchOptError
 from oslo_log import log as logging
 
 from octavia_proxy.api.drivers import driver_factory
@@ -10,8 +11,10 @@ from octavia_proxy.common import exceptions
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
-ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
-
+try:
+    ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
+except NoSuchOptError:
+    ENABLED_PROVIDERS = []
 
 def driver_call(provider, context=None, function=None, *params):
     result = []
