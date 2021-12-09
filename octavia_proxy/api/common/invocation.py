@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 try:
     ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
 except NoSuchOptError:
-    ENABLED_PROVIDERS = []
+    ENABLED_PROVIDERS = {}
 
 
 def driver_call(provider, context=None, function=None, *params):
