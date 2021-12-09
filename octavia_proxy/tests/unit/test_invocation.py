@@ -89,7 +89,12 @@ class TestDriverInvocation(base.TestCase):
             'elbv2': 'The ELBv2 driver.',
             'elbv3': 'The ELBv3 driver.'
         }
-        call = driver_invocation(self.context, 'loadbalancer_get', True, self.test_uuid)
+        call = driver_invocation(
+            self.context,
+            'loadbalancer_get',
+            True,
+            self.test_uuid
+        )
 
     def test_sequential_execution(self):
         CONF.api_settings.enabled_provider_drivers = {
