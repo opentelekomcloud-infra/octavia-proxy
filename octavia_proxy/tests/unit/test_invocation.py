@@ -14,8 +14,8 @@
 from unittest import mock, skip
 
 from oslo_config import cfg
-from otcextensions.sdk.elb.v2 import load_balancer as vlb
-from otcextensions.sdk.vlb.v3 import load_balancer as elb
+from otcextensions.sdk.elb.v2 import load_balancer as elbv2
+from otcextensions.sdk.vlb.v3 import load_balancer as elbv3
 
 import octavia_proxy.tests.unit.base as base
 from octavia_proxy.api.common.invocation import driver_invocation
@@ -24,9 +24,28 @@ CONF = cfg.CONF
 
 
 class TestDriverInvocation(base.TestCase):
+    attrs_v2 = {
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'name': 'test_v2',
+        'availability_zone': 'eu-de-01',
+        'admin_state_up': True,
+        'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'created_at': '2021-08-10T09:39:24+00:00',
+        'updated_at': '2021-08-10T09:39:24+00:00',
+        'description': 'Test',
+        'guaranteed': True,
+        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
+        'location': None,
+        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'provider': 'elbv2',
+        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
+    }
     attrs_v3 = {
         'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
-        'name': 'test',
+        'name': 'test_v3',
         'availability_zone': 'eu-nl-01',
         'admin_state_up': True,
         'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
@@ -44,33 +63,14 @@ class TestDriverInvocation(base.TestCase):
         'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
     }
-    attrs_v2 = {
-        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
-        'name': 'test',
-        'availability_zone': 'eu-nl-01',
-        'admin_state_up': True,
-        'subnet_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
-        'created_at': '2021-08-10T09:39:24+00:00',
-        'updated_at': '2021-08-10T09:39:24+00:00',
-        'description': 'Test',
-        'guaranteed': True,
-        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'location': None,
-        'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
-        'provider': 'elbv2',
-        'vpc_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
-        'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
-    }
 
     def setUp(self):
         super().setUp()
         self.context = mock.MagicMock()
         self.context.session = mock.MagicMock()
         self.session = self.context.session
-        self.lb_v2 = elb.LoadBalancer(**self.attrs_v2)
-        self.lb_v3 = vlb.LoadBalancer(**self.attrs_v3)
+        self.lb_v2 = elbv2.LoadBalancer(**self.attrs_v2)
+        self.lb_v3 = elbv3.LoadBalancer(**self.attrs_v3)
         self.session.elb.find_load_balancer = mock.MagicMock(
             return_value=self.lb_v2
         )

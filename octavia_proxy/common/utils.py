@@ -196,9 +196,9 @@ class exception_logger(object):
 
 
 def elbv3_backmapping(load_balancer):
-    if 'l7_flavor_id' in load_balancer:
+    if load_balancer.l7_flavor_id:
         load_balancer.flavor_id = load_balancer.l7_flavor_id
-    if 'availability_zones' in load_balancer:
+    if load_balancer.availability_zones:
         load_balancer.availability_zone = ', '.join(
             load_balancer.availability_zones
         )
