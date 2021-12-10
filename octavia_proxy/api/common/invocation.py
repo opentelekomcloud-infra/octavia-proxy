@@ -11,11 +11,6 @@ from octavia_proxy.common import exceptions
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
-try:
-    ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
-except NoSuchOptError:
-    ENABLED_PROVIDERS = {}
-
 
 def driver_call(provider, context=None, function=None, *params):
     result = []
@@ -42,7 +37,10 @@ def driver_call(provider, context=None, function=None, *params):
 def driver_invocation(context=None, function=None, is_parallel=True, *params):
     LOG.debug(f'Called function: {function}')
     LOG.debug(f'Received params: {params}')
-
+    try:
+        ENABLED_PROVIDERS = CONF.api_settings.enabled_provider_drivers
+    except NoSuchOptError:
+        ENABLED_PROVIDERS = {}
     result = []
     if is_parallel:
         LOG.debug('Create and start threads.')

@@ -11,7 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from unittest import mock, skip
+from unittest import mock
 
 from oslo_config import cfg
 from otcextensions.sdk.elb.v2 import load_balancer as elbv2
@@ -68,6 +68,7 @@ class TestDriverInvocation(base.TestCase):
         super().setUp()
         self.context = mock.MagicMock()
         self.context.session = mock.MagicMock()
+        self.context.project_id = 'id'
         self.session = self.context.session
         self.lb_v2 = elbv2.LoadBalancer(**self.attrs_v2)
         self.lb_v3 = elbv3.LoadBalancer(**self.attrs_v3)
@@ -77,14 +78,10 @@ class TestDriverInvocation(base.TestCase):
         self.session.vlb.find_load_balancer = mock.MagicMock(
             return_value=self.lb_v3
         )
-        self.context.project_id = 'id'
-        self.driver_factory = mock.MagicMock()
-        self.driver_call = mock.MagicMock()
-        self.driver_factory.get_driver = mock.MagicMock()
+
         self.test_uuid = '29bb7aa5-44d2-4aaf-8e49-993091c7fa42'
 
-    @skip
-    def test_parallel_execution(self):
+    def test_parallel_execution_merged(self):
         CONF.api_settings.enabled_provider_drivers = {
             'elbv2': 'The ELBv2 driver.',
             'elbv3': 'The ELBv3 driver.'
@@ -95,8 +92,37 @@ class TestDriverInvocation(base.TestCase):
             True,
             self.test_uuid
         )
+        self.assertEqual(len(call), 2)
+        self.assertEqual(call[0].provider, 'elbv2')
+        self.assertEqual(call[1].provider, 'elbv3')
 
-    def test_sequential_execution(self):
+    def test_parallel_execution_elbv2_only(self):
+        CONF.api_settings.enabled_provider_drivers = {
+            'elbv2': 'The ELBv2 driver.',
+        }
+        call = driver_invocation(
+            self.context,
+            'loadbalancer_get',
+            True,
+            self.test_uuid
+        )
+        self.assertEqual(len(call), 1)
+        self.assertEqual(call[0].provider, 'elbv2')
+
+    def test_parallel_execution_elbv3_only(self):
+        CONF.api_settings.enabled_provider_drivers = {
+            'elbv3': 'The ELBv3 driver.',
+        }
+        call = driver_invocation(
+            self.context,
+            'loadbalancer_get',
+            True,
+            self.test_uuid
+        )
+        self.assertEqual(len(call), 1)
+        self.assertEqual(call[0].provider, 'elbv3')
+
+    def test_sequential_execution_merged(self):
         CONF.api_settings.enabled_provider_drivers = {
             'elbv2': 'The ELBv2 driver.',
             'elbv3': 'The ELBv3 driver.'
@@ -107,3 +133,32 @@ class TestDriverInvocation(base.TestCase):
             False,
             self.test_uuid
         )
+        self.assertEqual(len(call), 2)
+        self.assertEqual(call[0].provider, 'elbv2')
+        self.assertEqual(call[1].provider, 'elbv3')
+
+    def test_sequential_execution_elbv2_only(self):
+        CONF.api_settings.enabled_provider_drivers = {
+            'elbv2': 'The ELBv2 driver.',
+        }
+        call = driver_invocation(
+            self.context,
+            'loadbalancer_get',
+            False,
+            self.test_uuid
+        )
+        self.assertEqual(len(call), 1)
+        self.assertEqual(call[0].provider, 'elbv2')
+
+    def test_sequential_execution_elbv3_only(self):
+        CONF.api_settings.enabled_provider_drivers = {
+            'elbv3': 'The ELBv3 driver.',
+        }
+        call = driver_invocation(
+            self.context,
+            'loadbalancer_get',
+            False,
+            self.test_uuid
+        )
+        self.assertEqual(len(call), 1)
+        self.assertEqual(call[0].provider, 'elbv3')
