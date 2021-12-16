@@ -74,6 +74,8 @@ class HealthMonitorResponse(BaseHealthMonitorType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
+        pools = data_model.get('pools', [])
+        data_model['pools'] = []
         healthmonitor = super(HealthMonitorResponse, cls).from_data_model(
             data_model, children=children)
 
@@ -81,7 +83,7 @@ class HealthMonitorResponse(BaseHealthMonitorType):
             del healthmonitor.pools
         else:
             healthmonitor.pools = [
-                types.IdOnlyType.from_data_model(data_model.pool)]
+                types.IdOnlyType.from_data_model(i) for i in pools]
         return healthmonitor
 
     def to_full_response(self):

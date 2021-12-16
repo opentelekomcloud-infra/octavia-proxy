@@ -24,6 +24,7 @@ from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import health_monitor as hm_types
+from octavia_proxy.api.common import types
 from octavia_proxy.common import constants as const
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
@@ -64,21 +65,29 @@ class HealthMonitorController(base.BaseController):
         context = pcontext.get('octavia_context')
 
         query_filter = self._auth_get_all(context, project_id)
-        query_params = pcontext.get(const.PAGINATION_HELPER).params
-
-        query_filter.update(query_params)
-
+        pagination_helper = pcontext.get(const.PAGINATION_HELPER)
+        # query_params = pagination_helper.params
+        # query_filter.update(query_params)
         is_parallel = query_filter.pop('is_parallel', True)
-        links = []
+        allow_pagination = CONF.api_settings.allow_pagination
 
+        links = []
         result = driver_invocation(
             context, 'health_monitors', is_parallel, query_filter
         )
 
+        if allow_pagination:
+            result_to_dict = [hlth_mntr.to_dict() for hlth_mntr in result]
+            temp_result, temp_links = pagination_helper.apply(result_to_dict)
+            links = [types.PageType(**link) for link in temp_links]
+            result = self._convert_sdk_to_type(
+                temp_result, hm_types.HealthMonitorFullResponse
+            )
+
         if fields is not None:
             result = self._filter_fields(result, fields)
         return hm_types.HealthMonitorsRootResponse(
-            healthmonitors=result, pools_links=links)
+            healthmonitors=result, healthmonitors_links=links)
 
     def _validate_create_hm(self, hm):
         """Validate creating health monitor on pool."""

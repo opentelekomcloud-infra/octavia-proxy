@@ -24,6 +24,7 @@ from wsmeext import pecan as wsme_pecan
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import flavors as flavor_types
+from octavia_proxy.api.common import types
 from octavia_proxy.common import constants
 
 CONF = cfg.CONF
@@ -59,14 +60,24 @@ class FlavorsController(base.BaseController):
         context = pcontext.get('octavia_context')
 
         query_filter = self._auth_get_all(context, project_id)
-        query_params = pcontext.get(constants.PAGINATION_HELPER).params
-        query_filter.update(query_params)
+        pagination_helper = pcontext.get(constants.PAGINATION_HELPER)
+        # query_params = pagination_helper.params
+        # query_filter.update(query_params)
         is_parallel = query_filter.pop('is_parallel', True)
+        allow_pagination = CONF.api_settings.allow_pagination
 
         links = []
         result = driver_invocation(
             context, 'flavors', is_parallel, query_filter
         )
+
+        if allow_pagination:
+            result_to_dict = [flvr_obj.to_dict() for flvr_obj in result]
+            temp_result, temp_links = pagination_helper.apply(result_to_dict)
+            links = [types.PageType(**link) for link in temp_links]
+            result = self._convert_sdk_to_type(
+                temp_result, flavor_types.FlavorFullResponse
+            )
 
         if fields is not None:
             result = self._filter_fields(result, fields)

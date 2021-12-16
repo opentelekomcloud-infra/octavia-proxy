@@ -82,6 +82,12 @@ class QuotaResponse(QuotaBase):
         return quota
 
 
+class QuotaFullResponse(QuotaResponse):
+    @classmethod
+    def _full_response(cls):
+        return True
+
+
 class QuotaAllBase(base.BaseType):
     """Wrapper object for get all quotas responses."""
     project_id = wtypes.wsattr(wtypes.StringType())

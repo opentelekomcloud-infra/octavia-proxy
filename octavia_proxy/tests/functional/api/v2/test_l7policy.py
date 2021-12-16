@@ -50,3 +50,18 @@ class TestL7Policy(base.BaseAPITest):
             l7policy_id=api_l7policy.get('id')))
         self.delete(self.POOL_PATH.format(pool_id=self.pool_id))
         self.delete(self.LISTENER_PATH.format(listener_id=self.listener_id))
+
+    def test_create_get_all_delete(self):
+        api_l7policy = self.create_l7policy(
+            self.listener_id,
+            constants.L7POLICY_ACTION_REDIRECT_TO_POOL,
+            redirect_pool_id=self.pool_id
+        ).get(self.root_tag)
+        policies = self.get(self.L7POLICIES_PATH).json.get(self.root_tag_list)
+        self.assertIsInstance(policies, list)
+        self.assertEqual(1, len(policies))
+        self.assertEqual(api_l7policy.get('id'), policies[0].get('id'))
+        self.delete(self.L7POLICY_PATH.format(
+            l7policy_id=api_l7policy.get('id')))
+        self.delete(self.POOL_PATH.format(pool_id=self.pool_id))
+        self.delete(self.LISTENER_PATH.format(listener_id=self.listener_id))

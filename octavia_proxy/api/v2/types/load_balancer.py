@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 from dateutil import parser
 from wsme import types as wtypes
 
@@ -68,10 +69,11 @@ class LoadBalancerResponse(BaseLoadBalancerType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
-        listeners = data_model.listeners
-        pools = data_model.pools
-        data_model.listeners = None
-        data_model.pools = None
+        listeners = data_model.get('listeners', [])
+        pools = data_model.get('pools', [])
+        data_model['listeners'] = []
+        data_model['pools'] = []
+
         result = super(LoadBalancerResponse, cls).from_data_model(
             data_model, children=children)
 #        if data_model.vip:
@@ -90,7 +92,7 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             listener_model(id=i['id']) for i in listeners]
         result.pools = [
             pool_model(id=i['id']) for i in pools]
-        result.admin_state_up = data_model.is_admin_state_up
+#       result.admin_state_up = data_model.is_admin_state_up
 
         if not result.provider:
             result.provider = "octavia"
@@ -121,10 +123,14 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             load_balancer.listeners = [
                 types.IdOnlyType(id=i['id']) for i in sdk_entity.listeners
             ]
+        else:
+            load_balancer.listeners = []
         if sdk_entity.pools:
             load_balancer.pools = [
                 types.IdOnlyType(id=i['id']) for i in sdk_entity.pools
             ]
+        else:
+            load_balancer.pools = []
         return load_balancer
 
     def to_full_response(self, pools=None, listeners=None):
