@@ -93,7 +93,6 @@ class PoolResponse(BasePoolType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
-        LOG.debug('DATA_MODEL {}'.format(data_model))
         loadbalancers = data_model.get('loadbalancers', [])
         listeners = data_model.get('listeners', [])
         members = data_model.get('members', [])
@@ -141,7 +140,6 @@ class PoolResponse(BasePoolType):
 
         pool.tls_versions = tls_versions
         pool.alpn_protocols = alpn_protocols
-        LOG.debug('POOL_TO_DICT {}'.format(pool.to_dict()))
 
         return pool
 
