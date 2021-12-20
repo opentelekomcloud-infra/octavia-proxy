@@ -37,10 +37,9 @@ def driver_call(provider, context=None, function=None, *params):
 def driver_invocation(context=None, function=None, is_parallel=True, *params):
     LOG.debug(f'Called function: {function}')
     LOG.debug(f'Received params: {params}')
-    try:
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-    except NoSuchOptError:
-        enabled_providers = {}
+
+    enabled_providers = CONF.api_settings.enabled_provider_drivers
+
     result = []
     if is_parallel:
         LOG.debug('Create and start threads.')

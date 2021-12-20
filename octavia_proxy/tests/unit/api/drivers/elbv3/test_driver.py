@@ -575,7 +575,6 @@ class TestElbv3HealthMonitorDriver(base.TestCase):
         'max_retries': 3,
         'admin_state_up': True,
         'monitor_port': 3333,
-
     }
     fake_call_create = {
         'delay': 3,

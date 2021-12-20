@@ -34,9 +34,6 @@ class TestDriverInvocation(base.TestCase):
         'updated_at': '2021-08-10T09:39:24+00:00',
         'description': 'Test',
         'guaranteed': True,
-        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
         'location': None,
         'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'provider': 'elbv2',
@@ -54,9 +51,6 @@ class TestDriverInvocation(base.TestCase):
         'updated_at': '2021-08-10T09:39:24+00:00',
         'description': 'Test',
         'guaranteed': True,
-        'l7policies': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'listeners': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
-        'pools': [{'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'}],
         'location': None,
         'project_id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
         'provider': 'elbv3',
@@ -162,3 +156,13 @@ class TestDriverInvocation(base.TestCase):
         )
         self.assertEqual(len(call), 1)
         self.assertEqual(call[0].provider, 'elbv3')
+
+    def test_empty_drivers(self):
+        CONF.api_settings.enabled_provider_drivers = {}
+        call = driver_invocation(
+            self.context,
+            'loadbalancer_get',
+            False,
+            self.test_uuid
+        )
+        self.assertEqual(len(call), 0)
