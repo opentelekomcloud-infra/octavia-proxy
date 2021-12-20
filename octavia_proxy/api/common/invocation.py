@@ -1,7 +1,6 @@
 import concurrent.futures
 
 from oslo_config import cfg
-from oslo_config.cfg import NoSuchOptError
 from oslo_log import log as logging
 
 from octavia_proxy.api.drivers import driver_factory
