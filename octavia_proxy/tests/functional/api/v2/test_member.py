@@ -46,3 +46,14 @@ class TestMember(base.BaseAPITest):
         self.delete(self.MEMBER_PATH.format(
             member_id=api_member.get('id'), pool_id=self.pool_id))
         self.delete(self.POOL_PATH.format(pool_id=self.pool_id))
+
+    def test_create_get_all_delete(self):
+        api_member = self.create_member(
+            self.pool_id, '192.168.2.1', 80).get(self.root_tag)
+        members = self.get(self.MEMBERS_PATH.format(
+            pool_id=self.pool_id)).json.get(self.root_tag_list)
+        self.assertIsInstance(members, list)
+        self.assertEqual(1, len(members))
+        self.delete(self.MEMBER_PATH.format(
+            member_id=api_member.get('id'), pool_id=self.pool_id))
+        self.delete(self.POOL_PATH.format(pool_id=self.pool_id))

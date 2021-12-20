@@ -50,6 +50,12 @@ class AvailabilityZoneResponse(BaseAvailabilityZoneType):
         return az
 
 
+class AvailabilityZoneFullResponse(AvailabilityZoneResponse):
+    @classmethod
+    def _full_response(cls):
+        return True
+
+
 class AvailabilityZoneRootResponse(types.BaseType):
     availability_zone = wtypes.wsattr(AvailabilityZoneResponse)
 

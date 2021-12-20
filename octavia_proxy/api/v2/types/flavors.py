@@ -50,6 +50,12 @@ class FlavorResponse(BaseFlavorType):
         return flavor
 
 
+class FlavorFullResponse(FlavorResponse):
+    @classmethod
+    def _full_response(cls):
+        return True
+
+
 class FlavorRootResponse(types.BaseType):
     flavor = wtypes.wsattr(FlavorResponse)
 

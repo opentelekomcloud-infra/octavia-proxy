@@ -13,6 +13,7 @@
 #    under the License.
 
 import copy
+import datetime
 
 import netaddr
 from dateutil import parser
@@ -142,11 +143,15 @@ class BaseType(wtypes.Base, metaclass=BaseMeta):
         :param data_model: data model to convert from
         :param children: convert child data models
         """
-        type_dict = data_model.to_dict()
+        if isinstance(data_model, dict):
+            type_dict = data_model
+        else:
+            type_dict = data_model.to_dict()
         # We need to have json convertible data for storing it in persistence
         # jobboard backend.
         for k, v in type_dict.items():
-            if ('_at' in k or 'expiration' in k) and v is not None:
+            if (('_at' in k or 'expiration' in k) and v is not None
+                    and not isinstance(v, datetime.datetime)):
                 type_dict[k] = parser.parse(v)
 
         if not hasattr(cls, '_type_to_model_map'):
