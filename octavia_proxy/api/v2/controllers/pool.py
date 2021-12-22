@@ -20,12 +20,13 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
-from octavia_proxy.api.v2.controllers import base, member
+from octavia_proxy.api.v2.controllers import base, member, health_monitor
 from octavia_proxy.api.v2.types import pool as pool_types
-from octavia_proxy.common import constants, validate
-from octavia_proxy.common import exceptions
+from octavia_proxy.api.common import types
+from octavia_proxy.common import constants, validate, exceptions
 from octavia_proxy.i18n import _
 
 CONF = cfg.CONF
@@ -42,8 +43,12 @@ class PoolsController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a pool's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
-        pool = self.find_pool(context, id)
+        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', True)
+
+        pool = self.find_pool(context, id, is_parallel)[0]
         self._auth_validate_action(context, pool.project_id,
                                    constants.RBAC_GET_ONE)
 
@@ -59,28 +64,24 @@ class PoolsController(base.BaseController):
         context = pcontext.get('octavia_context')
 
         query_filter = self._auth_get_all(context, project_id)
-        query_params = pcontext.get(constants.PAGINATION_HELPER).params
+        pagination_helper = pcontext.get(constants.PAGINATION_HELPER)
+        # query_params = pagination_helper.params
+        # query_filter.update(query_params)
+        is_parallel = query_filter.pop('is_parallel', True)
+        allow_pagination = CONF.api_settings.allow_pagination
 
-        query_filter.update(query_params)
-
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
         links = []
+        result = driver_invocation(
+            context, 'pools', is_parallel, query_filter
+        )
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pools = driver_utils.call_provider(
-                    driver.name, driver.pools,
-                    context.session,
-                    context.project_id,
-                    query_filter)
-                if pools:
-                    LOG.debug('Received %s from %s' % (pools, driver.name))
-                    result.extend(pools)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        if allow_pagination:
+            result_to_dict = [pl_obj.to_dict() for pl_obj in result]
+            temp_result, temp_links = pagination_helper.apply(result_to_dict)
+            links = [types.PageType(**link) for link in temp_links]
+            result = self._convert_sdk_to_type(
+                temp_result, pool_types.PoolFullResponse
+            )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
@@ -110,12 +111,12 @@ class PoolsController(base.BaseController):
             context, pool.project_id, constants.RBAC_POST)
         if pool.loadbalancer_id:
             loadbalancer = self.find_load_balancer(
-                context, pool.loadbalancer_id)
+                context, pool.loadbalancer_id)[0]
             pool.loadbalancer_id = loadbalancer.id
         elif pool.listener_id:
-            listener = self.find_listener(context, pool.listener_id)
+            listener = self.find_listener(context, pool.listener_id)[0]
             loadbalancer = self.find_load_balancer(
-                context, listener.loadbalancers[0].id)
+                context, listener.loadbalancers[0].id)[0]
             pool.loadbalancer_id = listener.loadbalancers[0].id
         else:
             msg = _("Must provide at least one of: "
@@ -154,7 +155,7 @@ class PoolsController(base.BaseController):
         pool = pool_.pool
         context = pecan_request.context.get('octavia_context')
 
-        orig_pool = self.find_pool(context, id)
+        orig_pool = self.find_pool(context, id)[0]
 
         self._auth_validate_action(
             context, orig_pool.project_id,
@@ -177,27 +178,8 @@ class PoolsController(base.BaseController):
     def delete(self, id):
         """Deletes a pool from a load balancer."""
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        pool = None
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pool = driver_utils.call_provider(
-                    driver.name, driver.pool_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if pool:
-                    setattr(pool, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-        if not pool:
-            raise exceptions.NotFound(
-                resource='pool',
-                id=id)
+        pool = self.find_pool(context, id)[0]
 
         self._auth_validate_action(
             context, pool.project_id,
@@ -225,7 +207,7 @@ class PoolsController(base.BaseController):
         context = pecan_request.context.get('octavia_context')
         if pool_id and remainder and remainder[0] == 'members':
             remainder = remainder[1:]
-            pool = self.find_pool(context, pool_id)
+            pool = self.find_pool(context, pool_id)[0]
             if not pool:
                 LOG.info("Pool %s not found.", pool_id)
                 raise exceptions.NotFound(
@@ -235,3 +217,68 @@ class PoolsController(base.BaseController):
                 return member.MemberController(pool_id=pool.id), remainder
             return member.MembersController(pool_id=pool.id), remainder
         return None
+
+    def _graph_create(self, session, lb, pool, hm=None, members=None,
+                      provider=None):
+        if not hm:
+            hm = pool.healthmonitor
+        if not members:
+            members = pool.members
+
+        driver = driver_factory.get_driver(provider)
+
+        if pool.protocol in constants.PROTOCOL_UDP:
+            self._validate_pool_request_for_tcp_udp(pool)
+
+        if pool.session_persistence:
+            sp_dict = pool.session_persistence.to_dict(render_unsets=False)
+            validate.check_session_persistence(sp_dict)
+
+        result_pool = driver_utils.call_provider(
+            driver.name, driver.pool_create,
+            session, pool)
+        if not result_pool:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception('Pool {pool} creation failed'.format(
+                pool=pool.name))
+
+        new_hm = None
+        if hm:
+            if not hm.delay or not hm.type:
+                raise exceptions.ValidationException(
+                    detail="Mandatory parameter is missing for healthmonitor.")
+
+            if result_pool.protocol in (constants.PROTOCOL_UDP):
+                health_monitor.HealthMonitorController(
+                )._validate_healthmonitor_request_for_udp(
+                    hm, result_pool.protocol)
+            else:
+                if hm.type in (constants.HEALTH_MONITOR_UDP_CONNECT):
+                    raise exceptions.ValidationException(detail=_(
+                        "The %(type)s type is only supported for pools of "
+                        "type %(protocol)s.") % {
+                            'type': hm.type,
+                            'protocol': '/'.join((constants.PROTOCOL_UDP))})
+
+            hm_post = hm.to_hm_post(pool_id=result_pool.id,
+                                    project_id=result_pool.project_id)
+            new_hm = health_monitor.HealthMonitorController()._graph_create(
+                session, lb=lb, hm_dict=hm_post, provider=result_pool.provider)
+
+        # Now create members
+        new_members = []
+        if members:
+            for m in members:
+                member_post = m.to_member_post(
+                    project_id=result_pool.project_id)
+                new_member = member.MembersController(result_pool.id)\
+                    ._graph_create(session, lb, member_post,
+                                   provider=result_pool.provider)
+                new_members.append(new_member)
+        full_response_pool = result_pool.to_full_response(members=new_members,
+                                                          healthmonitor=new_hm)
+        return full_response_pool

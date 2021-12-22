@@ -70,6 +70,26 @@ class MemberResponse(BaseMemberType):
                 setattr(member, attr, parser.parse(v) or None)
         return member
 
+    def to_full_response(self):
+        full_response = MemberFullResponse()
+
+        for key in [
+            'id', 'name', 'operating_status', 'provisioning_status',
+            'address', 'protocol_port', 'weight',
+            'subnet_id', 'project_id', 'monitor_address',
+            'monitor_port', 'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.admin_state_up = self.admin_state_up
+        full_response.backup = self.backup
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        return full_response
+
 
 class MemberFullResponse(MemberResponse):
     @classmethod
@@ -150,6 +170,26 @@ class MemberSingleCreate(BaseMemberType):
         minimum=constants.MIN_PORT_NUMBER, maximum=constants.MAX_PORT_NUMBER))
     monitor_address = wtypes.wsattr(types.IPAddressType())
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
+
+    def to_member_post(self, project_id=None):
+        member_post = MemberPOST()
+
+        for key in [
+            'name',
+            'address', 'protocol_port', 'weight',
+            'subnet_id', 'project_id', 'monitor_address',
+            'monitor_port', 'tags'
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(member_post, key, v)
+
+        member_post.admin_state_up = self.admin_state_up
+        member_post.backup = self.backup
+        member_post.project_id = project_id
+
+        return member_post
 
 
 class MemberStatusResponse(BaseMemberType):

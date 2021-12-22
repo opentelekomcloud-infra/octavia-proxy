@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 from dateutil import parser
 from wsme import types as wtypes
 
@@ -68,10 +69,11 @@ class LoadBalancerResponse(BaseLoadBalancerType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
-        listeners = data_model.listeners
-        pools = data_model.pools
-        data_model.listeners = None
-        data_model.pools = None
+        listeners = data_model.get('listeners', [])
+        pools = data_model.get('pools', [])
+        data_model['listeners'] = []
+        data_model['pools'] = []
+
         result = super(LoadBalancerResponse, cls).from_data_model(
             data_model, children=children)
 #        if data_model.vip:
@@ -90,7 +92,7 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             listener_model(id=i['id']) for i in listeners]
         result.pools = [
             pool_model(id=i['id']) for i in pools]
-        result.admin_state_up = data_model.is_admin_state_up
+#       result.admin_state_up = data_model.is_admin_state_up
 
         if not result.provider:
             result.provider = "octavia"
@@ -121,11 +123,40 @@ class LoadBalancerResponse(BaseLoadBalancerType):
             load_balancer.listeners = [
                 types.IdOnlyType(id=i['id']) for i in sdk_entity.listeners
             ]
+        else:
+            load_balancer.listeners = []
         if sdk_entity.pools:
             load_balancer.pools = [
                 types.IdOnlyType(id=i['id']) for i in sdk_entity.pools
             ]
+        else:
+            load_balancer.pools = []
         return load_balancer
+
+    def to_full_response(self, pools=None, listeners=None):
+        full_response = LoadBalancerFullResponse()
+
+        for key in [
+            'id', 'name',
+            'availability_zone', 'description', 'flavor_id',
+            'operating_status', 'project_id', 'provider',
+            'provisioning_status', 'tags', 'vip_address', 'vip_network_id',
+            'vip_port_id', 'vip_qos_policy_id', 'vip_subnet_id'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.admin_state_up = self.admin_state_up
+        if listeners:
+            full_response.listeners = listeners
+        if pools:
+            full_response.pools = pools
+        return full_response
 
 
 class LoadBalancerFullResponse(LoadBalancerResponse):
@@ -162,8 +193,8 @@ class LoadBalancerPOST(BaseLoadBalancerType):
     vip_network_id = wtypes.wsattr(wtypes.UuidType())
     vip_qos_policy_id = wtypes.wsattr(wtypes.UuidType())
     project_id = wtypes.wsattr(wtypes.StringType(max_length=36))
-    listeners = wtypes.wsattr([listener.ListenerSingleCreate], default=[])
-    pools = wtypes.wsattr([pool.PoolSingleCreate], default=[])
+    listeners = wtypes.wsattr([listener.ListenerSingleCreate], default=None)
+    pools = wtypes.wsattr([pool.PoolSingleCreate], default=None)
     provider = wtypes.wsattr(wtypes.StringType(max_length=64))
     tags = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(max_length=255)))
     flavor_id = wtypes.wsattr(wtypes.UuidType())

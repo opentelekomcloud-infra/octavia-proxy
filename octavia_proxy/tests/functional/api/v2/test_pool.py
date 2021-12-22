@@ -46,3 +46,15 @@ class TestPool(base.BaseAPITest):
         self.assertEqual(api_pool, response)
         self.delete(self.POOL_PATH.format(pool_id=api_pool.get('id')))
         self.delete(self.LISTENER_PATH.format(listener_id=self.listener_id))
+
+    def test_create_get_all_delete(self):
+        api_pool = self.create_pool(
+            self.lb_id,
+            constants.PROTOCOL_HTTP,
+            constants.LB_ALGORITHM_ROUND_ROBIN,
+            listener_id=self.listener_id).get(self.root_tag)
+        pools = self.get(self.POOLS_PATH).json.get(self.root_tag_list)
+        self.assertIsInstance(pools, list)
+        self.assertEqual(1, len(pools))
+        self.delete(self.POOL_PATH.format(pool_id=api_pool.get('id')))
+        self.delete(self.LISTENER_PATH.format(listener_id=self.listener_id))

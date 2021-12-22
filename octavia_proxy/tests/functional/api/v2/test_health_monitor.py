@@ -50,3 +50,15 @@ class TestHealthMonitor(base.BaseAPITest):
         self.delete(self.HM_PATH.format(healthmonitor_id=api_hm.get('id')))
         self.delete(self.POOL_PATH.format(pool_id=self.pool_with_listener_id))
         self.delete(self.LISTENER_PATH.format(listener_id=self.listener_id))
+
+    def test_create_get_all_delete(self):
+        api_hm = self.create_health_monitor(
+            self.pool_with_listener_id, constants.HEALTH_MONITOR_HTTP,
+            1, 1, 1, 1).get(self.root_tag)
+        hms = self.get(self.HMS_PATH).json.get(self.root_tag_list)
+        self.assertIsInstance(hms, list)
+        self.assertEqual(1, len(hms))
+        self.assertEqual(api_hm.get('id'), hms[0].get('id'))
+        self.delete(self.HM_PATH.format(healthmonitor_id=api_hm.get('id')))
+        self.delete(self.POOL_PATH.format(pool_id=self.pool_with_listener_id))
+        self.delete(self.LISTENER_PATH.format(listener_id=self.listener_id))

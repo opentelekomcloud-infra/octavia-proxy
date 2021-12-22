@@ -74,6 +74,8 @@ class HealthMonitorResponse(BaseHealthMonitorType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
+        pools = data_model.get('pools', [])
+        data_model['pools'] = []
         healthmonitor = super(HealthMonitorResponse, cls).from_data_model(
             data_model, children=children)
 
@@ -81,8 +83,32 @@ class HealthMonitorResponse(BaseHealthMonitorType):
             del healthmonitor.pools
         else:
             healthmonitor.pools = [
-                types.IdOnlyType.from_data_model(data_model.pool)]
+                types.IdOnlyType.from_data_model(i) for i in pools]
         return healthmonitor
+
+    def to_full_response(self):
+        full_response = HealthMonitorFullResponse()
+
+        for key in [
+            'id', 'name',
+            'type', 'delay', 'timeout', 'max_retries', 'max_retries_down',
+            'http_method', 'url_path', 'expected_codes', 'project_id',
+            'provisioning_status', 'operating_status',
+            'tags',
+            'http_version', 'domain_name',
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.admin_state_up = self.admin_state_up
+        full_response.url_path = self.url_path
+        full_response.pools = self.pools
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+
+        return full_response
 
 
 class HealthMonitorFullResponse(HealthMonitorResponse):
@@ -195,6 +221,30 @@ class HealthMonitorSingleCreate(BaseHealthMonitorType):
     domain_name = wtypes.wsattr(
         wtypes.StringType(min_length=1, max_length=255,
                           pattern=constants.DOMAIN_NAME_REGEX))
+
+    def to_hm_post(self, pool_id=None, project_id=None):
+        hm_post = HealthMonitorPOST()
+
+        for key in [
+            'name',
+            'type', 'delay', 'timeout', 'max_retries', 'max_retries_down',
+            'http_method', 'expected_codes',
+            'tags', 'http_version', 'domain_name',
+        ]:
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(hm_post, key, v)
+
+        if self.admin_state_up:
+            hm_post.admin_state_up = self.admin_state_up
+        if self.url_path:
+            hm_post.admin_state_up = self.admin_state_up
+        if project_id:
+            hm_post.project_id = project_id
+        if pool_id:
+            setattr(hm_post, 'pool_id', pool_id)
+        return hm_post
 
 
 class HealthMonitorStatusResponse(BaseHealthMonitorType):

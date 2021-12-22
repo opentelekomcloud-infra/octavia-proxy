@@ -19,10 +19,12 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
 from octavia_proxy.api.v2.controllers import base
 from octavia_proxy.api.v2.types import health_monitor as hm_types
+from octavia_proxy.api.common import types
 from octavia_proxy.common import constants as const
 from octavia_proxy.common import exceptions
 from octavia_proxy.i18n import _
@@ -41,8 +43,13 @@ class HealthMonitorController(base.BaseController):
                          [wtypes.text], ignore_extra_args=True)
     def get_one(self, id, fields=None):
         """Gets a single healthmonitor's details."""
+        pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
-        hm = self.find_health_monitor(context, id)
+        query_params = pcontext.get(const.PAGINATION_HELPER).params
+        is_parallel = query_params.pop('is_parallel', True)
+
+        hm = self.find_health_monitor(context, id, is_parallel)[0]
+
         self._auth_validate_action(context, hm.project_id,
                                    const.RBAC_GET_ONE)
 
@@ -58,32 +65,29 @@ class HealthMonitorController(base.BaseController):
         context = pcontext.get('octavia_context')
 
         query_filter = self._auth_get_all(context, project_id)
-        query_params = pcontext.get(const.PAGINATION_HELPER).params
+        pagination_helper = pcontext.get(const.PAGINATION_HELPER)
+        # query_params = pagination_helper.params
+        # query_filter.update(query_params)
+        is_parallel = query_filter.pop('is_parallel', True)
+        allow_pagination = CONF.api_settings.allow_pagination
 
-        query_filter.update(query_params)
-
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        result = []
         links = []
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
+        result = driver_invocation(
+            context, 'health_monitors', is_parallel, query_filter
+        )
 
-            try:
-                hms = driver_utils.call_provider(
-                    driver.name, driver.health_monitors,
-                    context.session,
-                    context.project_id,
-                    query_filter)
-                if hms:
-                    LOG.debug('Received %s from %s' % (hms, driver.name))
-                    result.extend(hms)
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+        if allow_pagination:
+            result_to_dict = [hlth_mntr.to_dict() for hlth_mntr in result]
+            temp_result, temp_links = pagination_helper.apply(result_to_dict)
+            links = [types.PageType(**link) for link in temp_links]
+            result = self._convert_sdk_to_type(
+                temp_result, hm_types.HealthMonitorFullResponse
+            )
 
         if fields is not None:
             result = self._filter_fields(result, fields)
         return hm_types.HealthMonitorsRootResponse(
-            healthmonitors=result, pools_links=links)
+            healthmonitors=result, healthmonitors_links=links)
 
     def _validate_create_hm(self, hm):
         """Validate creating health monitor on pool."""
@@ -137,7 +141,6 @@ class HealthMonitorController(base.BaseController):
         """Creates a health monitor on a pool."""
         hm = health_monitor_.healthmonitor
         context = pecan_request.context.get('octavia_context')
-        pool_provider = None
 
         if not hm.project_id and context.project_id:
             hm.project_id = context.project_id
@@ -145,16 +148,9 @@ class HealthMonitorController(base.BaseController):
         self._auth_validate_action(
             context, hm.project_id, const.RBAC_POST)
 
-        pool = self.find_pool(context, id=hm.pool_id)
+        pool = self.find_pool(context, id=hm.pool_id)[0]
 
-        if pool.loadbalancers:
-            pool_provider = self.find_load_balancer(
-                context, pool.loadbalancers[0].id)
-        elif pool.listeners:
-            pool_provider = self.find_load_balancer(
-                context, pool.listeners[0].id)
-
-        provider = pool_provider.provider
+        provider = pool.provider
 
         if (not CONF.api_settings.allow_ping_health_monitors and
                 hm.type == const.HEALTH_MONITOR_PING):
@@ -229,7 +225,7 @@ class HealthMonitorController(base.BaseController):
         healthmonitor = health_monitor_.healthmonitor
         context = pecan_request.context.get('octavia_context')
 
-        orig_hm = self.find_health_monitor(context, id)
+        orig_hm = self.find_health_monitor(context, id)[0]
 
         self._auth_validate_action(
             context, orig_hm.project_id,
@@ -253,36 +249,31 @@ class HealthMonitorController(base.BaseController):
     def delete(self, id):
         """Deletes a health monitor."""
         context = pecan_request.context.get('octavia_context')
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        health_monitor = None
 
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                health_monitor = driver_utils.call_provider(
-                    driver.name, driver.health_monitor_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if health_monitor:
-                    setattr(health_monitor, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
-        if not health_monitor:
-            raise exceptions.NotFound(
-                resource='health_monitor',
-                id=id)
+        hm = self.find_health_monitor(context, id)[0]
 
         self._auth_validate_action(
-            context, health_monitor.project_id,
+            context, hm.project_id,
             const.RBAC_DELETE)
 
         # Load the driver early as it also provides validation
-        driver = driver_factory.get_driver(health_monitor.provider)
+        driver = driver_factory.get_driver(hm.provider)
 
         driver_utils.call_provider(
             driver.name, driver.health_monitor_delete,
-            context.session,
-            health_monitor)
+            context.session, hm)
+
+    def _graph_create(self, session, lb, hm_dict, provider=None):
+        driver = driver_factory.get_driver(provider)
+        hm_response = driver_utils.call_provider(
+            driver.name, driver.health_monitor_create,
+            session, hm_dict)
+        if not hm_response:
+            context = pecan_request.context.get('octavia_context')
+            driver_utils.call_provider(
+                driver.name, driver.loadbalancer_delete,
+                context.session,
+                lb, cascade=True)
+            raise Exception("Healthmonitor creation failed")
+        hm_full_response = hm_response.to_full_response()
+        return hm_full_response

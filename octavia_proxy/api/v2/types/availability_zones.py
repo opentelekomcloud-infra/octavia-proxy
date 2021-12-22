@@ -36,6 +36,25 @@ class AvailabilityZoneResponse(BaseAvailabilityZoneType):
             data_model, children=children)
         return availability_zone
 
+    @classmethod
+    def from_sdk_object(cls, sdk_entity):
+        az = cls()
+        for key in [
+            'name', 'description', 'enabled',
+            'availability_zone_profile_id'
+        ]:
+            if hasattr(sdk_entity, key):
+                v = getattr(sdk_entity, key)
+                if v:
+                    setattr(az, key, v)
+        return az
+
+
+class AvailabilityZoneFullResponse(AvailabilityZoneResponse):
+    @classmethod
+    def _full_response(cls):
+        return True
+
 
 class AvailabilityZoneRootResponse(types.BaseType):
     availability_zone = wtypes.wsattr(AvailabilityZoneResponse)

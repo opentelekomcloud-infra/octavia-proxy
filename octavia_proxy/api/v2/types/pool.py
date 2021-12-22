@@ -19,6 +19,9 @@ from octavia_proxy.api.common import types
 from octavia_proxy.api.v2.types import health_monitor
 from octavia_proxy.api.v2.types import member
 from octavia_proxy.common import constants
+from oslo_log import log as logging
+
+LOG = logging.getLogger(__name__)
 
 
 class SessionPersistenceResponse(types.BaseType):
@@ -90,12 +93,24 @@ class PoolResponse(BasePoolType):
 
     @classmethod
     def from_data_model(cls, data_model, children=False):
+        loadbalancers = data_model.get('loadbalancers', [])
+        listeners = data_model.get('listeners', [])
+        members = data_model.get('members', [])
+        tls_versions = data_model.get('tls_versions', [])
+        alpn_protocols = data_model.get('alpn_protocols', [])
+        session_persistence = data_model.get('session_persistence')
+        healthmonitor = data_model.get('health_monitor')
+        data_model['loadbalancers'] = []
+        data_model['listeners'] = []
+        data_model['members'] = []
+        data_model['tls_versions'] = []
+        data_model['alpn_protocols'] = []
         pool = super(PoolResponse, cls).from_data_model(
             data_model, children=children)
-        if data_model.session_persistence:
+        if session_persistence:
             pool.session_persistence = (
                 SessionPersistenceResponse.from_data_model(
-                    data_model.session_persistence))
+                    session_persistence))
 
         if cls._full_response():
             del pool.loadbalancers
@@ -103,23 +118,28 @@ class PoolResponse(BasePoolType):
             if pool.healthmonitor:
                 pool.healthmonitor = (
                     health_monitor.HealthMonitorFullResponse
-                    .from_data_model(data_model.health_monitor))
+                    .from_data_model(healthmonitor))
         else:
-            if data_model.load_balancer:
+            if loadbalancers:
                 pool.loadbalancers = [
-                    types.IdOnlyType.from_data_model(data_model.load_balancer)]
+                    types.IdOnlyType.from_data_model(loadbalancers)]
             else:
                 pool.loadbalancers = []
             member_model = types.IdOnlyType
-            if data_model.health_monitor:
-                pool.healthmonitor_id = data_model.health_monitor.id
-        pool.listeners = [
-            types.IdOnlyType.from_data_model(i) for i in data_model.listeners]
-        pool.members = [
-            member_model.from_data_model(i) for i in data_model.members]
+            if health_monitor:
+                pool.healthmonitor_id = healthmonitor.id
+        if listeners:
+            pool.listeners = [
+                types.IdOnlyType.from_data_model(i) for i in listeners]
+        else:
+            pool.listeners = []
+        if members:
+            pool.members = [member_model.from_data_model(i) for i in members]
+        else:
+            pool.members = []
 
-        pool.tls_versions = data_model.tls_versions
-        pool.alpn_protocols = data_model.alpn_protocols
+        pool.tls_versions = tls_versions
+        pool.alpn_protocols = alpn_protocols
 
         return pool
 
@@ -154,6 +174,38 @@ class PoolResponse(BasePoolType):
                 types.IdOnlyType(id=i['id']) for i in sdk_entity.members
             ]
         return pool
+
+    def to_full_response(self, members=None, healthmonitor=None):
+        full_response = PoolFullResponse()
+
+        for key in [
+            'id', 'name',
+            'operating_status', 'provisioning_status',
+            'description', 'protocol', 'lb_algorithm',
+            'session_persistence', 'project_id',
+            'healthmonitor_id', 'tags', 'tls_container_ref',
+            'tls_ciphers', 'ca_tls_container_ref', 'crl_container_ref'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(full_response, key, v)
+
+        full_response.admin_state_up = self.admin_state_up
+        full_response.loadbalancers = self.loadbalancers
+        full_response.listeners = self.listeners
+        full_response.created_at = self.created_at
+        full_response.updated_at = self.updated_at
+        full_response.tls_enabled = self.tls_enabled
+        full_response.tls_versions = self.tls_versions
+        full_response.alpn_protocols = self.alpn_protocols
+
+        if members:
+            full_response.members = members
+        if healthmonitor:
+            full_response.healthmonitor = healthmonitor
+        return full_response
 
 
 class PoolFullResponse(PoolResponse):
@@ -252,6 +304,35 @@ class PoolSingleCreate(BasePoolType):
     tls_versions = wtypes.wsattr(wtypes.ArrayType(wtypes.StringType(
         max_length=32)))
     alpn_protocols = wtypes.wsattr(wtypes.ArrayType(types.AlpnProtocolType()))
+
+    def to_pool_post(self, project_id=None, loadbalancer_id=None,
+                     listener_id=None):
+        pool_post = PoolPOST()
+
+        for key in [
+            'name', 'description', 'protocol', 'lb_algorithm',
+            'tls_container_ref', 'ca_tls_container_ref',
+            'crl_container_ref', 'tls_ciphers', 'tags'
+        ]:
+
+            if hasattr(self, key):
+                v = getattr(self, key)
+                if v:
+                    setattr(pool_post, key, v)
+
+        pool_post.admin_state_up = self.admin_state_up
+        pool_post.session_persistence = self.session_persistence
+        pool_post.healthmonitor = self.healthmonitor
+        pool_post.tls_enabled = self.tls_enabled
+        pool_post.tls_versions = self.tls_versions
+        pool_post.alpn_protocols = self.alpn_protocols
+        if loadbalancer_id:
+            pool_post.loadbalancer_id = loadbalancer_id
+        if listener_id:
+            pool_post.listener_id = listener_id
+        if project_id:
+            pool_post.project_id = project_id
+        return pool_post
 
 
 class PoolStatusResponse(BasePoolType):

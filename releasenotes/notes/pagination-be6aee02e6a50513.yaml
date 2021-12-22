@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add ``pagination`` for octavia-proxy resources.
+    (`#94 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/94>` _)

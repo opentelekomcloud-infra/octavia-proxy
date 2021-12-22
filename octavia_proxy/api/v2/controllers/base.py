@@ -3,8 +3,7 @@ from oslo_log import log as logging
 from pecan import rest as pecan_rest
 from wsme import types as wtypes
 
-from octavia_proxy.api.drivers import driver_factory
-from octavia_proxy.api.drivers import utils as driver_utils
+from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.common import constants
 from octavia_proxy.common import exceptions
 from octavia_proxy.common import policy
@@ -23,7 +22,7 @@ class BaseController(pecan_rest.RestController):
     @staticmethod
     def _convert_sdk_to_type(sdk_entity, to_type, children=False):
         """Converts a data model into an Octavia WSME type
-        :param db_entity: data model to convert
+        :param sdk_entity: data model to convert
         :param to_type: converts db_entity to this type
         """
         LOG.debug('Converting %s' % sdk_entity)
@@ -39,22 +38,10 @@ class BaseController(pecan_rest.RestController):
             converted = _convert(sdk_entity)
         return converted
 
-    def find_load_balancer(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                load_balancer = driver_utils.call_provider(
-                    driver.name, driver.loadbalancer_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if load_balancer:
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_load_balancer(self, context, id, is_parallel=True):
+        load_balancer = driver_invocation(
+            context, 'loadbalancer_get', is_parallel, id
+        )
 
         if not load_balancer:
             raise exceptions.NotFound(
@@ -63,23 +50,10 @@ class BaseController(pecan_rest.RestController):
 
         return load_balancer
 
-    def find_listener(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                listener = driver_utils.call_provider(
-                    driver.name, driver.listener_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if listener:
-                    setattr(listener, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_listener(self, context, id, is_parallel=True):
+        listener = driver_invocation(
+            context, 'listener_get', is_parallel, id
+        )
 
         if not listener:
             raise exceptions.NotFound(
@@ -88,23 +62,10 @@ class BaseController(pecan_rest.RestController):
 
         return listener
 
-    def find_pool(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                pool = driver_utils.call_provider(
-                    driver.name, driver.pool_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if pool:
-                    setattr(pool, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_pool(self, context, id, is_parallel=True):
+        pool = driver_invocation(
+            context, 'pool_get', is_parallel, id
+        )
 
         if not pool:
             raise exceptions.NotFound(
@@ -113,24 +74,10 @@ class BaseController(pecan_rest.RestController):
 
         return pool
 
-    def find_member(self, context, pool_id, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                member = driver_utils.call_provider(
-                    driver.name, driver.member_get,
-                    context.session,
-                    context.project_id,
-                    pool_id,
-                    id)
-                if member:
-                    setattr(member, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_member(self, context, pool_id, id, is_parallel=True):
+        member = driver_invocation(
+            context, 'member_get', is_parallel, pool_id, id
+        )
 
         if not member:
             raise exceptions.NotFound(
@@ -139,48 +86,22 @@ class BaseController(pecan_rest.RestController):
 
         return member
 
-    def find_health_monitor(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                hm = driver_utils.call_provider(
-                    driver.name, driver.health_monitor_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if hm:
-                    setattr(hm, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_health_monitor(self, context, id, is_parallel=True):
+        hm = driver_invocation(
+            context, 'health_monitor_get', is_parallel, id
+        )
 
         if not hm:
             raise exceptions.NotFound(
-                resource='Healthmonitor',
+                resource='HealthMonitor',
                 id=id)
 
         return hm
 
-    def find_l7policy(self, context, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                l7policy = driver_utils.call_provider(
-                    driver.name, driver.l7policy_get,
-                    context.session,
-                    context.project_id,
-                    id)
-                if l7policy:
-                    setattr(l7policy, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_l7policy(self, context, id, is_parallel=True):
+        l7policy = driver_invocation(
+            context, 'l7policy_get', is_parallel, id
+        )
 
         if not l7policy:
             raise exceptions.NotFound(
@@ -189,32 +110,29 @@ class BaseController(pecan_rest.RestController):
 
         return l7policy
 
-    def find_l7rule(self, context, l7policy_id, id):
-        enabled_providers = CONF.api_settings.enabled_provider_drivers
-        # TODO: perhaps memcached
-        l7rule = None
-        for provider in enabled_providers:
-            driver = driver_factory.get_driver(provider)
-
-            try:
-                l7rule = driver_utils.call_provider(
-                    driver.name, driver.l7rule_get,
-                    context.session,
-                    context.project_id,
-                    l7policy_id,
-                    id)
-                if l7rule:
-                    setattr(l7rule, 'provider', provider)
-                    break
-            except exceptions.ProviderNotImplementedError:
-                LOG.exception('Driver %s is not supporting this')
+    def find_l7rule(self, context, l7policy_id, id, is_parallel=True):
+        l7rule = driver_invocation(
+            context, 'l7rule_get', is_parallel, l7policy_id, id
+        )
 
         if not l7rule:
             raise exceptions.NotFound(
-                resource='L7 rule',
+                resource='L7Rule',
                 id=id)
 
         return l7rule
+
+    def find_flavor(self, context, id, is_parallel=True):
+        flavor = driver_invocation(
+            context, 'flavor_get', is_parallel, id
+        )
+
+        if not flavor:
+            raise exceptions.NotFound(
+                resource='Flavor',
+                id=id)
+
+        return flavor
 
     @staticmethod
     def _validate_protocol(listener_protocol, pool_protocol):
