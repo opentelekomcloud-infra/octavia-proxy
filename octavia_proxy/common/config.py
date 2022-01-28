@@ -76,6 +76,11 @@ api_opts = [
                help=_('Default provider driver.')),
     cfg.StrOpt('region', default='eu-de',
                help=_('Service region (used to select driver endpoint).')),
+    cfg.DictOpt('load_balancer_endpoint_override',
+                help=_('A comma separated list of dictionaries of the '
+                       'endpoint override url and additional parameters. '
+                       'Example: url:http://127.0.0.1:9876/,var1:foo,var1:bar.'),
+                default={}),
 ]
 networking_opts = [
     cfg.IntOpt('max_retries', default=15,
