@@ -38,6 +38,10 @@
 - project:
     merge-mode: squash-merge
     default-branch: main
+    vars:
+      sphinx_pdf_files:
+        - "doc-octavia-proxy.pdf"
+        - "api-ref-octavia-proxy.pdf"
     templates:
       - publish-otc-docs-pti
       - api-ref-jobs
