@@ -8,6 +8,9 @@ from octavia_proxy.api.v2.types import (
     availability_zones as _az
 )
 
+from oslo_config import cfg
+CONF = cfg.CONF
+
 LOG = logging.getLogger(__name__)
 
 PROVIDER = 'elbv2'
@@ -72,6 +75,9 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
         if not query_filter:
             query_filter = {}
+
+        driver_settings = getattr(CONF, f'{PROVIDER}_driver_settings')
+        query_filter['base_path'] = f'{driver_settings.endpoint_override}/loadbalancers'
 
         result = []
         # OSC tries to call firstly this function even if
