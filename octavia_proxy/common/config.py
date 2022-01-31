@@ -81,12 +81,14 @@ api_opts = [
 elb_driver_opts = [
     cfg.StrOpt('endpoint_override',
                help=_('Endpoint override url with additional parameters. '
-                      'Example: http://127.0.0.1:9876/vX.Y/%(project_id)s.')),
+                      'Example: http://127.0.0.1:9876/vX.Y/%(project_id)s.'),
+               default=''),
 ]
 vlb_driver_opts = [
     cfg.StrOpt('endpoint_override',
                help=_('Endpoint override url with additional parameters. '
-                      'Example: http://127.0.0.1:9876/vX.Y/%(project_id)s.')),
+                      'Example: http://127.0.0.1:9876/vX.Y/%(project_id)s.'),
+               default=''),
 ]
 
 networking_opts = [
