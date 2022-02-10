@@ -8,9 +8,6 @@ from octavia_proxy.api.v2.types import (
     availability_zones as _az
 )
 
-from oslo_config import cfg
-CONF = cfg.CONF
-
 LOG = logging.getLogger(__name__)
 
 PROVIDER = 'elbv2'
@@ -70,14 +67,13 @@ class ELBv2Driver(driver_base.ProviderDriver):
         return {"compute_zone": "The compute availability zone to use for "
                                 "this loadbalancer."}
 
-    def loadbalancers(self, session, project_id, query_filter=None):
+    def loadbalancers(self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching loadbalancers')
 
         if not query_filter:
             query_filter = {}
-
-        driver_settings = getattr(CONF, f'{PROVIDER}_driver_settings')
-        query_filter['base_path'] = f'{driver_settings.endpoint_override}/loadbalancers'
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         result = []
         # OSC tries to call firstly this function even if
@@ -98,11 +94,11 @@ class ELBv2Driver(driver_base.ProviderDriver):
                 result.append(lb_data)
         return result
 
-    def loadbalancer_get(self, session, project_id, lb_id):
+    def loadbalancer_get(self, session, project_id, lb_id, **kwargs):
         LOG.debug('Searching for loadbalancer')
 
         lb = session.elb.find_load_balancer(
-            name_or_id=lb_id, ignore_missing=True)
+            name_or_id=lb_id, ignore_missing=True, **kwargs)
         LOG.debug('lb is %s' % lb)
 
         if lb:
@@ -111,7 +107,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             lb_data.provider = PROVIDER
             return lb_data
 
-    def loadbalancer_create(self, session, loadbalancer):
+    def loadbalancer_create(self, session, loadbalancer, **kwargs):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
@@ -143,7 +139,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         return lb_data
 
     def loadbalancer_update(self, session, original_load_balancer,
-                            new_attrs):
+                            new_attrs, **kwargs):
         LOG.debug('Updating loadbalancer')
 
         lb = session.elb.update_load_balancer(
@@ -155,7 +151,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         lb_data.provider = PROVIDER
         return lb_data
 
-    def loadbalancer_delete(self, session, loadbalancer, cascade=False):
+    def loadbalancer_delete(self, session, loadbalancer, cascade=False, **kwargs):
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
 
         session.elb.delete_load_balancer(loadbalancer.id, cascade=cascade)

@@ -38,8 +38,13 @@ def call_provider(provider, driver_method, *args, **kwargs):
     :raises ProviderUnsupportedOptionError: The driver doesn't support a
                                             provided option.
     """
-
+    driver_settings = getattr(CONF, f'{provider}_driver_settings')
     try:
+        if driver_settings.endpoint_override:
+            kwargs.update(assemble_base_path(
+                driver_settings.endpoint_override,
+                driver_method
+            ))
         return driver_method(*args, **kwargs)
     except lib_exceptions.DriverError as e:
         LOG.exception("Provider '%s' raised a driver error: %s",
@@ -72,10 +77,10 @@ def call_provider(provider, driver_method, *args, **kwargs):
 def _base_to_provider_dict(current_dict, include_project_id=False):
     new_dict = copy.deepcopy(current_dict)
     for key in [
-            'provisioning_status', 'operating_status', 'provider',
-            'created_at', 'updated_at', 'tenant_id', 'tags',
-            'flavor_id', 'topology', 'vrrp_group', 'amphorae', 'vip',
-            'listeners', 'pools', 'server_group_id',
+        'provisioning_status', 'operating_status', 'provider',
+        'created_at', 'updated_at', 'tenant_id', 'tags',
+        'flavor_id', 'topology', 'vrrp_group', 'amphorae', 'vip',
+        'listeners', 'pools', 'server_group_id',
     ]:
         new_dict.pop(key, None)
     if 'enabled' in new_dict:
@@ -97,3 +102,7 @@ def lb_dict_to_provider_dict(lb_dict, vip=None):
         new_lb_dict['vip_subnet_id'] = vip.subnet_id
         new_lb_dict['vip_qos_policy_id'] = vip.qos_policy_id
     return new_lb_dict
+
+
+def assemble_base_path(endpoint, driver_method):
+    return {'base_path': f'{endpoint}/{driver_method.__name__}'}
