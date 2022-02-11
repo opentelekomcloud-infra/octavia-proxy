@@ -97,8 +97,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
     def loadbalancer_get(self, session, project_id, lb_id, **kwargs):
         LOG.debug('Searching for loadbalancer')
 
+        # for future use
+        if 'base_path' in kwargs:
+            kwargs['list_base_path'] = kwargs.pop('base_path')
+
         lb = session.elb.find_load_balancer(
-            name_or_id=lb_id, ignore_missing=True, **kwargs)
+            name_or_id=lb_id, ignore_missing=True)
         LOG.debug('lb is %s' % lb)
 
         if lb:
@@ -115,6 +119,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
             lb_attrs.pop('pools')
         if 'listeners' in lb_attrs:
             lb_attrs.pop('listeners')
+        if 'base_path' in kwargs:
+            lb_attrs.update(kwargs)
         lb_attrs.pop('loadbalancer_id', None)
         lb_attrs.pop('vip_network_id', None)
 
@@ -142,6 +148,9 @@ class ELBv2Driver(driver_base.ProviderDriver):
                             new_attrs, **kwargs):
         LOG.debug('Updating loadbalancer')
 
+        # if 'base_path' in kwargs:
+        #     new_attrs.update(kwargs)
+
         lb = session.elb.update_load_balancer(
             original_load_balancer.id,
             **new_attrs)
@@ -153,6 +162,10 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False, **kwargs):
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
+
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         session.elb.delete_load_balancer(loadbalancer.id, cascade=cascade)
 

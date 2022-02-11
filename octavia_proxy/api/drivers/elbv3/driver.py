@@ -17,9 +17,6 @@ from octavia_proxy.common.utils import (
     elbv3_backmapping, loadbalancer_cascade_delete
 )
 
-from oslo_config import cfg
-CONF = cfg.CONF
-
 LOG = logging.getLogger(__name__)
 PROVIDER = 'elbv3'
 
@@ -72,19 +69,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 result.append({'key': tag[0], 'value': ''})
         return result
 
-    def loadbalancers(self, session, project_id, query_filter=None):
+    def loadbalancers(self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching loadbalancers')
 
         if not query_filter:
             query_filter = {}
-
-        query_filter.pop('project_id', None)
-
-        driver_settings = getattr(CONF, f'{PROVIDER}_driver_settings')
-        driver_settings = driver_settings.endpoint_override% {
-            'project_id': project_id,
-        }
-        query_filter['base_path'] = f'{driver_settings}/loadbalancers'
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
+        query_filter['project_id'] = project_id
 
         result = []
         # OSC tries to call firstly this function even if

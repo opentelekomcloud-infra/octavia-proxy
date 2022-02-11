@@ -105,4 +105,13 @@ def lb_dict_to_provider_dict(lb_dict, vip=None):
 
 
 def assemble_base_path(endpoint, driver_method):
-    return {'base_path': f'{endpoint}/{driver_method.__name__}'}
+    method = driver_method.__name__.split('_')
+    base = method[0]
+    if base.startswith('health'):
+        base = base + method[1]
+    if base.endswith('s'):
+        method = base
+    else:
+        method = base + 's'
+
+    return {'base_path': f'{endpoint}/{method}'}
