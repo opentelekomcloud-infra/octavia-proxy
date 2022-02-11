@@ -51,14 +51,17 @@ class AvailabilityZonesController(base.BaseController):
 
         query_filter = self._auth_get_all(context, project_id)
         pagination_helper = pcontext.get(constants.PAGINATION_HELPER)
-        # query_params = pagination_helper.params
-        # query_filter.update(query_params)
+
+        query_params = pagination_helper.params
+        query, query_params = base.BaseController.excluded_from_pagination(
+            query_params)
+
         is_parallel = query_filter.pop('is_parallel', True)
         allow_pagination = CONF.api_settings.allow_pagination
 
         links = []
         result = driver_invocation(
-            context, 'availability_zones', is_parallel, query_filter
+            context, 'availability_zones', is_parallel, query
         )
 
         if allow_pagination:

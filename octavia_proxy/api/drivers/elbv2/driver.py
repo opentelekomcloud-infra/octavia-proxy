@@ -127,7 +127,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
         tags = []
         if 'tags' in lb_attrs:
             tags = self._resource_tags(lb_attrs.pop('tags'))
-
         lb = session.elb.create_load_balancer(**lb_attrs)
 
         for tag in tags:
