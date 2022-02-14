@@ -146,14 +146,15 @@ class TestElbv3Driver(base.TestCase):
 
     def test_loadbalancers_no_qp(self):
         self.driver.loadbalancers(self.sess, 'p1')
-        self.sess.vlb.load_balancers.assert_called_with()
+        self.sess.vlb.load_balancers.assert_called_with(project_id='p1')
 
     def test_loadbalancers_qp(self):
         self.driver.loadbalancers(
             self.sess, 'p1',
             query_filter={'a': 'b'})
         self.sess.vlb.load_balancers.assert_called_with(
-            a='b'
+            a='b',
+            project_id='p1'
         )
 
     def test_loadbalancer_get(self):

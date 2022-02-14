@@ -38,13 +38,14 @@ def call_provider(provider, driver_method, *args, **kwargs):
     :raises ProviderUnsupportedOptionError: The driver doesn't support a
                                             provided option.
     """
-    driver_settings = getattr(CONF, f'{provider}_driver_settings')
+    driver_settings = getattr(CONF, f'{provider}_driver_settings', None)
     try:
-        if driver_settings.endpoint_override:
-            kwargs.update(assemble_base_path(
-                driver_settings.endpoint_override,
-                driver_method
-            ))
+        if hasattr(driver_settings, 'endpoint_override'):
+            if driver_settings.endpoint_override:
+                kwargs.update(assemble_base_path(
+                    driver_settings.endpoint_override,
+                    driver_method
+                ))
         return driver_method(*args, **kwargs)
     except lib_exceptions.DriverError as e:
         LOG.exception("Provider '%s' raised a driver error: %s",
