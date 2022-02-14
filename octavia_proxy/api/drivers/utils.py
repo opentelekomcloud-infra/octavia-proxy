@@ -114,5 +114,10 @@ def assemble_base_path(endpoint, driver_method):
         method = base
     else:
         method = base + 's'
-
+    if 'l7policy' in method:
+        method = 'l7policies'
+    if 'member' in method:
+        method = 'pools/%(pool_id)s/members'
+    if 'l7rule' in method:
+        method = 'l7policies/%(l7policy_id)s/rules'
     return {'base_path': f'{endpoint}/{method}'}

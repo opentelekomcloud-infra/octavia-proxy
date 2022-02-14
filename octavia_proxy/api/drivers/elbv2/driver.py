@@ -484,6 +484,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         attrs.pop('backup', None)
         attrs.pop('monitor_port', None)
         attrs.pop('monitor_address', None)
+
         res = session.elb.create_member(pool_id, **attrs)
         result_data = _member.MemberResponse.from_sdk_object(res)
         setattr(result_data, 'provider', PROVIDER)
