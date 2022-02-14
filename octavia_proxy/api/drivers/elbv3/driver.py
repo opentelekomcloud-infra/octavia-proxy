@@ -74,9 +74,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         if not query_filter:
             query_filter = {}
+        query_filter.pop('project_id', None)
+
         if 'base_path' in kwargs:
             query_filter.update(kwargs)
-        query_filter['project_id'] = project_id
 
         result = []
         # OSC tries to call firstly this function even if
@@ -100,8 +101,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         return result
 
-    def loadbalancer_get(self, session, project_id, lb_id):
+    def loadbalancer_get(self, session, project_id, lb_id, **kwargs):
         LOG.debug('Searching loadbalancer')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         lb = session.vlb.find_load_balancer(
             name_or_id=lb_id, ignore_missing=True)
@@ -112,7 +118,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_data.provider = PROVIDER
             return lb_data
 
-    def loadbalancer_create(self, session, loadbalancer):
+    def loadbalancer_create(self, session, loadbalancer, **kwargs):
         LOG.debug('Creating loadbalancer %s' % loadbalancer.to_dict())
 
         lb_attrs = loadbalancer.to_dict()
@@ -122,6 +128,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_attrs.pop('pools')
         if 'listeners' in lb_attrs:
             lb_attrs.pop('listeners')
+        if 'base_path' in kwargs:
+            lb_attrs.update(kwargs)
         if 'vip_subnet_id' in lb_attrs:
             lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
         if 'vip_network_id' in lb_attrs:
@@ -153,8 +161,11 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return lb_data
 
     def loadbalancer_update(self, session, original_load_balancer,
-                            new_attrs):
+                            new_attrs, **kwargs):
         LOG.debug('Updating loadbalancer')
+
+        if 'base_path' in kwargs:
+            new_attrs.update(kwargs)
 
         lb = session.vlb.update_load_balancer(
             original_load_balancer.id,
@@ -165,27 +176,29 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lb_data.provider = PROVIDER
         return lb_data
 
-    def loadbalancer_delete(self, session, loadbalancer, cascade=False):
-        """Delete a load balancer
-
-        :param cascade: here for backward compatibility,
-               not used in elbv3
-
-        :returns: ``None``
-        """
+    def loadbalancer_delete(
+            self, session, loadbalancer, cascade=False, **kwargs):
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+
         if cascade:
             loadbalancer_cascade_delete(session.vlb, loadbalancer)
         else:
             session.vlb.delete_load_balancer(loadbalancer.id)
 
-    def listeners(self, session, project_id, query_filter=None):
+    def listeners(self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching listeners')
         result = []
 
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         if 'id' in query_filter:
             lsnr_data = self.listener_get(
@@ -203,8 +216,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         return result
 
-    def listener_get(self, session, project_id, lsnr_id):
+    def listener_get(self, session, project_id, lsnr_id, **kwargs):
         LOG.debug('Searching listener')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         lsnr = session.vlb.find_listener(
             name_or_id=lsnr_id, ignore_missing=True)
@@ -215,24 +233,26 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lsnr_data.provider = PROVIDER
             return lsnr_data
 
-    def listener_create(self, session, listener):
+    def listener_create(self, session, listener, **kwargs):
         LOG.debug('Creating listener %s' % listener.to_dict())
 
-        lattrs = listener.to_dict()
-        lattrs.pop('connection_limit')
-        lattrs.pop('l7policies', None)
+        attrs = listener.to_dict()
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+        attrs.pop('connection_limit')
+        attrs.pop('l7policies', None)
 
-        if 'timeout_client_data' in lattrs:
-            lattrs['client_timeout'] = lattrs.pop('timeout_client_data')
-        if 'timeout_member_data' in lattrs:
-            lattrs['member_timeout'] = lattrs.pop('timeout_member_data')
-        if 'timeout_member_connect' in lattrs:
-            lattrs['keepalive_timeout'] = \
-                lattrs.pop('timeout_member_connect')
-        if 'tags' in lattrs:
-            lattrs['tags'] = self._resource_tags(lattrs['tags'])
+        if 'timeout_client_data' in attrs:
+            attrs['client_timeout'] = attrs.pop('timeout_client_data')
+        if 'timeout_member_data' in attrs:
+            attrs['member_timeout'] = attrs.pop('timeout_member_data')
+        if 'timeout_member_connect' in attrs:
+            attrs['keepalive_timeout'] = \
+                attrs.pop('timeout_member_connect')
+        if 'tags' in attrs:
+            attrs['tags'] = self._resource_tags(attrs['tags'])
 
-        lsnr = session.vlb.create_listener(**lattrs)
+        lsnr = session.vlb.create_listener(**attrs)
 
         lsnr_data = _listener.ListenerResponse.from_sdk_object(
             self._normalize_lb(lsnr)
@@ -243,7 +263,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return lsnr_data
 
     def listener_update(self, session, original_listener,
-                        new_attrs):
+                        new_attrs, **kwargs):
         LOG.debug('Updating listener')
 
         if 'timeout_client_data' in new_attrs:
@@ -253,6 +273,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
         if 'timeout_member_connect' in new_attrs:
             new_attrs['keepalive_timeout'] = \
                 new_attrs.pop('timeout_member_connect')
+        if 'base_path' in kwargs:
+            new_attrs.update(kwargs)
 
         lsnr = session.vlb.update_listener(
             original_listener.id,
@@ -263,18 +285,25 @@ class ELBv3Driver(driver_base.ProviderDriver):
         lsnr_data.provider = PROVIDER
         return lsnr_data
 
-    def listener_delete(self, session, listener):
+    def listener_delete(self, session, listener, **kwargs):
         LOG.debug('Deleting listener %s' % listener.to_dict())
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         session.vlb.delete_listener(listener.id)
 
-    def pools(self, session, project_id, query_filter=None):
+    def pools(self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching pools')
         result = []
 
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         if 'id' in query_filter:
             pool_data = self.pool_get(
@@ -289,8 +318,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 result.append(pool_data)
         return result
 
-    def pool_get(self, session, project_id, pool_id):
+    def pool_get(self, session, project_id, pool_id, **kwargs):
         LOG.debug('Searching pool')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         pool = session.vlb.find_pool(
             name_or_id=pool_id, ignore_missing=True)
@@ -299,9 +333,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
             pool_data.provider = PROVIDER
             return pool_data
 
-    def pool_create(self, session, pool):
+    def pool_create(self, session, pool, **kwargs):
         LOG.debug('Creating pool %s' % pool.to_dict())
+
         attrs = pool.to_dict()
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         res = session.vlb.create_pool(**attrs)
         result_data = _pool.PoolResponse.from_sdk_object(
@@ -309,8 +346,11 @@ class ELBv3Driver(driver_base.ProviderDriver):
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
-    def pool_update(self, session, original, new_attrs):
+    def pool_update(self, session, original, new_attrs, **kwargs):
         LOG.debug('Updating pool')
+
+        if 'base_path' in kwargs:
+            new_attrs.update(kwargs)
 
         res = session.vlb.update_pool(
             original.id,
@@ -320,16 +360,27 @@ class ELBv3Driver(driver_base.ProviderDriver):
         result_data.provider = PROVIDER
         return result_data
 
-    def pool_delete(self, session, pool):
+    def pool_delete(self, session, pool, **kwargs):
         LOG.debug('Deleting pool %s' % pool.to_dict())
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+
         session.vlb.delete_pool(pool.id)
 
-    def members(self, session, project_id, pool_id, query_filter=None):
+    def members(
+            self, session, project_id, pool_id, query_filter=None, **kwargs):
         LOG.debug('Fetching pools')
+
         result = []
+
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         if 'id' in query_filter:
             member_data = self.member_get(
@@ -346,8 +397,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 result.append(member_data)
         return result
 
-    def member_get(self, session, project_id, pool_id, member_id):
+    def member_get(self, session, project_id, pool_id, member_id, **kwargs):
         LOG.debug('Searching pool')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         member = session.vlb.find_member(
             name_or_id=member_id, pool=pool_id, ignore_missing=True)
@@ -356,10 +412,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
             member_data.provider = PROVIDER
             return member_data
 
-    def member_create(self, session, pool_id, member):
+    def member_create(self, session, pool_id, member, **kwargs):
         LOG.debug('Creating member %s' % member.to_dict())
-        attrs = member.to_dict()
 
+        attrs = member.to_dict()
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
         attrs['address'] = attrs.pop('ip_address', None)
         if 'subnet_id' in attrs:
             attrs['subnet_cidr_id'] = attrs.pop('subnet_id')
@@ -373,8 +431,11 @@ class ELBv3Driver(driver_base.ProviderDriver):
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
-    def member_update(self, session, pool_id, original, new_attrs):
+    def member_update(self, session, pool_id, original, new_attrs, **kwargs):
         LOG.debug('Updating member')
+
+        if 'base_path' in kwargs:
+            new_attrs.update(kwargs)
 
         res = session.vlb.update_member(
             original.id,
@@ -385,17 +446,27 @@ class ELBv3Driver(driver_base.ProviderDriver):
         result_data.provider = PROVIDER
         return result_data
 
-    def member_delete(self, session, pool_id, member):
+    def member_delete(self, session, pool_id, member, **kwargs):
         LOG.debug('Deleting member %s' % member.to_dict())
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+
         session.vlb.delete_member(member.id, pool_id)
 
     def health_monitors(
             self, session, project_id,
-            query_filter=None):
+            query_filter=None, **kwargs):
         LOG.debug('Fetching health monitor')
+
         result = []
+
         if not query_filter:
             query_filter = {}
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
         query_filter.pop('project_id', None)
 
         if 'id' in query_filter:
@@ -413,8 +484,15 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 result.append(hm_data)
         return result
 
-    def health_monitor_get(self, session, project_id, healthmonitor_id):
+    def health_monitor_get(
+            self, session, project_id, healthmonitor_id, **kwargs):
         LOG.debug('Searching health monitor')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+
         healthmonitor = session.vlb.find_health_monitor(
             name_or_id=healthmonitor_id, ignore_missing=True)
         if healthmonitor:
@@ -424,9 +502,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
             healthmonitor_data.provider = PROVIDER
             return healthmonitor_data
 
-    def health_monitor_create(self, session, healthmonitor):
+    def health_monitor_create(self, session, healthmonitor, **kwargs):
         LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
+
         attrs = healthmonitor.to_dict()
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
         if 'UDP-CONNECT' in attrs['type']:
             attrs['type'] = 'UDP_CONNECT'
         res = session.vlb.create_health_monitor(**attrs)
@@ -436,8 +517,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
-    def health_monitor_update(self, session, original, new_attrs):
+    def health_monitor_update(self, session, original, new_attrs, **kwargs):
         LOG.debug('Updating health monitor')
+
+        if 'base_path' in kwargs:
+            new_attrs.update(kwargs)
+
         res = session.vlb.update_health_monitor(
             original.id,
             **new_attrs)
@@ -446,16 +531,26 @@ class ELBv3Driver(driver_base.ProviderDriver):
         result_data.provider = PROVIDER
         return result_data
 
-    def health_monitor_delete(self, session, healthmonitor):
+    def health_monitor_delete(self, session, healthmonitor, **kwargs):
         LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+
         session.vlb.delete_health_monitor(healthmonitor.id)
 
-    def l7policies(self, session, project_id, query_filter=None):
+    def l7policies(self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching L7 policies')
+
         if not query_filter:
             query_filter = {}
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         result = []
+
         if 'id' in query_filter:
             policy_data = self.l7policy_get(
                 project_id=project_id, session=session,
@@ -472,8 +567,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 result.append(l7policy_data)
         return result
 
-    def l7policy_get(self, session, project_id, l7_policy):
+    def l7policy_get(self, session, project_id, l7_policy, **kwargs):
         LOG.debug('Searching for L7 Policy')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         l7policy = session.vlb.find_l7_policy(
             name_or_id=l7_policy,
@@ -488,9 +588,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
             l7policy_data.provider = PROVIDER
             return l7policy_data
 
-    def l7policy_create(self, session, policy_l7):
+    def l7policy_create(self, session, policy_l7, **kwargs):
         l7policy_attrs = policy_l7.to_dict()
         LOG.debug('Creating L7 Policy %s' % l7policy_attrs)
+
+        if 'base_path' in kwargs:
+            l7policy_attrs.update(kwargs)
 
         l7_policy = session.vlb.create_l7_policy(**l7policy_attrs)
         l7_policy_data = _l7policy.L7PolicyResponse.from_sdk_object(l7_policy)
@@ -498,8 +601,11 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Created L7 Policy according to API is %s' % l7_policy_data)
         return l7_policy_data
 
-    def l7policy_update(self, session, original_l7policy, new_attrs):
+    def l7policy_update(self, session, original_l7policy, new_attrs, **kwargs):
         LOG.debug('Updating L7 Policy')
+
+        if 'base_path' in kwargs:
+            new_attrs.update(kwargs)
 
         l7_policy = session.vlb.update_l7_policy(
             l7_policy=original_l7policy.id,
@@ -510,20 +616,31 @@ class ELBv3Driver(driver_base.ProviderDriver):
         l7_policy_data.provider = PROVIDER
         return l7_policy_data
 
-    def l7policy_delete(self, session, l7policy, ignore_missing=True):
+    def l7policy_delete(
+            self, session, l7policy, ignore_missing=True, **kwargs):
         LOG.debug('Deleting L7 Policy %s' % l7policy.to_dict())
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         session.vlb.delete_l7_policy(
             l7_policy=l7policy.id,
             ignore_missing=ignore_missing
         )
 
-    def l7rules(self, session, project_id, l7policy_id, query_filter=None):
+    def l7rules(
+            self, session, project_id, l7policy_id, query_filter=None, **kwargs):
         LOG.debug('Fetching l7 rules')
+
         result = []
+
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         if 'id' in query_filter:
             l7rule_data = self.l7rule_get(
@@ -541,8 +658,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         return result
 
-    def l7rule_get(self, session, project_id, l7policy_id, l7rule_id):
+    def l7rule_get(
+            self, session, project_id, l7policy_id, l7rule_id, **kwargs):
         LOG.debug('Searching l7 rule')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         l7rule = session.vlb.find_l7_rule(
             name_or_id=l7rule_id, l7_policy=l7policy_id, ignore_missing=True)
@@ -551,17 +674,24 @@ class ELBv3Driver(driver_base.ProviderDriver):
             l7rule_data.provider = PROVIDER
             return l7rule_data
 
-    def l7rule_create(self, session, l7policy_id, l7rule):
+    def l7rule_create(self, session, l7policy_id, l7rule, **kwargs):
         LOG.debug('Creating l7 rule %s' % l7rule.to_dict())
+
         attrs = l7rule.to_dict()
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         res = session.vlb.create_l7_rule(l7_policy=l7policy_id, **attrs)
         result_data = _l7rule.L7RuleResponse.from_sdk_object(res)
         setattr(result_data, 'provider', PROVIDER)
         return result_data
 
-    def l7rule_update(self, session, l7policy_id, original, new_attrs):
+    def l7rule_update(
+            self, session, l7policy_id, original, new_attrs, **kwargs):
         LOG.debug('Updating l7 rule')
+
+        if 'base_path' in kwargs:
+            new_attrs.update(kwargs)
 
         res = session.vlb.update_l7_rule(
             original.id,
@@ -572,16 +702,24 @@ class ELBv3Driver(driver_base.ProviderDriver):
         result_data.provider = PROVIDER
         return result_data
 
-    def l7rule_delete(self, session, l7policy_id, l7rule):
+    def l7rule_delete(self, session, l7policy_id, l7rule, **kwargs):
         LOG.debug('Deleting l7 rule %s' % l7rule.to_dict())
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+
         session.vlb.delete_l7_rule(l7rule.id, l7policy_id)
 
-    def flavors(self, session, project_id, query_filter=None):
+    def flavors(self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching flavors')
+
         if not query_filter:
             query_filter = {}
-
         query_filter.pop('project_id', None)
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         # Shows only L7 flavors in output to not confuse users,
         # because `create` only support one parameter for flavor
@@ -604,8 +742,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
                     result.append(fl_data)
         return result
 
-    def flavor_get(self, session, project_id, fl_id):
+    def flavor_get(self, session, project_id, fl_id, **kwargs):
         LOG.debug('Searching flavor')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
+
         fl = session.vlb.get_flavor(fl_id)
 
         # Shows only L7 flavors in output to not confuse users,
@@ -616,10 +760,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
             fl_data.provider = PROVIDER
             return fl_data
 
-    def availability_zones(self, session, project_id, query_filter=None):
+    def availability_zones(
+            self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching availability zones')
+
         if not query_filter:
             query_filter = {}
+        if 'base_path' in kwargs:
+            query_filter.update(kwargs)
 
         result = []
 
@@ -640,10 +788,15 @@ class ELBv3Driver(driver_base.ProviderDriver):
             result.append(az_data)
         return result
 
-    def quotas(self, session, project_id, query_filter=None):
+    def quotas(self, session, project_id, query_filter=None, **kwargs):
         LOG.debug('Fetching quotas')
         if not query_filter:
             query_filter = {}
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         result = []
         quota = session.vlb.get_quotas()
@@ -655,8 +808,13 @@ class ELBv3Driver(driver_base.ProviderDriver):
             result.append(quota_data)
         return result
 
-    def quota_get(self, session, project_id, req_project):
+    def quota_get(self, session, project_id, req_project, **kwargs):
         LOG.debug('Searching for quotas')
+
+        # Need to change SDK proxy to accept **attrs
+        attrs = {}
+        if 'base_path' in kwargs:
+            attrs.update(kwargs)
 
         quota = session.vlb.get_quotas()
         LOG.debug('quotas is %s' % quota)
