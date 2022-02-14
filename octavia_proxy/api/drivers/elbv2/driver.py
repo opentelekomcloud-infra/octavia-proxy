@@ -604,7 +604,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
         )
 
     def l7rules(
-            self, session, project_id, l7policy_id, query_filter=None, **kwargs):
+            self, session, project_id,
+            l7policy_id, query_filter=None, **kwargs):
         LOG.debug('Fetching l7 rules')
 
         result = []
