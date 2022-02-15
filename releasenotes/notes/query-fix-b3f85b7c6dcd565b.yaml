@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed Query parameters passing to driver in ``get_all`` (`#103 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/103>`_)
