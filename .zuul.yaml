@@ -25,6 +25,7 @@
             &imagetag "{{ zuul.tag is defined | ternary([zuul.get('tag', '').split('.')[0], '.'.join(zuul.get('tag', '').split('.')[:2]), zuul.get('tag', '')], ['latest']) }}"
           siblings:
             - github.com/opentelekomcloud/python-otcextensions
+    nodeset: ubuntu-focal
 
 - job:
     name: octavia-proxy-upload-image
@@ -34,6 +35,7 @@
       - name: opentelekomcloud/python-otcextensions
         override-checkout: master
     vars: *octavia-proxy_image_vars
+    nodeset: ubuntu-focal
 
 - project:
     merge-mode: squash-merge
