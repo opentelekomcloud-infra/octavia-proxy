@@ -809,7 +809,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
             result.append(quota_data)
         return result
 
-    def quota_get(self, session, project_id, req_project, **kwargs):
+    def quota_get(self, session, project_id, quota_id, **kwargs):
         LOG.debug('Searching for quotas')
 
         # Need to change SDK proxy to accept **attrs
@@ -820,8 +820,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
         quota = session.vlb.get_quotas()
         LOG.debug('quotas is %s' % quota)
         if quota:
-            if quota.project_id != req_project:
-                return
             quota_data = _quotas.QuotaResponse.from_sdk_object(
                 quota
             )

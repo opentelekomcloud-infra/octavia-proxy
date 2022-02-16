@@ -37,7 +37,7 @@ class QuotasController(base.BaseController):
 
     @wsme_pecan.wsexpose(q_types.QuotaRootResponse, wtypes.text,
                          [wtypes.text], ignore_extra_args=True)
-    def get_one(self, project_id, fields=None):
+    def get_one(self, id, fields=None):
         """Gets an Quota's detail."""
         pcontext = pecan_request.context
         context = pecan_request.context.get('octavia_context')
@@ -45,7 +45,7 @@ class QuotasController(base.BaseController):
         is_parallel = query_params.pop('is_parallel', True)
 
         quota = driver_invocation(
-            context, 'quota_get', is_parallel, project_id
+            context, 'quota_get', is_parallel, id
         )
         if not quota:
             raise exceptions.NotFound(
