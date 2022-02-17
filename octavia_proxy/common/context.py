@@ -52,13 +52,13 @@ class Context(common_context.RequestContext):
         return self._session
 
     def additional_driver_settings(self):
-        driver_settings = {}
+        opts = {}
         for k, v in CONF.api_settings.enabled_provider_drivers.items():
-            driver = getattr(CONF, f'{k}_driver_settings', None)
-            if hasattr(driver, 'endpoint_override'):
-                if driver.endpoint_override:
+            drv = getattr(CONF, f'{k}_driver_settings', None)
+            if hasattr(drv, 'endpoint_override'):
+                if drv.endpoint_override:
                     if k == 'elbv2':
-                        driver_settings['elb_endpoint_override'] = driver.endpoint_override
+                        opts['elb_endpoint_override'] = drv.endpoint_override
                     else:
-                        driver_settings['elbv3_endpoint_override'] = driver.endpoint_override
-        return driver_settings
+                        opts['elbv3_endpoint_override'] = drv.endpoint_override
+        return opts
