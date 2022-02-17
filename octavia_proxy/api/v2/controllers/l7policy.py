@@ -67,15 +67,14 @@ class L7PoliciesController(base.BaseController):
         pagination_helper = pcontext.get(constants.PAGINATION_HELPER)
 
         query_params = pagination_helper.params
-        query, query_params = base.BaseController.excluded_from_pagination(
-            query_params)
+        query_filter.update(query_params)
 
         is_parallel = query_filter.pop('is_parallel', True)
         allow_pagination = CONF.api_settings.allow_pagination
 
         links = []
         result = driver_invocation(
-            context, 'l7policies', is_parallel, query
+            context, 'l7policies', is_parallel, query_filter
         )
 
         if allow_pagination:

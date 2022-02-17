@@ -78,15 +78,14 @@ class LoadBalancersController(base.BaseController):
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
 
-        query, query_params = base.BaseController.excluded_from_pagination(
-            query_params)
+        query_filter.update(query_params)
 
         is_parallel = query_filter.pop('is_parallel', True)
         allow_pagination = CONF.api_settings.allow_pagination
 
         links = []
         result = driver_invocation(
-            context, 'loadbalancers', is_parallel, query
+            context, 'loadbalancers', is_parallel, query_filter
         )
 
         if allow_pagination:

@@ -266,11 +266,3 @@ class BaseController(pecan_rest.RestController):
         attrs = [attr for attr in dir(obj) if not callable(
             getattr(obj, attr)) and not attr.startswith("_")]
         return attrs
-
-    @staticmethod
-    def excluded_from_pagination(params):
-        query = {}
-        for item in ['id', 'name']:
-            if item in params:
-                query[item] = params.pop(item)
-        return query, params
