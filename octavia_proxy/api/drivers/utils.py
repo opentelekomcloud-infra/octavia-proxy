@@ -38,14 +38,7 @@ def call_provider(provider, driver_method, *args, **kwargs):
     :raises ProviderUnsupportedOptionError: The driver doesn't support a
                                             provided option.
     """
-    driver_settings = getattr(CONF, f'{provider}_driver_settings', None)
     try:
-        if hasattr(driver_settings, 'endpoint_override'):
-            if driver_settings.endpoint_override:
-                kwargs.update(assemble_base_path(
-                    driver_settings.endpoint_override,
-                    driver_method
-                ))
         return driver_method(*args, **kwargs)
     except lib_exceptions.DriverError as e:
         LOG.exception("Provider '%s' raised a driver error: %s",
@@ -103,21 +96,3 @@ def lb_dict_to_provider_dict(lb_dict, vip=None):
         new_lb_dict['vip_subnet_id'] = vip.subnet_id
         new_lb_dict['vip_qos_policy_id'] = vip.qos_policy_id
     return new_lb_dict
-
-
-def assemble_base_path(endpoint, driver_method):
-    method = driver_method.__name__.split('_')
-    base = method[0]
-    if base.startswith('health'):
-        base = base + method[1]
-    if base.endswith('s'):
-        method = base
-    else:
-        method = base + 's'
-    if 'l7policy' in method:
-        method = 'l7policies'
-    if 'member' in method:
-        method = 'pools/%(pool_id)s/members'
-    if 'l7rule' in method:
-        method = 'l7policies/%(l7policy_id)s/rules'
-    return {'base_path': f'{endpoint}/{method}'}
