@@ -42,7 +42,7 @@
         - "doc-octavia-proxy.pdf"
         - "api-ref-octavia-proxy.pdf"
     templates:
-      - publish-otc-docs-pti
+      - publish-otc-docs-hc-pti
       - api-ref-jobs
       - release-notes-jobs
     check:
