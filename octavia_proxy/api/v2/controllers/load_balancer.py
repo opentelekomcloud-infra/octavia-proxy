@@ -77,7 +77,9 @@ class LoadBalancersController(base.BaseController):
         # TODO: fix filtering and sorting, especially for multiple providers
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
-        # query_filter.update(query_params)
+
+        query_filter.update(query_params)
+
         is_parallel = query_filter.pop('is_parallel', True)
         allow_pagination = CONF.api_settings.allow_pagination
 
@@ -228,7 +230,6 @@ class LoadBalancersController(base.BaseController):
             listeners = load_balancer.listeners
             pools, listeners = self._graph_create(
                 context.session, lb_response, pools, listeners)
-
         lb_full_response = lb_response.to_full_response(pools=pools,
                                                         listeners=listeners)
 

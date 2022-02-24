@@ -74,7 +74,6 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
         if not query_filter:
             query_filter = {}
-
         query_filter.pop('project_id', None)
 
         result = []
@@ -151,8 +150,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
 
-    def loadbalancer_update(self, session, original_load_balancer,
-                            new_attrs):
+    def loadbalancer_update(self, session, original_load_balancer, new_attrs):
         LOG.debug('Updating loadbalancer')
 
         lb = session.vlb.update_load_balancer(
@@ -165,14 +163,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
         return lb_data
 
     def loadbalancer_delete(self, session, loadbalancer, cascade=False):
-        """Delete a load balancer
-
-        :param cascade: here for backward compatibility,
-               not used in elbv3
-
-        :returns: ``None``
-        """
         LOG.debug('Deleting loadbalancer %s' % loadbalancer.to_dict())
+
         if cascade:
             loadbalancer_cascade_delete(session.vlb, loadbalancer)
         else:
@@ -217,21 +209,21 @@ class ELBv3Driver(driver_base.ProviderDriver):
     def listener_create(self, session, listener):
         LOG.debug('Creating listener %s' % listener.to_dict())
 
-        lattrs = listener.to_dict()
-        lattrs.pop('connection_limit')
-        lattrs.pop('l7policies', None)
+        attrs = listener.to_dict()
+        attrs.pop('connection_limit')
+        attrs.pop('l7policies', None)
 
-        if 'timeout_client_data' in lattrs:
-            lattrs['client_timeout'] = lattrs.pop('timeout_client_data')
-        if 'timeout_member_data' in lattrs:
-            lattrs['member_timeout'] = lattrs.pop('timeout_member_data')
-        if 'timeout_member_connect' in lattrs:
-            lattrs['keepalive_timeout'] = \
-                lattrs.pop('timeout_member_connect')
-        if 'tags' in lattrs:
-            lattrs['tags'] = self._resource_tags(lattrs['tags'])
+        if 'timeout_client_data' in attrs:
+            attrs['client_timeout'] = attrs.pop('timeout_client_data')
+        if 'timeout_member_data' in attrs:
+            attrs['member_timeout'] = attrs.pop('timeout_member_data')
+        if 'timeout_member_connect' in attrs:
+            attrs['keepalive_timeout'] = \
+                attrs.pop('timeout_member_connect')
+        if 'tags' in attrs:
+            attrs['tags'] = self._resource_tags(attrs['tags'])
 
-        lsnr = session.vlb.create_listener(**lattrs)
+        lsnr = session.vlb.create_listener(**attrs)
 
         lsnr_data = _listener.ListenerResponse.from_sdk_object(
             self._normalize_lb(lsnr)
@@ -241,8 +233,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
         LOG.debug('Created LB according to API is %s' % lsnr_data)
         return lsnr_data
 
-    def listener_update(self, session, original_listener,
-                        new_attrs):
+    def listener_update(self, session, original_listener, new_attrs):
         LOG.debug('Updating listener')
 
         if 'timeout_client_data' in new_attrs:
@@ -300,6 +291,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def pool_create(self, session, pool):
         LOG.debug('Creating pool %s' % pool.to_dict())
+
         attrs = pool.to_dict()
 
         res = session.vlb.create_pool(**attrs)
@@ -321,11 +313,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def pool_delete(self, session, pool):
         LOG.debug('Deleting pool %s' % pool.to_dict())
+
         session.vlb.delete_pool(pool.id)
 
     def members(self, session, project_id, pool_id, query_filter=None):
         LOG.debug('Fetching pools')
+
         result = []
+
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
@@ -357,8 +352,8 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def member_create(self, session, pool_id, member):
         LOG.debug('Creating member %s' % member.to_dict())
-        attrs = member.to_dict()
 
+        attrs = member.to_dict()
         attrs['address'] = attrs.pop('ip_address', None)
         if 'subnet_id' in attrs:
             attrs['subnet_cidr_id'] = attrs.pop('subnet_id')
@@ -386,13 +381,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def member_delete(self, session, pool_id, member):
         LOG.debug('Deleting member %s' % member.to_dict())
+
         session.vlb.delete_member(member.id, pool_id)
 
-    def health_monitors(
-            self, session, project_id,
-            query_filter=None):
+    def health_monitors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching health monitor')
+
         result = []
+
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
@@ -414,6 +410,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def health_monitor_get(self, session, project_id, healthmonitor_id):
         LOG.debug('Searching health monitor')
+
         healthmonitor = session.vlb.find_health_monitor(
             name_or_id=healthmonitor_id, ignore_missing=True)
         if healthmonitor:
@@ -425,6 +422,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def health_monitor_create(self, session, healthmonitor):
         LOG.debug('Creating health monitor %s' % healthmonitor.to_dict())
+
         attrs = healthmonitor.to_dict()
         if 'UDP-CONNECT' in attrs['type']:
             attrs['type'] = 'UDP_CONNECT'
@@ -437,6 +435,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def health_monitor_update(self, session, original, new_attrs):
         LOG.debug('Updating health monitor')
+
         res = session.vlb.update_health_monitor(
             original.id,
             **new_attrs)
@@ -447,14 +446,17 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def health_monitor_delete(self, session, healthmonitor):
         LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
+
         session.vlb.delete_health_monitor(healthmonitor.id)
 
     def l7policies(self, session, project_id, query_filter=None):
         LOG.debug('Fetching L7 policies')
+
         if not query_filter:
             query_filter = {}
 
         result = []
+
         if 'id' in query_filter:
             policy_data = self.l7policy_get(
                 project_id=project_id, session=session,
@@ -519,7 +521,9 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def l7rules(self, session, project_id, l7policy_id, query_filter=None):
         LOG.debug('Fetching l7 rules')
+
         result = []
+
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
@@ -552,6 +556,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def l7rule_create(self, session, l7policy_id, l7rule):
         LOG.debug('Creating l7 rule %s' % l7rule.to_dict())
+
         attrs = l7rule.to_dict()
 
         res = session.vlb.create_l7_rule(l7_policy=l7policy_id, **attrs)
@@ -573,13 +578,14 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def l7rule_delete(self, session, l7policy_id, l7rule):
         LOG.debug('Deleting l7 rule %s' % l7rule.to_dict())
+
         session.vlb.delete_l7_rule(l7rule.id, l7policy_id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
+
         if not query_filter:
             query_filter = {}
-
         query_filter.pop('project_id', None)
 
         # Shows only L7 flavors in output to not confuse users,
@@ -605,6 +611,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def flavor_get(self, session, project_id, fl_id):
         LOG.debug('Searching flavor')
+
         fl = session.vlb.get_flavor(fl_id)
 
         # Shows only L7 flavors in output to not confuse users,
@@ -617,6 +624,7 @@ class ELBv3Driver(driver_base.ProviderDriver):
 
     def availability_zones(self, session, project_id, query_filter=None):
         LOG.debug('Fetching availability zones')
+
         if not query_filter:
             query_filter = {}
 
@@ -654,14 +662,12 @@ class ELBv3Driver(driver_base.ProviderDriver):
             result.append(quota_data)
         return result
 
-    def quota_get(self, session, project_id, req_project):
+    def quota_get(self, session, project_id, quota_id):
         LOG.debug('Searching for quotas')
 
         quota = session.vlb.get_quotas()
         LOG.debug('quotas is %s' % quota)
         if quota:
-            if quota.project_id != req_project:
-                return
             quota_data = _quotas.QuotaResponse.from_sdk_object(
                 quota
             )

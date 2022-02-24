@@ -864,10 +864,7 @@ class TestElbv2QuotaDriver(base.TestCase):
 
     def setUp(self):
         super().setUp()
-        self.driver = driver.ELBv2Driver()
-        self.sess = mock.MagicMock()
-        self.sess.elb.get_quotas = mock.MagicMock(
-            return_value=quota.Quota(**{
+        self.quota = quota.Quota(**{
                 "member": 500,
                 "members_per_pool": 500,
                 "certificate": 120,
@@ -879,13 +876,16 @@ class TestElbv2QuotaDriver(base.TestCase):
                 "ipgroup": 50,
                 "project_id": "c742c92afd8d46b1b3083d004afffd70"
             })
-        )
+        self.driver = driver.ELBv2Driver()
+        self.sess = mock.MagicMock()
+        self.sess.elb.quotas = mock.MagicMock(return_value=quota)
+        self.sess.elb.get_quota = mock.MagicMock(return_value=quota)
 
     def test_quotas_no_qp(self):
         self.driver.quotas(
             self.sess, 'pid')
-        self.sess.elb.get_quotas.assert_called()
+        self.sess.elb.quotas.assert_called()
 
     def test_quota_get(self):
-        self.driver.quota_get(self.sess, 'test', 'pid')
-        self.sess.elb.get_quotas.assert_called()
+        self.driver.quota_get(self.sess, 'pid', 'test')
+        self.sess.elb.get_quota.assert_called()

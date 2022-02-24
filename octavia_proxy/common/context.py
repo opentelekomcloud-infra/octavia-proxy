@@ -7,14 +7,12 @@ from keystoneauth1.identity.generic import token
 from keystoneauth1 import access
 from keystoneauth1 import session
 
-
 CONF = cfg.CONF
 
 LOG = logging.getLogger(__name__)
 
 
 class Context(common_context.RequestContext):
-
     _session = None
 
     def __init__(self, user_id=None, project_id=None, **kwargs):
@@ -37,6 +35,7 @@ class Context(common_context.RequestContext):
 
     @property
     def session(self):
+        driver_opts = self.additional_driver_settings()
         # Establish real session only when required
         if self._session is None:
             # Initiate KS session from the existing token
@@ -46,6 +45,20 @@ class Context(common_context.RequestContext):
             sdk = openstack.connection.Connection(
                 session=sess,
                 vendor_hook='otcextensions.sdk:load',
-                region_name=CONF.api_settings.region)
+                region_name=CONF.api_settings.region,
+                **driver_opts
+            )
             self._session = sdk
         return self._session
+
+    def additional_driver_settings(self):
+        opts = {}
+        for k, v in CONF.api_settings.enabled_provider_drivers.items():
+            drv = getattr(CONF, f'{k}_driver_settings', None)
+            if hasattr(drv, 'endpoint_override'):
+                if drv.endpoint_override:
+                    if k == 'elbv2':
+                        opts['elb_endpoint_override'] = drv.endpoint_override
+                    else:
+                        opts['elbv3_endpoint_override'] = drv.endpoint_override
+        return opts

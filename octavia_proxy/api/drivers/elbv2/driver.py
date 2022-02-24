@@ -119,7 +119,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
         tags = []
         if 'tags' in lb_attrs:
             tags = self._resource_tags(lb_attrs.pop('tags'))
-
         lb = session.elb.create_load_balancer(**lb_attrs)
 
         for tag in tags:
@@ -136,8 +135,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
 
-    def loadbalancer_update(self, session, original_load_balancer,
-                            new_attrs):
+    def loadbalancer_update(self, session, original_load_balancer, new_attrs):
         LOG.debug('Updating loadbalancer')
 
         lb = session.elb.update_load_balancer(
@@ -191,7 +189,6 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Creating listener %s' % listener.to_dict())
 
         attrs = listener.to_dict()
-        # TODO: do this differently
         attrs.pop('l7policies', None)
 
         tags = []
@@ -232,7 +229,9 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def health_monitors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching health monitor')
+
         result = []
+
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
@@ -255,6 +254,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def health_monitor_get(self, session, project_id, healthmonitor_id):
         LOG.debug('Searching health monitor')
+
         healthmonitor = session.elb.find_health_monitor(
             name_or_id=healthmonitor_id, ignore_missing=True)
         if healthmonitor:
@@ -291,6 +291,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def health_monitor_delete(self, session, healthmonitor):
         LOG.debug('Deleting health monitor %s' % healthmonitor.to_dict())
+
         session.elb.delete_health_monitor(healthmonitor.id)
 
     def pools(self, session, project_id, query_filter=None):
@@ -328,11 +329,9 @@ class ELBv2Driver(driver_base.ProviderDriver):
         LOG.debug('Creating pool %s' % pool.to_dict())
 
         attrs = pool.to_dict()
-
         if 'tls_enabled' in attrs:
             attrs.pop('tls_enabled')
 
-        # TODO: do this differently
         res = session.elb.create_pool(**attrs)
         result_data = _pool.PoolResponse.from_sdk_object(
             res)
@@ -352,14 +351,17 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def pool_delete(self, session, pool):
         LOG.debug('Deleting pool %s' % pool.to_dict())
+
         session.elb.delete_pool(pool.id)
 
     def members(self, session, project_id, pool_id, query_filter=None):
         LOG.debug('Fetching pools')
-        result = []
+
         if not query_filter:
             query_filter = {}
         query_filter.pop('project_id', None)
+
+        result = []
 
         if 'id' in query_filter:
             member_data = self.member_get(
@@ -389,8 +391,8 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def member_create(self, session, pool_id, member):
         LOG.debug('Creating member %s' % member.to_dict())
-        attrs = member.to_dict()
 
+        attrs = member.to_dict()
         if 'subnet_id' not in attrs:
             lb_id = session.elb.get_pool(pool_id)['loadbalancers'][0]['id']
             attrs['subnet_id'] = session.elb.get_load_balancer(
@@ -400,6 +402,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
         attrs.pop('backup', None)
         attrs.pop('monitor_port', None)
         attrs.pop('monitor_address', None)
+
         res = session.elb.create_member(pool_id, **attrs)
         result_data = _member.MemberResponse.from_sdk_object(res)
         setattr(result_data, 'provider', PROVIDER)
@@ -419,10 +422,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def member_delete(self, session, pool_id, member):
         LOG.debug('Deleting pool %s' % member.to_dict())
+
         session.elb.delete_member(member.id, pool_id)
 
     def l7policies(self, session, project_id, query_filter=None):
         LOG.debug('Fetching L7 policies')
+
         if not query_filter:
             query_filter = {}
 
@@ -491,7 +496,9 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def l7rules(self, session, project_id, l7policy_id, query_filter=None):
         LOG.debug('Fetching l7 rules')
+
         result = []
+
         if not query_filter:
             query_filter = {}
 
@@ -499,7 +506,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
             l7rule_data = self.l7rule_get(
                 project_id=project_id, session=session,
                 l7policy_id=l7policy_id,
-                l7rule_id=query_filter['id']
+                l7rule_id=query_filter['id'],
             )
             if l7rule_data:
                 result.append(l7rule_data)
@@ -523,6 +530,7 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def l7rule_create(self, session, l7policy_id, l7rule):
         LOG.debug('Creating l7 rule %s' % l7rule.to_dict())
+
         attrs = l7rule.to_dict()
 
         res = session.elb.create_l7_rule(l7_policy=l7policy_id, **attrs)
@@ -544,10 +552,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def l7rule_delete(self, session, l7policy_id, l7rule):
         LOG.debug('Deleting l7 rule %s' % l7rule.to_dict())
+
         session.elb.delete_l7_rule(l7rule.id, l7policy_id)
 
     def flavors(self, session, project_id, query_filter=None):
         LOG.debug('Fetching flavors')
+
         result = []
         return result
 
@@ -556,10 +566,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def availability_zones(self, session, project_id, query_filter=None):
         LOG.debug('Fetching availability zones')
+
         if not query_filter:
             query_filter = {}
 
         result = []
+
         for az in session.elb.availability_zones(**query_filter):
             az.enabled = az.is_enabled
             az_data = _az.AvailabilityZoneResponse.from_sdk_object(
@@ -571,11 +583,12 @@ class ELBv2Driver(driver_base.ProviderDriver):
 
     def quotas(self, session, project_id, query_filter=None):
         LOG.debug('Fetching quotas')
+
         if not query_filter:
             query_filter = {}
 
         result = []
-        quota = session.elb.get_quotas()
+        quota = session.elb.quotas(**query_filter)
         if quota:
             quota_data = _quotas.QuotaResponse.from_sdk_object(
                 quota
@@ -584,10 +597,10 @@ class ELBv2Driver(driver_base.ProviderDriver):
             result.append(quota_data)
         return result
 
-    def quota_get(self, session, project_id, param):
+    def quota_get(self, session, project_id, quota_id):
         LOG.debug('Searching for quotas')
 
-        quota = session.elb.get_quotas()
+        quota = session.elb.get_quota(quota_id)
         LOG.debug('quotas is %s' % quota)
 
         if quota:
