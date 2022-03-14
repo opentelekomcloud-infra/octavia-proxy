@@ -43,6 +43,7 @@
         - "doc-octavia-proxy.pdf"
         - "api-ref-octavia-proxy.pdf"
     templates:
+      - publish-to-pypi
       - publish-otc-docs-pti
       - api-ref-jobs
       - release-notes-jobs
