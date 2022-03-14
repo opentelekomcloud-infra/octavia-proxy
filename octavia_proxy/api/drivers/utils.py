@@ -15,6 +15,7 @@
 
 import copy
 
+from openstack import exceptions as openstack_exceptions
 from octavia_lib.api.drivers import exceptions as lib_exceptions
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -38,7 +39,6 @@ def call_provider(provider, driver_method, *args, **kwargs):
     :raises ProviderUnsupportedOptionError: The driver doesn't support a
                                             provided option.
     """
-
     try:
         return driver_method(*args, **kwargs)
     except lib_exceptions.DriverError as e:
@@ -64,6 +64,8 @@ def call_provider(provider, driver_method, *args, **kwargs):
                  "%s", provider, e.operator_fault_string)
         raise exceptions.ProviderUnsupportedOptionError(
             prov=provider, user_msg=e.user_fault_string)
+    except openstack_exceptions.ConflictException as e:
+        raise e
     except Exception as e:
         LOG.exception("Provider '%s' raised an unknown error: %s",
                       provider, str(e))
@@ -72,10 +74,10 @@ def call_provider(provider, driver_method, *args, **kwargs):
 def _base_to_provider_dict(current_dict, include_project_id=False):
     new_dict = copy.deepcopy(current_dict)
     for key in [
-            'provisioning_status', 'operating_status', 'provider',
-            'created_at', 'updated_at', 'tenant_id', 'tags',
-            'flavor_id', 'topology', 'vrrp_group', 'amphorae', 'vip',
-            'listeners', 'pools', 'server_group_id',
+        'provisioning_status', 'operating_status', 'provider',
+        'created_at', 'updated_at', 'tenant_id', 'tags',
+        'flavor_id', 'topology', 'vrrp_group', 'amphorae', 'vip',
+        'listeners', 'pools', 'server_group_id',
     ]:
         new_dict.pop(key, None)
     if 'enabled' in new_dict:

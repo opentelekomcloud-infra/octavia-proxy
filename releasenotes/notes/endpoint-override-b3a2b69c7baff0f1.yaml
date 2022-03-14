@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add ``load_balancer_endpoint_override`` option to config (`#102 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/102>`_)
+fixes:
+  - |
+    Fixed Query parameters passing to driver in ``get_all`` (`#103 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/103>`_)

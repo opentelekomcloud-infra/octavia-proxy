@@ -23,6 +23,7 @@ from pecan import request as pecan_request
 from wsme import types as wtypes
 from wsmeext import pecan as wsme_pecan
 
+from openstack import exceptions as openstack_exceptions
 from octavia_proxy.api.common.invocation import driver_invocation
 from octavia_proxy.api.drivers import driver_factory
 from octavia_proxy.api.drivers import utils as driver_utils
@@ -77,7 +78,9 @@ class LoadBalancersController(base.BaseController):
         # TODO: fix filtering and sorting, especially for multiple providers
         if 'vip_port_id' in query_params:
             query_filter['vip_port_id'] = query_params['vip_port_id']
-        # query_filter.update(query_params)
+
+        query_filter.update(query_params)
+
         is_parallel = query_filter.pop('is_parallel', True)
         allow_pagination = CONF.api_settings.allow_pagination
 
@@ -216,11 +219,20 @@ class LoadBalancersController(base.BaseController):
         self._validate_vip_request_object(load_balancer, context=context)
         self._validate_flavor(driver, load_balancer, context=context)
         self._validate_availability_zone(context.session, load_balancer)
+        lb_response = None
+        # Dispatch to the driver
+        try:
+            lb_response = driver_utils.call_provider(
+                driver.name, driver.loadbalancer_create,
+                context.session,
+                load_balancer)
+        except openstack_exceptions.ConflictException:
+            raise exceptions.IPAddressInUse(
+                network_id=load_balancer.vip_network_id,
+                vip_address=load_balancer.vip_address)
+        except Exception as e:
+            raise e
 
-        lb_response = driver_utils.call_provider(
-            driver.name, driver.loadbalancer_create,
-            context.session,
-            load_balancer)
         pools = None
         listeners = None
         if load_balancer.pools or load_balancer.listeners:
@@ -228,12 +240,10 @@ class LoadBalancersController(base.BaseController):
             listeners = load_balancer.listeners
             pools, listeners = self._graph_create(
                 context.session, lb_response, pools, listeners)
-
         lb_full_response = lb_response.to_full_response(pools=pools,
                                                         listeners=listeners)
 
-        return lb_types.LoadBalancerFullRootResponse(
-            loadbalancer=lb_full_response)
+        return lb_types.LoadBalancerRootResponse(loadbalancer=lb_full_response)
 
     @wsme_pecan.wsexpose(lb_types.LoadBalancerRootResponse,
                          wtypes.text, status_code=200,

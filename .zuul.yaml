@@ -9,9 +9,8 @@
 
 - job:
     name: octavia-proxy-build-image
-    parent: build-docker-image
+    parent: otc-build-docker-image
     description: Build octavia-proxy container image
-    timeout: 2700 # 45 minutes
     provides: octavia-proxy-container-image
     required-projects:
       - name: opentelekomcloud/python-otcextensions
@@ -44,8 +43,8 @@
         - "api-ref-octavia-proxy.pdf"
     templates:
       - publish-to-pypi
-      - publish-otc-docs-pti
-      - api-ref-jobs
+      - publish-otc-docs-hc-pti
+      - api-ref-hc-jobs
       - release-notes-jobs
     check:
       jobs:

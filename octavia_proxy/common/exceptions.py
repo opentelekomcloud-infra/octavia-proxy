@@ -390,6 +390,12 @@ class ProviderUnsupportedOptionError(APIException):
     code = 501
 
 
+class IPAddressInUse(OctaviaException):
+    message = _("Unable to complete operation for network '%(network_id)s'."
+                " IP address %(vip_address)s is in use")
+    code = 409
+
+
 class InputFileError(OctaviaException):
     message = _('Error with file %(file_name)s. Reason: %(reason)s')
 

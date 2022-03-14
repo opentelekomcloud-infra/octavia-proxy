@@ -77,6 +77,20 @@ api_opts = [
     cfg.StrOpt('region', default='eu-de',
                help=_('Service region (used to select driver endpoint).')),
 ]
+
+elb_driver_opts = [
+    cfg.StrOpt('endpoint_override',
+               help=_('Endpoint override url with additional parameters. '
+                      'Example: http://127.0.0.1:9876/vX.Y/%(project_id)s.'),
+               default=''),
+]
+vlb_driver_opts = [
+    cfg.StrOpt('endpoint_override',
+               help=_('Endpoint override url with additional parameters. '
+                      'Example: http://127.0.0.1:9876/vX.Y/%(project_id)s.'),
+               default=''),
+]
+
 networking_opts = [
     cfg.IntOpt('max_retries', default=15,
                help=_('The maximum attempts to retry an action with the '
@@ -124,6 +138,8 @@ cfg.CONF.register_opts(api_opts, group='api_settings')
 cfg.CONF.register_opts(validatetoken._VALIDATETOKEN_OPTS,
                        group=validatetoken.VALIDATETOKEN_MIDDLEWARE_GROUP)
 cfg.CONF.register_opts(networking_opts, group='networking')
+cfg.CONF.register_opts(elb_driver_opts, group='elbv2_driver_settings')
+cfg.CONF.register_opts(vlb_driver_opts, group='elbv3_driver_settings')
 
 
 def register_cli_opts():
