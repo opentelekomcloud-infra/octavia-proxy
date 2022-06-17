@@ -120,11 +120,16 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_attrs.pop('pools')
         if 'listeners' in lb_attrs:
             lb_attrs.pop('listeners')
+        if 'provider' in lb_attrs:
+            lb_attrs.pop('provider')
         if 'vip_subnet_id' in lb_attrs:
             lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
         if 'vip_network_id' in lb_attrs:
             lb_attrs['elb_virsubnet_ids'] = [lb_attrs.pop('vip_network_id')]
-        azs = lb_attrs.pop('availability_zone', 'eu-nl-01')
+        if 'eu-de' in session.config.config['region_name']:
+            azs = lb_attrs.pop('availability_zone', 'eu-de-01')
+        else:
+            azs = lb_attrs.pop('availability_zone', 'eu-nl-01')
         lb_attrs['availability_zone_list'] = azs.replace(' ', '').split(',')
 
         if 'tags' in lb_attrs:
