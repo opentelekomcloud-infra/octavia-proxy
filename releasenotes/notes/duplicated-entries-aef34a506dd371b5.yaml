@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix ``duplication`` on ``list``. (`#112 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/112>`_)
