@@ -41,7 +41,7 @@ class TestDriverInvocation(base.TestCase):
         'network_ids': ['07f0a424-cdb9-4584-b9c0-6a38fbacdc3a'],
     }
     attrs_v3 = {
-        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3a',
+        'id': '07f0a424-cdb9-4584-b9c0-6a38fbacdc3b',
         'name': 'test_v3',
         'availability_zone': 'eu-nl-01',
         'admin_state_up': True,
