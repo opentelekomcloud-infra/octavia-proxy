@@ -54,4 +54,16 @@ def driver_invocation(context=None, function=None, is_parallel=True, *params):
         for provider in enabled_providers:
             result.extend(driver_call(provider, context, function, *params))
         LOG.debug(f'{function}, result: {result}')
+    result = remove_duplicated_entries(result)
+    return result
+
+
+def remove_duplicated_entries(entries: list) -> list:
+    result = []
+    temp = {}
+    for index in range(len(entries)):
+        if entries[index].id not in temp.values():
+            temp.update({index: entries[index].id})
+    for key in temp:
+        result.append(entries[key])
     return result
