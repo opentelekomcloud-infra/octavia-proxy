@@ -259,7 +259,8 @@ SORTED_EXAMPLE = [
         'provisioning_status': 'ACTIVE',
         'tags': [],
         'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
-        'updated_at': datetime.datetime(2021, 10, 13, 8, 17, 36, tzinfo=tzlocal()),
+        'updated_at': datetime.datetime(2021, 10, 13, 8, 17, 36,
+                                        tzinfo=tzlocal()),
         'vip_address': '192.168.241.29',
         'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a4',
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
