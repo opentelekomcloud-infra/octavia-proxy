@@ -13,7 +13,7 @@
 #    under the License.
 from operator import itemgetter
 
-import pytz
+from dateutil.tz import tzlocal
 from oslo_log import log as logging
 from pecan import request
 
@@ -288,11 +288,13 @@ class PaginationHelper(object):
         else:
             return entities_list
 
-    def apply_tz(self, entities_list):
-        utc = pytz.UTC
-        date_keys = ['updated_at', 'created_at']
+    def apply_tz(self, entities_list, date_keys=None):
+        if date_keys is None:
+            date_keys = ['updated_at', 'created_at']
         for entity in entities_list:
-            if any(k in date_keys for k in entity):
-                for key in date_keys:
-                    entity.update({key: entity.get(key).replace(tzinfo=utc)})
+            for dk in date_keys:
+                if dk in entity:
+                    entity.update(
+                        {dk: entity.get(dk).replace(tzinfo=tzlocal())}
+                    )
         return entities_list
