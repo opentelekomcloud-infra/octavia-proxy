@@ -11,12 +11,14 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+import datetime
 from unittest import mock
 
-from octavia_proxy.tests.unit import base
+from dateutil.tz import tzlocal
+
 from octavia_proxy.api.common import pagination
 from octavia_proxy.common import exceptions
+from octavia_proxy.tests.unit import base
 
 DEFAULT_SORTS = [('created_at', 'asc'), ('id', 'asc')]
 EXAMPLE = [
@@ -30,11 +32,11 @@ EXAMPLE = [
         "vip_address": "192.168.241.33",
         "listeners": [],
         "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:01:08",
+        "created_at": datetime.datetime(2021, 10, 13, 8, 10, 36),
         "tags": [],
         "pools": [],
         "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:01:09",
+        "updated_at": datetime.datetime(2021, 10, 13, 8, 11, 36),
         "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
         "admin_state_up": True,
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a9"
@@ -49,11 +51,11 @@ EXAMPLE = [
         "vip_address": "192.168.241.31",
         "listeners": [],
         "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:03:08",
+        "created_at": datetime.datetime(2021, 10, 13, 8, 13, 36),
         "tags": [],
         "pools": [],
         "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:03:09",
+        "updated_at": datetime.datetime(2021, 10, 13, 8, 14, 36),
         "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
         "admin_state_up": True,
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a7"
@@ -68,11 +70,11 @@ EXAMPLE = [
         "vip_address": "192.168.241.31",
         "listeners": [],
         "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:04:08",
+        "created_at": datetime.datetime(2021, 10, 13, 8, 14, 36),
         "tags": [],
         "pools": [],
         "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:05:09",
+        "updated_at": datetime.datetime(2021, 10, 13, 8, 15, 36),
         "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
         "admin_state_up": True,
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a6"
@@ -87,11 +89,11 @@ EXAMPLE = [
         "vip_address": "192.168.241.32",
         "listeners": [],
         "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:02:08",
+        "created_at": datetime.datetime(2021, 10, 13, 8, 11, 36),
         "tags": [],
         "pools": [],
         "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:02:09",
+        "updated_at": datetime.datetime(2021, 10, 13, 8, 12, 36),
         "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
         "admin_state_up": True,
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a8"
@@ -106,11 +108,11 @@ EXAMPLE = [
         "vip_address": "192.168.241.29",
         "listeners": [],
         "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:06:08",
+        "created_at": datetime.datetime(2021, 10, 13, 8, 16, 36),
         "tags": [],
         "pools": [],
         "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:06:09",
+        "updated_at": datetime.datetime(2021, 10, 13, 8, 17, 36),
         "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
         "admin_state_up": True,
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a4"
@@ -125,11 +127,11 @@ EXAMPLE = [
         "vip_address": "192.168.241.30",
         "listeners": [],
         "project_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "created_at": "2021-10-13T11:05:08",
+        "created_at": datetime.datetime(2021, 10, 13, 8, 15, 36),
         "tags": [],
         "pools": [],
         "tenant_id": "959db9b6017d4a1fa1c6fd17b682fake",
-        "updated_at": "2021-10-13T11:05:09",
+        "updated_at": datetime.datetime(2021, 10, 13, 8, 16, 36),
         "vip_subnet_id": "6543210a-847b-4cb5-a1b8-282c4a1fake5",
         "admin_state_up": True,
         "vip_port_id": "15c5fca3-f02a-485e-920f-fake987317a5"
@@ -139,7 +141,8 @@ EXAMPLE = [
 SORTED_EXAMPLE = [
     {
         'admin_state_up': True,
-        'created_at': '2021-10-13T11:01:08',
+        'created_at': datetime.datetime(2021, 10, 13, 8, 10, 36,
+                                        tzinfo=tzlocal()),
         'description': 'Best App lb test',
         'id': '147f018a-f401-48d1-b58a-50fe6600fake',
         'listeners': [],
@@ -151,14 +154,16 @@ SORTED_EXAMPLE = [
         'provisioning_status': 'ACTIVE',
         'tags': [],
         'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
-        'updated_at': '2021-10-13T11:01:09',
+        'updated_at': datetime.datetime(2021, 10, 13, 8, 11, 36,
+                                        tzinfo=tzlocal()),
         'vip_address': '192.168.241.33',
         'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a9',
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
     },
     {
         'admin_state_up': True,
-        'created_at': '2021-10-13T11:02:08',
+        'created_at': datetime.datetime(2021, 10, 13, 8, 11, 36,
+                                        tzinfo=tzlocal()),
         'description': 'Best App lb test 2',
         'id': '123f018a-f401-48d1-b58a-50fe6600fake',
         'listeners': [],
@@ -170,14 +175,16 @@ SORTED_EXAMPLE = [
         'provisioning_status': 'ACTIVE',
         'tags': [],
         'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
-        'updated_at': '2021-10-13T11:02:09',
+        'updated_at': datetime.datetime(2021, 10, 13, 8, 12, 36,
+                                        tzinfo=tzlocal()),
         'vip_address': '192.168.241.32',
         'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a8',
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
     },
     {
         'admin_state_up': True,
-        'created_at': '2021-10-13T11:03:08',
+        'created_at': datetime.datetime(2021, 10, 13, 8, 13, 36,
+                                        tzinfo=tzlocal()),
         'description': 'Best App lb test 3',
         'id': '345f018a-f401-48d1-b58a-50fe6600fake',
         'listeners': [],
@@ -189,14 +196,16 @@ SORTED_EXAMPLE = [
         'provisioning_status': 'ACTIVE',
         'tags': [],
         'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
-        'updated_at': '2021-10-13T11:03:09',
+        'updated_at': datetime.datetime(2021, 10, 13, 8, 14, 36,
+                                        tzinfo=tzlocal()),
         'vip_address': '192.168.241.31',
         'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a7',
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
     },
     {
         'admin_state_up': True,
-        'created_at': '2021-10-13T11:04:08',
+        'created_at': datetime.datetime(2021, 10, 13, 8, 14, 36,
+                                        tzinfo=tzlocal()),
         'description': 'Best App lb test 4',
         'id': '456f018a-f401-48d1-b58a-50fe6600fake',
         'listeners': [],
@@ -208,14 +217,16 @@ SORTED_EXAMPLE = [
         'provisioning_status': 'ACTIVE',
         'tags': [],
         'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
-        'updated_at': '2021-10-13T11:05:09',
+        'updated_at': datetime.datetime(2021, 10, 13, 8, 15, 36,
+                                        tzinfo=tzlocal()),
         'vip_address': '192.168.241.31',
         'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a6',
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
     },
     {
         'admin_state_up': True,
-        'created_at': '2021-10-13T11:05:08',
+        'created_at': datetime.datetime(2021, 10, 13, 8, 15, 36,
+                                        tzinfo=tzlocal()),
         'description': 'Best App lb test 5',
         'id': '567f018a-f401-48d1-b58a-50fe6600fake',
         'listeners': [],
@@ -227,14 +238,16 @@ SORTED_EXAMPLE = [
         'provisioning_status': 'ACTIVE',
         'tags': [],
         'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
-        'updated_at': '2021-10-13T11:05:09',
+        'updated_at': datetime.datetime(2021, 10, 13, 8, 16, 36,
+                                        tzinfo=tzlocal()),
         'vip_address': '192.168.241.30',
         'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a5',
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'
     },
     {
         'admin_state_up': True,
-        'created_at': '2021-10-13T11:06:08',
+        'created_at': datetime.datetime(2021, 10, 13, 8, 16, 36,
+                                        tzinfo=tzlocal()),
         'description': 'Best App lb test 6',
         'id': '678f018a-f401-48d1-b58a-50fe6600fake',
         'listeners': [],
@@ -246,7 +259,8 @@ SORTED_EXAMPLE = [
         'provisioning_status': 'ACTIVE',
         'tags': [],
         'tenant_id': '959db9b6017d4a1fa1c6fd17b682fake',
-        'updated_at': '2021-10-13T11:06:09',
+        'updated_at': datetime.datetime(2021, 10, 13, 8, 17, 36,
+                                        tzinfo=tzlocal()),
         'vip_address': '192.168.241.29',
         'vip_port_id': '15c5fca3-f02a-485e-920f-fake987317a4',
         'vip_subnet_id': '6543210a-847b-4cb5-a1b8-282c4a1fake5'

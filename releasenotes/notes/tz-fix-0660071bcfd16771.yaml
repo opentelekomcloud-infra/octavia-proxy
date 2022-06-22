@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed ``TypeError`` can't compare ``offset-naive`` and ``offset-aware`` datetimes (`#116 <https://github.com/opentelekomcloud-infra/octavia-proxy/pull/116>`_)
