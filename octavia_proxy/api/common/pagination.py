@@ -11,9 +11,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
 from operator import itemgetter
 
+from dateutil.tz import tzlocal
 from oslo_log import log as logging
 from pecan import request
 
@@ -275,6 +275,7 @@ class PaginationHelper(object):
     def apply(self, entities_list):
         # Filtering values
         # Sorting values
+        entities_list = self.apply_tz(entities_list)
         if CONF.api_settings.allow_sorting:
             self._make_sorting(
                 entities_list=entities_list,
@@ -286,3 +287,14 @@ class PaginationHelper(object):
             return self._make_pagination(entities_list=entities_list)
         else:
             return entities_list
+
+    def apply_tz(self, entities_list, date_keys=None):
+        if date_keys is None:
+            date_keys = ['updated_at', 'created_at']
+        for entity in entities_list:
+            for dk in date_keys:
+                if dk in entity:
+                    entity.update(
+                        {dk: entity.get(dk).replace(tzinfo=tzlocal())}
+                    )
+        return entities_list
