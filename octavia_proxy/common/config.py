@@ -76,6 +76,8 @@ api_opts = [
                help=_('Default provider driver.')),
     cfg.StrOpt('region', default='eu-de',
                help=_('Service region (used to select driver endpoint).')),
+    cfg.StrOpt('base_az', default='eu-de-01',
+               help=_("Default AZ for load balancer v3")),
 ]
 
 elb_driver_opts = [
@@ -160,7 +162,7 @@ def setup_logging(conf):
     :param conf: a cfg.ConfOpts object
     """
     logging.set_defaults(default_log_levels=logging.get_default_log_levels() +
-                         EXTRA_LOG_LEVEL_DEFAULTS)
+                                            EXTRA_LOG_LEVEL_DEFAULTS)
     product_name = "octavia_proxy"
     logging.setup(conf, product_name)
     LOG.info("Logging enabled!")
