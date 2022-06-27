@@ -76,8 +76,8 @@ api_opts = [
                help=_('Default provider driver.')),
     cfg.StrOpt('region', default='eu-de',
                help=_('Service region (used to select driver endpoint).')),
-    cfg.StrOpt('base_az', default='eu-de-01',
-               help=_("Default AZ for load balancer v3")),
+    cfg.StrOpt('default_az', default='eu-de-01',
+               help=_("Default AZ for dedicated load balancer")),
 ]
 
 elb_driver_opts = [
