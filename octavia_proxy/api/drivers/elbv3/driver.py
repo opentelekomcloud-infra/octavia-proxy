@@ -1,4 +1,5 @@
 from octavia_lib.api.drivers import provider_base as driver_base
+from oslo_config import cfg
 from oslo_log import log as logging
 
 from octavia_proxy.api.v2.types import (
@@ -18,6 +19,7 @@ from octavia_proxy.common.utils import (
 )
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 PROVIDER = 'elbv3'
 
 
@@ -120,11 +122,16 @@ class ELBv3Driver(driver_base.ProviderDriver):
             lb_attrs.pop('pools')
         if 'listeners' in lb_attrs:
             lb_attrs.pop('listeners')
+        if 'provider' in lb_attrs:
+            lb_attrs.pop('provider')
         if 'vip_subnet_id' in lb_attrs:
             lb_attrs['vip_subnet_cidr_id'] = lb_attrs['vip_subnet_id']
         if 'vip_network_id' in lb_attrs:
             lb_attrs['elb_virsubnet_ids'] = [lb_attrs.pop('vip_network_id')]
-        azs = lb_attrs.pop('availability_zone', 'eu-nl-01')
+        azs = lb_attrs.pop(
+            'availability_zone',
+            CONF.elbv3_driver_settings.default_az
+        )
         lb_attrs['availability_zone_list'] = azs.replace(' ', '').split(',')
 
         if 'tags' in lb_attrs:
@@ -140,12 +147,10 @@ class ELBv3Driver(driver_base.ProviderDriver):
                 name_or_id=l7_flavor.name.replace('L7', 'L4')
             ).id
             lb_attrs.pop('flavor_id')
-
         lb = session.vlb.create_load_balancer(**lb_attrs)
         lb = elbv3_backmapping(lb)
         lb_data = load_balancer.LoadBalancerResponse.from_sdk_object(
             self._normalize_lb(lb))
-
         lb_data.provider = PROVIDER
         LOG.debug('Created LB according to API is %s' % lb_data)
         return lb_data
