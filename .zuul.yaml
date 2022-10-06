@@ -41,20 +41,23 @@
       sphinx_pdf_files:
         - "doc-octavia-proxy.pdf"
         - "api-ref-octavia-proxy.pdf"
-    templates:
-      - publish-to-pypi
-      - publish-otc-docs-hc-pti
-      - api-ref-hc-jobs
-      - release-notes-jobs
+          #    templates:
+          #      - publish-to-pypi
+          #      - publish-otc-docs-hc-pti
+          #      - api-ref-hc-jobs
+          #      - release-notes-jobs
     check:
       jobs:
-        - otc-tox-pep8
-        - otc-tox-py39-tips
-        - octavia-proxy-build-image
-        - tox-functional:
+        #- otc-tox-pep8
+        #- otc-tox-py39-tips
+        #- octavia-proxy-build-image
+        #- tox-functional:
+        #    required-projects:
+        #      - name: opentelekomcloud/python-otcextensions
+        #        override-checkout: elb
+        - tox-functional-de:
             required-projects:
               - name: opentelekomcloud/python-otcextensions
-                override-checkout: elb
     gate:
       jobs:
         - otc-tox-pep8
