@@ -55,6 +55,9 @@
             required-projects:
               - name: opentelekomcloud/python-otcextensions
                 override-checkout: elb
+        - tox-functional-de:
+            required-projects:
+              - name: opentelekomcloud/python-otcextensions
     gate:
       jobs:
         - otc-tox-pep8
