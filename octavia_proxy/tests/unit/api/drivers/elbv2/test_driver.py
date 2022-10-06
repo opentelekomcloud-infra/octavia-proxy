@@ -720,6 +720,7 @@ class TestElbv2Loadbalancers(base.TestCase):
             f"lbaas/loadbalancers/{lb_id}",
             microversion=None,
             params={},
+            skip_cache=False
         )
 
         self.assertEquals(lb.vip_address, self.example_response["vip_address"])

@@ -2,4 +2,4 @@ doc8>=0.8.0  # Apache-2.0
 stestr>=1.0.0 # Apache-2.0
 flake8
 oslotest>=3.2.0 # Apache-2.0
-
+WebTest>=2.0.26 # MIT
