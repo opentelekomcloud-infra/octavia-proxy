@@ -31,15 +31,13 @@
 
 - job:
     name: octavia-proxy-tox-functional
-    parent: otc-tox
-    nodeset:
-      nodes:
-        - name: debian
-          label: zuul-debian
+    parent: tox-functional
     description: |
-      Run functional tests (py3.11) on the Debian pod
+      Run functional tests against OTC (py3.11, project eu-de_zuul_otce).
+      Inherits the Vault-backed clouds.yaml, OS_CLOUD=functest_cloud and
+      the AppRole secret from the trusted tox-functional base job
+      (zuul-infra), so cloud credentials are fetched at runtime.
     vars:
-      tox_envlist: functional
       python_version: "3.11"
     required-projects:
       - name: opentelekomcloud/python-otcextensions
