@@ -20,7 +20,11 @@
         - name: debian
           label: zuul-debian
     description: |
-      Run unit tests (py3.11) with latest dependencies on the Debian pod
+      Run unit tests (py3.11) with latest dependencies on the Debian pod.
+      Non-voting: this is a "tips" canary against upper-constraints/master,
+      so upstream dependency drift (e.g. openstacksdk signature changes)
+      surfaces here without blocking the gate.
+    voting: false
     required-projects:
       - name: opentelekomcloud/python-otcextensions
         override-checkout: master
