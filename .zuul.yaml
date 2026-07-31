@@ -1,22 +1,24 @@
 # eco2 (otcinfra2) only provides the Debian python-tox pod
 # (quay.io/opentelekomcloud/python-tox:latest, Python 3.11 only).
-- nodeset:
-    name: octavia-proxy-debian
-    nodes:
-      - name: debian
-        label: zuul-debian
-
+# Nodesets are defined inline per job so no standalone nodeset config
+# object is required (the tenant include list strips standalone nodesets).
 - job:
     name: octavia-proxy-tox-pep8
     parent: otc-tox-pep8
-    nodeset: octavia-proxy-debian
+    nodeset:
+      nodes:
+        - name: debian
+          label: zuul-debian
     description: |
       Run pep8/lint on the Debian (py3.11) pod
 
 - job:
     name: octavia-proxy-tox-py311-tips
     parent: otc-tox-py311
-    nodeset: octavia-proxy-debian
+    nodeset:
+      nodes:
+        - name: debian
+          label: zuul-debian
     description: |
       Run unit tests (py3.11) with latest dependencies on the Debian pod
     required-projects:
@@ -26,7 +28,10 @@
 - job:
     name: octavia-proxy-tox-functional
     parent: otc-tox
-    nodeset: octavia-proxy-debian
+    nodeset:
+      nodes:
+        - name: debian
+          label: zuul-debian
     description: |
       Run functional tests (py3.11) on the Debian pod
     vars:
