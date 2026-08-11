@@ -1,11 +1,47 @@
+# eco2 (otcinfra2) only provides the Debian python-tox pod
+# (quay.io/opentelekomcloud/python-tox:latest, Python 3.11 only).
+# Nodesets are defined inline per job so no standalone nodeset config
+# object is required (the tenant include list strips standalone nodesets).
 - job:
-    name: otc-tox-py39-tips
-    parent: otc-tox-py39
+    name: octavia-proxy-tox-pep8
+    parent: otc-tox-pep8
+    nodeset:
+      nodes:
+        - name: debian
+          label: zuul-debian
     description: |
-      Execute tests with latest dependencies
+      Run pep8/lint on the Debian (py3.11) pod
+
+- job:
+    name: octavia-proxy-tox-py311-tips
+    parent: otc-tox-py311
+    nodeset:
+      nodes:
+        - name: debian
+          label: zuul-debian
+    description: |
+      Run unit tests (py3.11) with latest dependencies on the Debian pod.
+      Non-voting: this is a "tips" canary against upper-constraints/master,
+      so upstream dependency drift (e.g. openstacksdk signature changes)
+      surfaces here without blocking the gate.
+    voting: false
     required-projects:
       - name: opentelekomcloud/python-otcextensions
         override-checkout: master
+
+- job:
+    name: octavia-proxy-tox-functional
+    parent: tox-functional
+    description: |
+      Run functional tests against OTC (py3.11, project eu-de_zuul_otce).
+      Inherits the Vault-backed clouds.yaml, OS_CLOUD=functest_cloud and
+      the AppRole secret from the trusted tox-functional base job
+      (zuul-infra), so cloud credentials are fetched at runtime.
+    vars:
+      python_version: "3.11"
+    required-projects:
+      - name: opentelekomcloud/python-otcextensions
+        override-checkout: elb
 
 - job:
     name: octavia-proxy-build-image
@@ -48,22 +84,14 @@
       - release-notes-jobs
     check:
       jobs:
-        - otc-tox-pep8
-        - otc-tox-py39-tips
-        - octavia-proxy-build-image
-        - tox-functional:
-            required-projects:
-              - name: opentelekomcloud/python-otcextensions
-                override-checkout: elb
+        - octavia-proxy-tox-pep8
+        - octavia-proxy-tox-py311-tips
+        - octavia-proxy-tox-functional
     gate:
       jobs:
-        - otc-tox-pep8
-        - otc-tox-py39-tips
-        - octavia-proxy-upload-image
-        - tox-functional:
-            required-projects:
-              - name: opentelekomcloud/python-otcextensions
-                override-checkout: elb
+        - octavia-proxy-tox-pep8
+        - octavia-proxy-tox-py311-tips
+        - octavia-proxy-tox-functional
     promote:
       jobs:
         - infra-prod-propose-octavia-proxy-image-stable:

@@ -27,7 +27,8 @@ class Context(common_context.RequestContext):
         self.token_info = token_info
 
         self.token_auth = token.Token(
-            auth_url=CONF.validatetoken.www_authenticate_uri)
+            auth_url=CONF.validatetoken.www_authenticate_uri,
+            token=self.auth_token)
         self.token_auth.auth_ref = access.create(
             body=token_info,
             auth_token=self.auth_token
