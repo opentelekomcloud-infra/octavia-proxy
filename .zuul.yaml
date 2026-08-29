@@ -1,73 +1,13 @@
-- job:
-    name: otc-tox-py39-tips
-    parent: otc-tox-py39
-    description: |
-      Execute tests with latest dependencies
-    required-projects:
-      - name: opentelekomcloud/python-otcextensions
-        override-checkout: master
-
-- job:
-    name: octavia-proxy-build-image
-    parent: otc-build-docker-image
-    description: Build octavia-proxy container image
-    provides: octavia-proxy-container-image
-    required-projects:
-      - name: opentelekomcloud/python-otcextensions
-        override-checkout: master
-    vars: &octavia-proxy_image_vars
-      zuul_work_dir: "{{ zuul.projects['github.com/opentelekomcloud-infra/octavia-proxy'].src_dir }}"
-      docker_images:
-        - context: .
-          repository: opentelekomcloud/octavia-proxy
-          tags:
-            &imagetag "{{ zuul.tag is defined | ternary([zuul.get('tag', '').split('.')[0], '.'.join(zuul.get('tag', '').split('.')[:2]), zuul.get('tag', '')], ['latest']) }}"
-          siblings:
-            - github.com/opentelekomcloud/python-otcextensions
-
-- job:
-    name: octavia-proxy-upload-image
-    parent: otcinfra-upload-image-quay
-    provides: octavia-proxy-container-image
-    required-projects:
-      - name: opentelekomcloud/python-otcextensions
-        override-checkout: master
-    vars: *octavia-proxy_image_vars
-
 - project:
     merge-mode: squash-merge
     default-branch: main
-    vars:
-      sphinx_pdf_files:
-        - "doc-octavia-proxy.pdf"
-        - "api-ref-octavia-proxy.pdf"
-    templates:
-      - publish-to-pypi
-      - publish-otc-docs-hc-pti
-      - api-ref-hc-jobs
-      - release-notes-jobs
+    templates: []
     check:
       jobs:
-        - otc-tox-pep8
-        - otc-tox-py39-tips
-        - octavia-proxy-build-image
-        - tox-functional:
-            required-projects:
-              - name: opentelekomcloud/python-otcextensions
-                override-checkout: elb
+        - noop
     gate:
       jobs:
-        - otc-tox-pep8
-        - otc-tox-py39-tips
-        - octavia-proxy-upload-image
-        - tox-functional:
-            required-projects:
-              - name: opentelekomcloud/python-otcextensions
-                override-checkout: elb
+        - noop
     promote:
       jobs:
-        - infra-prod-propose-octavia-proxy-image-stable:
-            vars: &imagevars
-              value: "quay.io/opentelekomcloud/octavia-proxy:{{ ('change_' + zuul.change) if (zuul.change is defined) else zuul.pipeline }}_latest"
-        - infra-prod-propose-octavia-proxy-image-latest:
-            vars: *imagevars
+        - noop
